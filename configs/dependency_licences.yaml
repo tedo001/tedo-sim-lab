@@ -35,6 +35,7 @@ packages:
   torchvision: {spdx: BSD-3-Clause}
   opencv-python-headless: {spdx: Apache-2.0}
   scikit-learn: {spdx: BSD-3-Clause}
+  joblib: {spdx: BSD-3-Clause}
   xgboost: {spdx: Apache-2.0}
   mlflow: {spdx: Apache-2.0}
   matplotlib: {spdx: PSF-2.0}

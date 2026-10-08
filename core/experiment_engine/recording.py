@@ -28,6 +28,7 @@ log = logging.getLogger("tedo.worker")
 #: Run-folder files copied to MLflow at the end (path, artifact folder). last.pt stays local.
 ARTIFACTS = (("experiment.yaml", "spec"), ("snapshot.json", "spec"), ("code.diff", "spec"),
              ("run_info.json", "results"), ("metrics.jsonl", "results"), ("test_confusion.json", "results"),
+             ("results.json", "results"), ("checkpoints/model.joblib", "model"),
              ("explainer.npz", "explainer"), ("explainer.json", "explainer"),
              ("checkpoints/best.pt", "checkpoints"))
 

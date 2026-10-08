@@ -22,6 +22,7 @@ from ...services.runs import RunView
 from ..icons import icon
 from ..widgets import Card, EpochChart, KeyValues, Pill, label
 from .home_cards import local_time
+from .sklearn_results import SklearnResults, read_results
 
 __all__ = ["CURVES", "RunDetail", "STATUS_TONES", "duration_text"]
 
@@ -102,7 +103,7 @@ class RunDetail(QWidget):
         self.summary.add(buttons)
         layout.addWidget(self.summary)
 
-        curves = Card("Curves", "per epoch")
+        self.curves = curves = Card("Curves", "per epoch")
         grid = QGridLayout()
         grid.setSpacing(16)
         self.charts: dict[str, EpochChart] = {}
@@ -117,6 +118,8 @@ class RunDetail(QWidget):
         self.result_values = KeyValues(tuple((title, "—") for _, title in _RESULTS))
         self.results.add(self.result_values)
         layout.addWidget(self.results)
+        self.tabular = SklearnResults()  # scikit-learn runs: one fit, so results instead of curves
+        layout.addWidget(self.tabular)
 
         log = Card("Log", "run.log")
         self.log = QPlainTextEdit()
@@ -179,7 +182,12 @@ class RunDetail(QWidget):
             value = metrics.get(key)
             text = "—" if value is None else f"{int(value)}" if key == "best_epoch" else f"{value:.4f}"
             self.result_values.set_value(title, text)
-        self.results.setVisible(any(key in metrics for key, _ in _RESULTS[:1]))
+        self.curves.setVisible(not view.tabular)
+        self.results.setVisible(not view.tabular and any(key in metrics for key, _ in _RESULTS[:1]))
+        found = read_results(view.run_dir) if view.tabular else None
+        self.tabular.setVisible(found is not None)
+        if found is not None:
+            self.tabular.show_results(found)
         self._step(view.id)
 
     def _step(self, run_id: str) -> None:
@@ -194,9 +202,12 @@ class RunDetail(QWidget):
             return
         self.progress_text.setVisible(True)
         self.progress.setValue(int(live.fraction * 1000))
-        parts = [f"epoch {live.epoch} of {live.epochs}" if live.epoch else "starting…"]
-        if live.steps:
-            parts.append(f"batch {live.step} of {live.steps}")
+        if self.view.tabular:
+            parts = [f"stage {live.step} of {live.steps}" if live.steps else "starting…"]
+        else:
+            parts = [f"epoch {live.epoch} of {live.epochs}" if live.epoch else "starting…"]
+            if live.steps:
+                parts.append(f"batch {live.step} of {live.steps}")
         for key in ("train_loss", "train_acc"):
             if key in live.metrics:
                 parts.append(f"{key} {live.metrics[key]:.4f}")
@@ -228,7 +239,7 @@ class RunDetail(QWidget):
             lines += [f"– {note}" for note in notes] or ["– same Python, packages and code as the original"]
         mine = self.ctx.store.latest_metrics(view.id)
         theirs = self.ctx.store.latest_metrics(view.parent_run_id)
-        for key in ("test_acc", "test_f1"):
+        for key in ("test_acc", "test_f1", "test_r2", "test_rmse", "silhouette", "explained_variance"):
             if key in mine and key in theirs:
                 lines.append(f"{key}: {mine[key]:.4f} now, {theirs[key]:.4f} originally "
                              f"(difference {mine[key] - theirs[key]:+.4f})")

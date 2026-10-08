@@ -106,12 +106,14 @@ class ExperimentService(QObject):
         return new_id_
 
     def evaluate(self, run_id: str, checkpoint: str = "best", split: str = "test") -> str:
-        """Queue scoring ``checkpoints/<checkpoint>.pt`` on ``split``; returns the job id. The result
-        lands in ``evaluations/<split>-<checkpoint>.json`` in the run folder."""
+        """Queue scoring ``checkpoints/<checkpoint>.pt`` (``.joblib`` for scikit-learn) on ``split``;
+        returns the job id. The result lands in ``evaluations/<split>-<checkpoint>.json``."""
         view = self.view(run_id)
-        path = view.run_dir / "checkpoints" / f"{checkpoint}.pt"
-        if not path.is_file():
-            raise FileNotFoundError(f"run {run_id} has no {checkpoint}.pt")
+        folder = view.run_dir / "checkpoints"
+        path = next((folder / f"{checkpoint}{suffix}" for suffix in (".pt", ".joblib")
+                     if (folder / f"{checkpoint}{suffix}").is_file()), None)
+        if path is None:
+            raise FileNotFoundError(f"run {run_id} has no {checkpoint} checkpoint")
         return self.jobs.submit_run(view.run_dir, title=f"Evaluate {view.name} ({checkpoint}, {split})",
                                     args=("--evaluate", str(path), "--split", split))
 
@@ -120,8 +122,9 @@ class ExperimentService(QObject):
         view = self.view(run_id)
         found = []
         if (view.run_dir / "test_confusion.json").is_file():
-            found.append(("End of training · test split · best checkpoint",
-                          view.run_dir / "test_confusion.json"))
+            title = ("End of fitting · test rows · fitted model" if view.tabular else
+                     "End of training · test split · best checkpoint")
+            found.append((title, view.run_dir / "test_confusion.json"))
         for path in sorted((view.run_dir / "evaluations").glob("*.json")):
             split, _, checkpoint = path.stem.partition("-")
             found.append((f"Re-evaluated · {'validation' if split == 'val' else split} split · {checkpoint} "

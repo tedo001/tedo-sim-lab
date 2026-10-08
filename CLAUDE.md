@@ -76,8 +76,11 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `labs/computer_vision/classification.py` | `TorchClassificationRunner` (+ `training/`: data splits and transforms, loop, metrics, checkpoints); `export.py` hands TinyVGG to the explainer |
 | `labs/computer_vision/presets.py` | Preset experiments shown in the Computer Vision lab |
 | `app/services/experiments.py` | `ExperimentService`: launch (experiment row + run folder + queue), record worker events in `LabStore`, cancel, resume, builder drafts; `runs.py`: `RunView`, `LiveState` (ETA) |
-| `app/services/downloads.py` | `DownloadService`: one background download per dataset, licence acknowledgement |
-| `app/ui/pages/builder/` | Experiment Builder (`form.py` ⇄ `ExperimentSpec`, `choosers.py` dataset/model + downloads) |
+| `labs/classical_ml/` | `SklearnRunner` (`runner.py`): `tables` (target/features/subset, seeded split), `pipeline` (impute, one-hot, scale, `SelectKBest`, grid/random search), `models` (`BUILDERS`), `report` (metrics, ROC/PR, permutation importance, clusters, projections), `explain` (optional SHAP), `datasets` (scikit-learn tables, `CsvAdapter`, `import_csv`), `presets` |
+| `app/services/downloads.py` | `DownloadService`: one background download per dataset, licence acknowledgement; `import_csv` (card + file into `datasets/imported/`, `imported` signal) |
+| `app/ui/pages/builder/` | Experiment Builder (`form.py` ⇄ `ExperimentSpec`, switching `torch_section.py` / `sklearn_section.py` by task; `fields.py` controls and YAML boxes; `choosers.py` dataset/model + downloads) |
+| `app/ui/pages/classical_ml.py` | Classical ML lab: presets (Run / Open in builder), `csv_import.py`, tabular datasets and models |
+| `app/ui/pages/sklearn_results.py` | `SklearnResults` from `results.json`, on the Training and Evaluation pages; charts in `app/ui/widgets/plots.py` (`CurveChart`, `ScatterChart`, `BarList`) |
 | `core/experiment_engine/snapshot.py` | Reproducibility snapshot (`snapshot.json`, `code.diff`): Python, platform, packages, git, dataset fingerprint; `compare()` |
 | `core/experiment_engine/recording.py` | What a worker records around a run: snapshot + `MlflowTracker` (`core/tracking/mlflow_tracker.py`) |
 | `app/ui/pages/evaluation.py` | Evaluation: scores, `ConfusionMatrixView`, per-class report, re-score best/last on test/val (`worker --evaluate`) |
@@ -128,7 +131,10 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 - **Runs**: a run folder is `experiments/<name>-<experiment id>/<run id>/` with `experiment.yaml`,
   `checkpoints/{last,best}.pt` (`last.pt` every epoch = the resume point), `metrics.jsonl`,
   `run_info.json`, `test_confusion.json`, `snapshot.json` (+ `code.diff`), `run.log`, `evaluations/`
-  and, for TinyVGG, `explainer.npz/json`. The app records events in `LabStore` (metrics per
+  and, for TinyVGG, `explainer.npz/json`. scikit-learn runs (`RunView.tabular`) are one fit: one
+  "epoch", stages as steps, `checkpoints/model.joblib` (a pickle: only load the lab's own),
+  `results.json` (everything the results views draw) and `test_confusion.json` for
+  classification; unsupervised tasks fit every row. The app records events in `LabStore` (metrics per
   epoch); the worker mirrors each run to MLflow (`mlflow_tracking` setting; `TEDO_LAB_MLFLOW=0`
   switches it off, which the test suite does). Tracking never fails a run. "Reproduce" queues the
   same `experiment.yaml` as a child run and lists environment differences first.
@@ -156,7 +162,9 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   from NVML only.
 - **Charts** follow the dataviz rules: one series per chart (small multiples), one axis, 2 px
   lines, recessive grid, values in text colours, gaps for missing data, hover crosshair.
-  Series colour `series_1` is validated against the dark surface.
+  Series colour `series_1` is validated against the dark surface. Scatter groups: `series_1..3` pass
+  all-pairs checks; with more than three groups one is highlighted and the rest fold into
+  `series_other`.
 - **CNN Explainer** is a port of poloclub/cnn-explainer (MIT): keep its notice in
   `labs/computer_vision/explainer/LICENSE-cnn-explainer.txt` and the credit on the page. Never copy
   its Tiny ImageNet images or pretrained weights (ImageNet-derived). Its numpy engine must match
@@ -213,7 +221,10 @@ Design for it now:
       never fails a run), reproducibility snapshot, Reproduce (child run, differences, result
       comparison), Evaluation page (confusion matrix, per-class report, re-score checkpoints),
       MLflow page with the MLflow UI
-- [ ] Phase 6 — Classical ML / XGBoost lab
+- [x] Phase 6 — Classical ML lab: SklearnRunner (classification, regression, clustering, PCA;
+      imputation, one-hot, scaling, SelectKBest, CV, grid/random search, permutation importance,
+      optional SHAP), 11 scikit-learn/XGBoost models, Diabetes card, CSV import, presets, builder
+      scikit-learn section, results on the Training and Evaluation pages
 - [ ] Phase 7 — Dataset Hub, Ontology Explorer, COCO inspector, Model Zoo, Model Registry
 - [ ] Phase 8 — Compare, benchmarking, report export
 - [ ] Phase 9 — Plugin Store, Terminal, Notebook, Jupyter, Colab, Deep Learning builder

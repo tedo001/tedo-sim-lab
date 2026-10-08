@@ -18,7 +18,10 @@ from core.experiment_engine.runner import RunnerRegistry
 from core.model_registry import ModelRegistry
 from core.plugin_api import PluginRegistry
 
-__all__ = ["Catalog", "config_roots", "load_cards", "load_catalog"]
+__all__ = ["IMPORTED", "Catalog", "config_roots", "load_cards", "load_catalog"]
+
+#: Folder under the workspace's datasets/ holding imported files and their cards.
+IMPORTED = "imported"
 
 
 @dataclass
@@ -56,6 +59,9 @@ def load_cards(paths: AppPaths) -> tuple[DatasetRegistry, ModelRegistry]:
     for root in config_roots(paths):
         datasets.load_dir(root / "datasets")
         models.load_dir(root / "models")
+    imported = paths.datasets / IMPORTED
+    if imported.is_dir():  # CSV files a person imported into this workspace
+        datasets.load_dir(imported)
     return datasets, models
 
 

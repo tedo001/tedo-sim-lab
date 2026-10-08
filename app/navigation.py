@@ -58,12 +58,7 @@ NAV: tuple[PageSpec, ...] = (
     _p("cnn_explainer", "CNN Explainer", "labs", "brain-circuit",
        "See how a convolutional network turns an image into a prediction, layer by layer."),
     _p("classical_ml", "Classical ML", "labs", "chart-scatter",
-       "Classical models on tabular data, tracked like neural networks.", "v0.1", 6,
-       "Linear and logistic regression, decision tree, random forest, gradient boosting, "
-       "XGBoost, SVM, KNN, naive Bayes, PCA, k-means",
-       "scikit-learn built-in datasets and CSV import; feature selection, preprocessing, "
-       "cross-validation, grid and random search",
-       "Metrics, feature importance, confusion matrix, ROC and PR curves; SHAP when installed"),
+       "Classical models on tabular data, tracked like neural networks."),
     _p("deep_learning", "Deep Learning", "labs", "network",
        "Design a network layer by layer and train it like any other model.", "v0.1", 9,
        "Layer stack: Conv, BatchNorm, ReLU, Pool, Dropout, Linear, Output",

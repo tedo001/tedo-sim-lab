@@ -1,6 +1,6 @@
-# Small tabular datasets bundled with scikit-learn (no download), all from the
-# UCI Machine Learning Repository, which publishes them under CC BY 4.0.
-# Loaders flip to "stable" in build phase 6.
+# Small tabular datasets bundled with scikit-learn (no download). Iris, Wine, Breast
+# Cancer and Digits come from the UCI Machine Learning Repository (CC BY 4.0); Diabetes
+# comes from Efron et al. (2004), who publish no licence.
 cards:
   - id: iris
     name: Iris
@@ -19,7 +19,7 @@ cards:
     splits: {all: 150}
     auto_download_allowed: true
     adapter: labs.classical_ml.datasets:SklearnBuiltinAdapter
-    maturity: planned
+    maturity: stable
     citation: R. A. Fisher. Iris. UCI Machine Learning Repository, 1936.
     tags: [sklearn, builtin, beginner]
 
@@ -35,7 +35,7 @@ cards:
     splits: {all: 178}
     auto_download_allowed: true
     adapter: labs.classical_ml.datasets:SklearnBuiltinAdapter
-    maturity: planned
+    maturity: stable
     citation: S. Aeberhard, M. Forina. Wine. UCI Machine Learning Repository, 1991.
     tags: [sklearn, builtin]
 
@@ -51,7 +51,7 @@ cards:
     splits: {all: 569}
     auto_download_allowed: true
     adapter: labs.classical_ml.datasets:SklearnBuiltinAdapter
-    maturity: planned
+    maturity: stable
     citation: W. Wolberg, O. Mangasarian, N. Street, W. Street. Breast Cancer Wisconsin
       (Diagnostic). UCI Machine Learning Repository, 1995.
     tags: [sklearn, builtin, medical, binary]
@@ -68,7 +68,28 @@ cards:
     splits: {all: 1797}
     auto_download_allowed: true
     adapter: labs.classical_ml.datasets:SklearnBuiltinAdapter
-    maturity: planned
+    maturity: stable
     citation: E. Alpaydin, C. Kaynak. Optical Recognition of Handwritten Digits. UCI Machine
       Learning Repository, 1998.
     tags: [sklearn, builtin]
+
+  - id: diabetes
+    name: Diabetes
+    description: Ten baseline measurements of 442 diabetes patients and disease progression a year
+      later; a small regression benchmark.
+    tasks: [tabular_regression]
+    modality: tabular
+    source_url: https://www4.stat.ncsu.edu/~boos/var.select/diabetes.html
+    license:
+      category: unspecified
+      name: No licence published
+      notes: Published with Efron, Hastie, Johnstone and Tibshirani, "Least Angle Regression"
+        (Annals of Statistics, 2004) and shipped with scikit-learn. Cite the paper.
+    size: 442 rows × 10 features
+    splits: {all: 442}
+    auto_download_allowed: true
+    adapter: labs.classical_ml.datasets:SklearnBuiltinAdapter
+    maturity: stable
+    citation: B. Efron, T. Hastie, I. Johnstone, R. Tibshirani. Least Angle Regression. Annals of
+      Statistics, 2004.
+    tags: [sklearn, builtin, regression]

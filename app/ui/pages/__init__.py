@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QWidget
 from ...navigation import page
 from ...services.context import AppContext
 from .builder import ExperimentBuilderPage
+from .classical_ml import ClassicalMlPage
 from .computer_vision import ComputerVisionPage
 from .documentation import DocumentationPage
 from .evaluation import EvaluationPage
@@ -27,6 +28,7 @@ __all__ = ["PAGE_FACTORIES", "build_page"]
 PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "home": HomePage,
     "cnn_explainer": ExplainerPage,
+    "classical_ml": ClassicalMlPage,
     "computer_vision": ComputerVisionPage,
     "experiment_builder": ExperimentBuilderPage,
     "evaluation": EvaluationPage,

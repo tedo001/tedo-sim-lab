@@ -26,7 +26,7 @@ def _problems(error: ValidationError) -> list[str]:
 
 class ExperimentBuilderPage(Page):
     def __init__(self, ctx: AppContext, parent: QWidget | None = None) -> None:
-        super().__init__("Experiment Builder", "task → data → model → training → device", parent)
+        super().__init__("Experiment Builder", "task → data → model → training", parent)
         self.ctx = ctx
         self.spec: ExperimentSpec | None = None
         self.problems: list[str] = []
@@ -91,6 +91,9 @@ class ExperimentBuilderPage(Page):
             self.spec = self.form.spec()
         except ValidationError as exc:
             self.spec, self.problems = None, _problems(exc)
+            self.yaml.setPlainText("")
+        except ValueError as exc:  # a model option or search space that is not a YAML mapping
+            self.spec, self.problems = None, [str(exc)]
             self.yaml.setPlainText("")
         else:
             self.yaml.setPlainText(dump_spec_text(self.spec))

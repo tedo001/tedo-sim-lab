@@ -5,13 +5,20 @@ Qt for Python (PySide6). Pick a dataset, a model, hyperparameters and a device; 
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
-> **Status: V0.1 in development — build phase 5 of 10.** The window and every page, the live
+> **Status: V0.1 in development — build phase 6 of 10.** The window and every page, the live
 > hardware monitor and dashboard, the dataset/model/plugin catalogue with licences, the lab
-> database, and image classification end to end: download MNIST, Fashion-MNIST or CIFAR-10,
-> describe an experiment in the Experiment Builder (or start from a Computer Vision preset),
-> train SimpleCNN, LeNet-5, ResNet-18 or TinyVGG in the background, follow it on the Training
-> page, open a trained TinyVGG in the CNN Explainer, evaluate and reproduce runs, and find
-> every run in MLflow. Pages that are not built say which
+> database, and two kinds of experiment end to end:
+>
+> - **Image classification**: download MNIST, Fashion-MNIST or CIFAR-10, train SimpleCNN,
+>   LeNet-5, ResNet-18 or TinyVGG in the background, open a trained TinyVGG in the CNN Explainer.
+> - **Classical ML**: logistic and linear regression, decision tree, random forest, gradient
+>   boosting, XGBoost, SVM, k-NN, naive Bayes, k-means and PCA on scikit-learn's tables or your own
+>   CSV file, with preprocessing, feature selection, cross-validation and grid or random search;
+>   results with ROC and precision-recall curves, permutation importance, SHAP values (when `shap`
+>   is installed), predicted-vs-actual and cluster/projection plots.
+>
+> Describe either in the Experiment Builder (or start from a lab preset), follow it on the Training
+> page, evaluate and reproduce it, and find every run in MLflow. Pages that are not built say which
 > phase or release delivers them. See [CLAUDE.md](CLAUDE.md) for the architecture and build status.
 
 ## Install
@@ -84,3 +91,7 @@ Ported code:
   and pretrained weights are not included: they derive from ImageNet.
 - Built-in digit samples come from the UCI Optical Recognition of Handwritten Digits data set
   (CC BY 4.0), read from the copy that ships with scikit-learn.
+
+Datasets: the Classical ML lab reads Iris, Wine, Breast Cancer and Digits (UCI, CC BY 4.0) and
+Diabetes (Efron et al. 2004, no licence published) from scikit-learn's own copies; nothing is
+downloaded. An imported CSV file keeps the licence category `unspecified`.

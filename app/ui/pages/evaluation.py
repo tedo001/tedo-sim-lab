@@ -1,5 +1,6 @@
 """Evaluation: a finished run's scores, confusion matrix and per-class report, and
-re-scoring a checkpoint on the test or validation split."""
+re-scoring a checkpoint on the test or validation split. scikit-learn runs also show their
+curves, importance and points (:class:`SklearnResults`)."""
 
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from labs.computer_vision.training.metrics import per_class, summary
 
 from ...services.context import AppContext
 from ..widgets import Card, ConfusionMatrixView, DataTable, Page, Pill, StatStrip, StatTile, label
+from .sklearn_results import SklearnResults, read_results
 
 __all__ = ["EvaluationPage"]
 
@@ -39,25 +41,25 @@ class EvaluationPage(Page):
         row.addWidget(self.run_combo, 1)
         pick.add(row)
         row = QHBoxLayout()
-        row.addWidget(label("Evaluation", "Body"))
+        self.source_label = label("Evaluation", "Body")
+        row.addWidget(self.source_label)
         row.addWidget(self.source_combo, 1)
         pick.add(row)
         again = QHBoxLayout()
         self.checkpoint_combo = _combo(160)
-        for title, key in (("best checkpoint", "best"), ("last checkpoint", "last")):
-            self.checkpoint_combo.addItem(title, key)
         self.split_combo = _combo(160)
-        for title, key in (("test split", "test"), ("validation split", "val")):
-            self.split_combo.addItem(title, key)
         self.evaluate_button = QPushButton("Evaluate again")
         self.evaluate_button.clicked.connect(self.evaluate)
         self.state = Pill("", "planned")
         self.state.hide()
-        for widget in (label("Score the", "Body"), self.checkpoint_combo, label("on the", "Body"),
-                       self.split_combo, self.evaluate_button, self.state):
+        self.again_widgets = (label("Score the", "Body"), self.checkpoint_combo, label("on the", "Body"),
+                              self.split_combo, self.evaluate_button)
+        for widget in (*self.again_widgets, self.state):
             again.addWidget(widget)
         again.addStretch(1)
         pick.add(again)
+        self.no_rescore = label("", "CardCaption", wrap=True)
+        pick.add(self.no_rescore)
         self.empty = label("No finished runs yet. Train one from the Experiment Builder; its test results "
                            "appear here.", "CardCaption", wrap=True)
         pick.add(self.empty)
@@ -77,10 +79,12 @@ class EvaluationPage(Page):
         self.body.addWidget(matrix_card)
 
         classes = Card("Per class", padded=False)
-        self.table = DataTable(("Class", "Precision", "Recall", "F1", "Images"), mono_columns=(1, 2, 3, 4),
+        self.table = DataTable(("Class", "Precision", "Recall", "F1", "Samples"), mono_columns=(1, 2, 3, 4),
                                stretch_column=0)
         classes.add(self.table)
         self.body.addWidget(classes)
+        self.tabular = SklearnResults()
+        self.body.addWidget(self.tabular)
         self.body.addStretch(1)
 
         ctx.experiments.run_changed.connect(lambda _: self.refresh(keep=True))
@@ -93,7 +97,7 @@ class EvaluationPage(Page):
         self.run_combo.blockSignals(True)
         self.run_combo.clear()
         for view in self.ctx.experiments.views(limit=200):
-            if view.finished_ok and self.ctx.experiments.evaluations(view.id):
+            if view.finished_ok and (self.ctx.experiments.evaluations(view.id) or read_results(view.run_dir)):
                 self.run_combo.addItem(f"{view.name} · {view.dataset} · {view.model} · run {view.id[:8]}",
                                        view.id)
         self.run_combo.setCurrentIndex(max(self.run_combo.findData(current), 0) if current else 0)
@@ -110,6 +114,25 @@ class EvaluationPage(Page):
         return self.run_combo.currentData()
 
     def _run_chosen(self, select: Path | None = None) -> None:
+        view = self.ctx.experiments.view(self.run_id) if self.run_id is not None else None
+        tabular = view is not None and view.tabular
+        found = read_results(view.run_dir) if tabular else None
+        self.tabular.setVisible(found is not None)
+        if found is not None:
+            self.tabular.show_results(found)
+        self._fill_choices(tabular)
+        task = (found or {}).get("task")
+        rescorable = not tabular or task == "tabular_classification"
+        self.evaluate_button.setEnabled(rescorable and view is not None and self._job is None)
+        for widget in (*self.again_widgets, self.source_label, self.source_combo):
+            widget.setVisible(rescorable)
+        if task == "tabular_regression":
+            why = "This regression run was scored once on its held-out test rows; its measures are below."
+        else:
+            why = ("Clustering and projections are fitted on every row, so nothing is held out to score "
+                   "again; the run's measures are below.")
+        self.no_rescore.setText("" if rescorable else why)
+        self.no_rescore.setVisible(not rescorable)
         self.source_combo.blockSignals(True)
         self.source_combo.clear()
         if self.run_id is not None:
@@ -119,6 +142,21 @@ class EvaluationPage(Page):
             self.source_combo.setCurrentIndex(max(self.source_combo.findData(str(select)), 0))
         self.source_combo.blockSignals(False)
         self._show_source()
+
+    def _fill_choices(self, tabular: bool) -> None:
+        """PyTorch runs re-score best or last on test or validation; scikit-learn runs have one
+        fitted model and no validation split."""
+        checkpoints = (("fitted model", "model"),) if tabular else (("best checkpoint", "best"),
+                                                                     ("last checkpoint", "last"))
+        splits = (("test split", "test"),) + (() if tabular else (("validation split", "val"),))
+        for combo, items in ((self.checkpoint_combo, checkpoints), (self.split_combo, splits)):
+            current = combo.currentData()
+            combo.blockSignals(True)
+            combo.clear()
+            for title, key in items:
+                combo.addItem(title, key)
+            combo.setCurrentIndex(max(combo.findData(current), 0))
+            combo.blockSignals(False)
 
     def _show_source(self) -> None:
         path = self.source_combo.currentData()
@@ -131,7 +169,7 @@ class EvaluationPage(Page):
         matrix, classes = self.report["matrix"], self.report["classes"]
         scores = summary(matrix)
         for key, tile in self.tiles.items():
-            note = f"{int(sum(map(sum, matrix))):,} images" if key == "acc" else "macro average"
+            note = f"{int(sum(map(sum, matrix))):,} samples" if key == "acc" else "macro average"
             tile.set(f"{scores[key]:.2%}", note)
         self.matrix.set_matrix(matrix, classes)
         self.table.clear_rows()

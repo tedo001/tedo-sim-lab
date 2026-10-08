@@ -125,9 +125,9 @@ def test_training_page_follows_a_run_into_the_explainer(ctx, qtbot, visited) -> 
     builder = ExperimentBuilderPage(ctx)
     qtbot.addWidget(builder)
     builder.load(CV_PRESETS[1].make())  # MNIST · TinyVGG
-    builder.form.epochs.setValue(2)
-    builder.form.max_steps.setValue(3)
-    builder.form.device.setCurrentIndex(builder.form.device.findData("cpu"))
+    builder.form.torch.epochs.setValue(2)
+    builder.form.torch.max_steps.setValue(3)
+    builder.form.torch.device.setCurrentIndex(builder.form.torch.device.findData("cpu"))
     builder.refresh()
     run_id = builder.run()
     assert run_id and visited[-1] == "training" and page.selected == run_id

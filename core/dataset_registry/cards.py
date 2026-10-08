@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field, field_validator, model_validator
 
@@ -31,6 +32,8 @@ class DatasetCard(Card):
     adapter: str | None = None
     maturity: Maturity = "planned"
     citation: str = ""
+    #: Adapter-specific settings, e.g. an imported CSV's file and target column.
+    options: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("adapter")
     @classmethod

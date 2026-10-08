@@ -37,6 +37,12 @@ COLORS: dict[str, str] = {
     "grey": "#8A929C",
     # Data series (dataviz reference palette, dark steps; validated on the surface above).
     "series_1": "#3987E5",
+    # Slots 2 and 3 for charts that show groups side by side (scatter): the first three slots pass
+    # every check all-pairs on this surface (worst CVD ΔE 9.4, normal vision 20.9). Past three
+    # groups, the rest fold into "series_other", a recessive neutral.
+    "series_2": "#D95926",
+    "series_3": "#199E70",
+    "series_other": "#4A5059",
     # Diverging scale for activations and weights: negative ← neutral zero → positive. The poles
     # are the reference palette's dark red and blue at equal lightness (OKLab L 0.67); the arms are
     # interpolated in OKLab, so lightness rises steadily with magnitude on both sides.

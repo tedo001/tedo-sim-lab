@@ -159,8 +159,9 @@ class DatasetChooser(QWidget):
         self.combo.currentIndexChanged.connect(lambda _: self.panel.set_card(self.card_id))
         self.panel = DatasetDownload(ctx)
         self.panel.changed.connect(self.changed)
-        row.addWidget(self.combo, 1)
+        row.addWidget(self.combo)
         row.addWidget(self.panel.status)
+        row.addStretch(1)
         layout.addLayout(row)
         layout.addWidget(self.panel)
 
@@ -208,7 +209,8 @@ class ModelChooser(QWidget):
         self.terms = label("", "Body", wrap=True)
         self.acknowledge = QCheckBox("I accept these terms")
         self.acknowledge.toggled.connect(self.changed)
-        for widget in (self.combo, self.about, label("Starting weights", "CardCaption"), self.weights,
+        self.weights_title = label("Starting weights", "CardCaption")
+        for widget in (self.combo, self.about, self.weights_title, self.weights,
                        self.weights_note, self.terms, self.acknowledge):
             layout.addWidget(widget)
 
@@ -251,7 +253,8 @@ class ModelChooser(QWidget):
             for weights in card.weights:
                 self.weights.addItem(f"{weights.id} · {weights.license.label}", weights.id)
         self.weights.blockSignals(False)
-        self.weights.setEnabled(self.weights.count() > 1)
+        for widget in (self.weights_title, self.weights):  # only models with published weights
+            widget.setVisible(self.weights.count() > 1)
         self._refresh_weights()
 
     def _refresh_weights(self) -> None:

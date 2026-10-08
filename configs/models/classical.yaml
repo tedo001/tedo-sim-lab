@@ -1,4 +1,4 @@
-# Classical models (build phase 6 makes them "stable").
+# Classical models: scikit-learn and XGBoost estimators, built by labs/classical_ml/models.py.
 _sklearn: &sklearn
   category: open-source
   name: BSD-3-Clause (scikit-learn)
@@ -14,8 +14,7 @@ cards:
     source_url: https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
     license: *sklearn
     builder: labs.classical_ml.models:build_logistic_regression
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [linear, baseline]
 
   - id: linear_regression
@@ -26,8 +25,7 @@ cards:
     source_url: https://scikit-learn.org/stable/modules/linear_model.html#ordinary-least-squares
     license: *sklearn
     builder: labs.classical_ml.models:build_linear_regression
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [linear, baseline]
 
   - id: decision_tree
@@ -38,8 +36,7 @@ cards:
     source_url: https://scikit-learn.org/stable/modules/tree.html
     license: *sklearn
     builder: labs.classical_ml.models:build_decision_tree
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [tree, interpretable]
 
   - id: random_forest
@@ -50,8 +47,7 @@ cards:
     source_url: https://scikit-learn.org/stable/modules/ensemble.html#random-forests
     license: *sklearn
     builder: labs.classical_ml.models:build_random_forest
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [tree, ensemble]
 
   - id: gradient_boosting
@@ -62,8 +58,7 @@ cards:
     source_url: https://scikit-learn.org/stable/modules/ensemble.html#gradient-boosting
     license: *sklearn
     builder: labs.classical_ml.models:build_gradient_boosting
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [tree, ensemble, boosting]
 
   - id: xgboost
@@ -78,8 +73,7 @@ cards:
       spdx: Apache-2.0
       url: https://github.com/dmlc/xgboost/blob/master/LICENSE
     builder: labs.classical_ml.models:build_xgboost
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [tree, ensemble, boosting, gpu]
 
   - id: svm
@@ -90,8 +84,7 @@ cards:
     source_url: https://scikit-learn.org/stable/modules/svm.html
     license: *sklearn
     builder: labs.classical_ml.models:build_svm
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [kernel]
 
   - id: knn
@@ -102,8 +95,7 @@ cards:
     source_url: https://scikit-learn.org/stable/modules/neighbors.html
     license: *sklearn
     builder: labs.classical_ml.models:build_knn
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [instance-based]
 
   - id: naive_bayes
@@ -114,8 +106,7 @@ cards:
     source_url: https://scikit-learn.org/stable/modules/naive_bayes.html
     license: *sklearn
     builder: labs.classical_ml.models:build_naive_bayes
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [probabilistic, baseline]
 
   - id: pca
@@ -126,8 +117,7 @@ cards:
     source_url: https://scikit-learn.org/stable/modules/decomposition.html#pca
     license: *sklearn
     builder: labs.classical_ml.models:build_pca
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [unsupervised, linear]
 
   - id: kmeans
@@ -138,6 +128,5 @@ cards:
     source_url: https://scikit-learn.org/stable/modules/clustering.html#k-means
     license: *sklearn
     builder: labs.classical_ml.models:build_kmeans
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [unsupervised, clustering]

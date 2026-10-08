@@ -66,6 +66,11 @@ class RunView:
         return getattr(self.spec.training, "epochs", None) if self.spec else None
 
     @property
+    def tabular(self) -> bool:
+        """A scikit-learn / XGBoost run: one fit, results in results.json, no epochs."""
+        return self.spec is not None and self.spec.training.kind == "sklearn"
+
+    @property
     def active(self) -> bool:
         return self.status in ("queued", "running")
 

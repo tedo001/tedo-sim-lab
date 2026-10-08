@@ -10,7 +10,18 @@ from ..widgets import Card, DataTable, Page, Pill, label
 from .home_cards import local_time
 from .training_run import STATUS_TONES, RunDetail, status_text
 
-__all__ = ["TrainingPage"]
+__all__ = ["TrainingPage", "tabular_score"]
+
+#: The one number a scikit-learn run is summed up by, per task: (metric, words, is a share).
+_TABULAR_SCORES = (("test_acc", "test acc", True), ("test_r2", "test R²", False),
+                   ("silhouette", "silhouette", False), ("explained_variance", "variance", True))
+
+
+def tabular_score(metrics: dict[str, float]) -> str:
+    for key, words, share in _TABULAR_SCORES:
+        if key in metrics:
+            return f"{words} {metrics[key]:.2%}" if share else f"{words} {metrics[key]:.3f}"
+    return "—"
 
 
 class TrainingPage(Page):
@@ -24,12 +35,11 @@ class TrainingPage(Page):
         self.head.add_action(new)
 
         runs = Card("Runs", padded=False)
-        self.table = DataTable(("Experiment", "Data · model", "Status", "Progress", "Best val acc",
-                                "Started"),
+        self.table = DataTable(("Experiment", "Data · model", "Status", "Progress", "Score", "Started"),
                                mono_columns=(3, 4), stretch_column=0)
         self.table.itemSelectionChanged.connect(self._selection_changed)
         self.empty = label("No runs yet. Describe one in the Experiment Builder, or start from a preset "
-                           "in the Computer Vision lab.", "CardCaption", wrap=True)
+                           "in the Computer Vision or Classical ML lab.", "CardCaption", wrap=True)
         self.empty.setContentsMargins(14, 10, 14, 12)
         runs.add(self.table)
         runs.add(self.empty)
@@ -48,14 +58,18 @@ class TrainingPage(Page):
         self.table.blockSignals(True)
         self.table.clear_rows()
         for view in views:
-            history = self.ctx.experiments.history(view.id, ("val_acc", "train_loss"))
-            done = len(history["train_loss"])
-            best = max((value for _, value in history["val_acc"]), default=None)
+            if view.tabular:  # one fit: done or not, scored by its task's headline metric
+                progress = "fitted" if view.finished_ok else "—"
+                score = tabular_score(self.ctx.store.latest_metrics(view.id))
+            else:
+                history = self.ctx.experiments.history(view.id, ("val_acc", "train_loss"))
+                best = max((value for _, value in history["val_acc"]), default=None)
+                progress = f"{len(history['train_loss'])}/{view.epochs or '?'}"
+                score = "—" if best is None else f"best val acc {best:.2%}"
             name = f"{view.name} · reproduction" if view.parent_run_id else view.name
             self.table.add_row((name, f"{view.dataset} · {view.model}",
                                 Pill(status_text(view.status), STATUS_TONES.get(view.status, "planned")),
-                                f"{done}/{view.epochs or '?'}", "—" if best is None else f"{best:.2%}",
-                                local_time(view.started_at)))
+                                progress, score, local_time(view.started_at)))
         self.table.blockSignals(False)
         self.table.setVisible(bool(views))
         self.empty.setVisible(not views)
