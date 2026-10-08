@@ -3,12 +3,22 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLayout, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtGui import QResizeEvent
+from PySide6.QtWidgets import (
+    QBoxLayout,
+    QFrame,
+    QHBoxLayout,
+    QLayout,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ..theme.tokens import SIZES
 from .basics import label
 
-__all__ = ["Card", "Page", "PageHead"]
+__all__ = ["Card", "Page", "PageHead", "ResponsiveRow"]
 
 
 class PageHead(QWidget):
@@ -115,3 +125,34 @@ class Card(QFrame):
             self.content.addLayout(item)
         else:
             self.content.addWidget(item)
+
+
+class ResponsiveRow(QWidget):
+    """Cards side by side, stacked instead when the row is narrower than ``breakpoint``.
+
+    Keeps pages usable at half width (split view) without sideways scrolling.
+    """
+
+    def __init__(self, widgets: list[tuple[QWidget, int]], *, breakpoint: int = 900,
+                 parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.breakpoint = breakpoint
+        self._stretches = [stretch for _, stretch in widgets]
+        self._box = QBoxLayout(QBoxLayout.Direction.LeftToRight, self)
+        self._box.setContentsMargins(0, 0, 0, 0)
+        self._box.setSpacing(SIZES["gap"])
+        for widget, stretch in widgets:
+            self._box.addWidget(widget, stretch, Qt.AlignmentFlag.AlignTop)
+
+    def stacked(self) -> bool:
+        return self._box.direction() == QBoxLayout.Direction.TopToBottom
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        narrow = event.size().width() < self.breakpoint
+        if narrow != self.stacked():
+            self._box.setDirection(QBoxLayout.Direction.TopToBottom if narrow
+                                   else QBoxLayout.Direction.LeftToRight)
+            for index, stretch in enumerate(self._stretches):
+                self._box.setStretch(index, 0 if narrow else stretch)
+            self.updateGeometry()  # the row's height changed: ask the page to lay out again
+        super().resizeEvent(event)

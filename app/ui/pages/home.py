@@ -6,13 +6,13 @@ from __future__ import annotations
 import platform
 
 from PySide6 import __version__ as PYSIDE_VERSION
-from PySide6.QtCore import Qt, qVersion
+from PySide6.QtCore import qVersion
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from ... import __version__
 from ...navigation import NAV, SECTIONS
 from ...services.context import AppContext
-from ..widgets import Card, DataTable, KeyValues, Page, Pill, StatTile, label
+from ..widgets import Card, DataTable, KeyValues, Page, Pill, ResponsiveRow, StatTile, label
 from .home_cards import ActiveJobCard, CatalogueCard, JobHistoryCard, MlflowCard, RecentExperimentsCard
 from .placeholder import status_text
 from .resources import ResourceCharts, ResourceStats
@@ -28,12 +28,8 @@ def _tone(planned_for: str | None) -> str:
     return "info" if planned_for == "v0.1" else "planned"
 
 
-def _row(*widgets: tuple[QWidget, int]) -> QHBoxLayout:
-    row = QHBoxLayout()
-    row.setSpacing(12)
-    for widget, stretch in widgets:
-        row.addWidget(widget, stretch, Qt.AlignmentFlag.AlignTop)
-    return row
+def _row(*widgets: tuple[QWidget, int]) -> ResponsiveRow:
+    return ResponsiveRow(list(widgets))
 
 
 class HomePage(Page):
@@ -49,13 +45,13 @@ class HomePage(Page):
         resources = Card("Resources", "last two minutes")
         resources.add(ResourceCharts(ctx.hardware, columns=2))
         self.active_job = ActiveJobCard(ctx)
-        self.body.addLayout(_row((resources, 2), (self.active_job, 1)))
+        self.body.addWidget(_row((resources, 2), (self.active_job, 1)))
 
         self.experiments = RecentExperimentsCard(ctx)
         self.history = JobHistoryCard(ctx)
-        self.body.addLayout(_row((self.experiments, 1), (self.history, 1)))
+        self.body.addWidget(_row((self.experiments, 1), (self.history, 1)))
 
-        self.body.addLayout(_row((CatalogueCard(ctx), 1), (MlflowCard(ctx), 1),
+        self.body.addWidget(_row((CatalogueCard(ctx), 1), (MlflowCard(ctx), 1),
                                  (self._workspace_card(), 1)))
         if ctx.catalog.errors:
             self.body.addWidget(self._problems_card(ctx.catalog.errors))

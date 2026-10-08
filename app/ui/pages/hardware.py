@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
+from PySide6.QtWidgets import QPushButton, QWidget
 
 from core.hardware.info import HardwareInfo
 
 from ...services.context import AppContext
-from ..widgets import Card, DataTable, KeyValues, Page, Pill, label
+from ..widgets import Card, DataTable, KeyValues, Page, Pill, ResponsiveRow, label
 from .resources import ResourceCharts, ResourceStats, gb
 
 __all__ = ["HardwarePage"]
@@ -39,14 +38,11 @@ class HardwarePage(Page):
         charts.add(self.charts)
         self.body.addWidget(charts)
 
-        row = QHBoxLayout()
-        row.setSpacing(12)
         self.system = KeyValues((("Operating system", _PENDING), ("CPU", _PENDING),
                                  ("Cores", _PENDING), ("Memory", _PENDING),
                                  ("Python", _PENDING), ("Interpreter", _PENDING)))
         system = Card("System")
         system.add(self.system)
-        row.addWidget(system, 1, Qt.AlignmentFlag.AlignTop)
 
         self.accelerators = KeyValues((("PyTorch", _PENDING), ("CUDA available", _PENDING),
                                        ("CUDA build", _PENDING), ("cuDNN", _PENDING),
@@ -58,8 +54,7 @@ class HardwarePage(Page):
         self.gpu_table = DataTable(("#", "GPU", "Memory", "Source"), mono_columns=(0, 2),
                                    stretch_column=1)
         accelerators.add(self.gpu_table)
-        row.addWidget(accelerators, 1, Qt.AlignmentFlag.AlignTop)
-        self.body.addLayout(row)
+        self.body.addWidget(ResponsiveRow([(system, 1), (accelerators, 1)], breakpoint=760))
 
         self.notes = Card("Notes", "why something is missing")
         self.notes_column = label("", "Body", wrap=True)
