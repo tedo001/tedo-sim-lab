@@ -8,7 +8,7 @@ retune happens here and nowhere else.
 
 from __future__ import annotations
 
-__all__ = ["COLORS", "FONT_FAMILY", "MONO_FAMILY", "SIZES", "TONES", "rgba"]
+__all__ = ["COLORS", "FONT_FAMILY", "MONO_FAMILY", "SERIES", "SIZES", "TONES", "rgba"]
 
 COLORS: dict[str, str] = {
     # Surfaces, darkest first.
@@ -42,6 +42,14 @@ COLORS: dict[str, str] = {
     # groups, the rest fold into "series_other", a recessive neutral.
     "series_2": "#D95926",
     "series_3": "#199E70",
+    # Slots 4-8 complete the reference order for lines (overlaid curves, adjacent pairs: worst CVD
+    # ΔE 8.4, normal vision 19.3 on this surface). Always in this order, never cycled; a ninth
+    # series is not drawn as a colour.
+    "series_4": "#C98500",
+    "series_5": "#D55181",
+    "series_6": "#008300",
+    "series_7": "#9085E9",
+    "series_8": "#E66767",
     "series_other": "#4A5059",
     # Diverging scale for activations and weights: negative ← neutral zero → positive. The poles
     # are the reference palette's dark red and blue at equal lightness (OKLab L 0.67); the arms are
@@ -89,3 +97,6 @@ def rgba(hex_colour: str, alpha: float) -> str:
     value = hex_colour.lstrip("#")
     red, green, blue = (int(value[i:i + 2], 16) for i in (0, 2, 4))
     return f"rgba({red}, {green}, {blue}, {alpha:.2f})"
+
+#: The categorical order, for charts that draw several series (fixed, never cycled).
+SERIES: tuple[str, ...] = tuple(COLORS[f"series_{i}"] for i in range(1, 9))

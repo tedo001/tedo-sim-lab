@@ -93,6 +93,9 @@ class RunDetail(QWidget):
         self.again_button = QPushButton(icon("sliders-horizontal"), "Edit as new")
         self.again_button.setToolTip("Open this experiment in the Experiment Builder")
         self.again_button.clicked.connect(self._edit)
+        self.report_button = QPushButton(icon("file-text"), "Export report")
+        self.report_button.setToolTip("Markdown, PDF and JSON of this run into the workspace's reports/")
+        self.report_button.clicked.connect(lambda: self.export_report())
         self.register_button = QPushButton(icon("package-plus"), "Register model")
         self.register_button.setToolTip("Add this run's checkpoint to the Model Registry as a new version")
         self.register_button.clicked.connect(self._register)
@@ -100,7 +103,7 @@ class RunDetail(QWidget):
         self.explain_button.clicked.connect(lambda: self.view and ctx.experiments.explain(self.view.id,
                                                                                         ctx.navigate))
         for button in (self.cancel_button, self.resume_button, self.reproduce_button, self.register_button,
-                       self.folder_button, self.again_button, self.explain_button):
+                       self.report_button, self.folder_button, self.again_button, self.explain_button):
             buttons.addWidget(button)
         buttons.addStretch(1)
         self.summary.add(buttons)
@@ -175,6 +178,7 @@ class RunDetail(QWidget):
         self.reproduce_button.setVisible(view.finished_ok)
         registrable = view.finished_ok and self.ctx.models.checkpoint_of(view.id) is not None
         self.register_button.setVisible(registrable)
+        self.report_button.setVisible(view.finished_ok)
         self.error.setText(view.error or "")
         self.error.setVisible(bool(view.error))
         self.cancel_button.setVisible(view.active)
@@ -257,6 +261,24 @@ class RunDetail(QWidget):
         if self.view is not None and self.view.finished_ok:
             model = self.ctx.models.register(self.view.id)
             self.registered.setText(f"Registered as {model.label}; see the Model Registry.")
+
+    def export_report(self) -> dict:
+        """Write this run's report (Markdown, PDF, JSON, curve images); returns format → file."""
+        if self.view is None or not self.view.finished_ok:
+            return {}
+        from ...services.reports import comparison_row, export_report, run_markdown
+
+        images = {}
+        if not self.view.tabular:
+            for key, chart in self.charts.items():
+                if chart.points():
+                    images[f"{key}.png"] = chart.grab().toImage()
+        row = comparison_row(self.view, self.ctx.store, self.ctx.benchmarks)
+        written = export_report(self.ctx.paths.reports, f"run-{self.view.name}-{self.view.id[:8]}",
+                                run_markdown(self.view, row, list(images)), rows=[row], images=images,
+                                formats=("json", "md", "pdf"))
+        self.registered.setText(f"Report written to {written['md'].parent}")
+        return written
 
     def _reproduce(self) -> None:
         if self.view is not None and self.view.finished_ok:

@@ -10,8 +10,10 @@ from PySide6.QtWidgets import QWidget
 
 from ...navigation import page
 from ...services.context import AppContext
+from .benchmarking import BenchmarkingPage
 from .builder import ExperimentBuilderPage
 from .classical_ml import ClassicalMlPage
+from .compare import ComparePage
 from .computer_vision import ComputerVisionPage
 from .dataset_hub import DatasetHubPage
 from .documentation import DocumentationPage
@@ -30,8 +32,10 @@ __all__ = ["PAGE_FACTORIES", "build_page"]
 
 PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "home": HomePage,
+    "benchmarking": BenchmarkingPage,
     "cnn_explainer": ExplainerPage,
     "classical_ml": ClassicalMlPage,
+    "compare": ComparePage,
     "computer_vision": ComputerVisionPage,
     "dataset_hub": DatasetHubPage,
     "experiment_builder": ExperimentBuilderPage,

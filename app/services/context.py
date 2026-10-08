@@ -16,6 +16,7 @@ from core.common import AppConfig, AppPaths, CredentialStore, experiment_python
 from core.common.paths import WORKSPACE_ENV
 from core.tracking import LabStore
 
+from .benchmarks import BenchmarkService
 from .downloads import DownloadService
 from .experiments import ExperimentService
 from .hardware import HardwareService
@@ -43,6 +44,7 @@ class AppContext:
     downloads: DownloadService
     mlflow_ui: MlflowUi
     models: ModelRegistryService
+    benchmarks: BenchmarkService
     #: Switch the main window to another page; set by :class:`app.main_window.MainWindow`.
     navigate: Callable[[str], None] = field(default=_nowhere)
 
@@ -78,4 +80,4 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
     downloads = DownloadService(catalog.datasets, jobs)
     models = ModelRegistryService(paths, config, store, experiments, jobs)
     return AppContext(paths, config, credentials, catalog, store, jobs, hardware, experiments, downloads,
-                      MlflowUi(paths, config), models)
+                      MlflowUi(paths, config), models, BenchmarkService(paths, jobs))

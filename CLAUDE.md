@@ -87,6 +87,9 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `labs/computer_vision/coco.py` | `CocoFile`: a local COCO annotation file's categories, per-image licences, annotations, RLE masks (pycocotools); drawn by `app/ui/widgets/annotated.py` |
 | `app/ui/pages/model_zoo.py` | Model Zoo: every model card, weights' own licences, hardware needs; `configs/excluded_tools.yaml` lists what the licence policy keeps out |
 | `app/services/model_registry.py` | `ModelRegistryService`: register a finished run's checkpoint as a numbered version (metrics, stage, notes; migration `0002`), mirrored into MLflow's registry when the run was tracked; page `model_registry.py`, "Register model" on the Training page |
+| `labs/benchmark/latency.py` | `run_benchmark`: latency/throughput of a run's checkpoint (PyTorch or scikit-learn) or an untrained image model, by batch size; run by `worker <folder> --benchmark` (targets allowed under `benchmarks:` in `configs/runners.yaml`) |
+| `app/services/benchmarks.py` | `BenchmarkService`: benchmark folders in `results/benchmarks/<id>/` (`benchmark.json` request, `results.json` or `error.txt`); page `benchmarking.py` |
+| `app/ui/pages/compare.py` | Compare Experiments: up to 8 runs, measures × runs table, `OverlayChart` (`app/ui/widgets/overlay.py`), export; `app/services/reports.py` builds rows (`comparison_row`) and writes CSV/JSON/Markdown/PDF (`QTextDocument` + `QPdfWriter`) into `reports/`; Training's "Export report" uses it for one run |
 | `app/ui/pages/catalog_common.py` | `licence_pill`, `status_pill`, `FilterRow` shared by the Dataset Hub and Model Zoo |
 | `core/experiment_engine/snapshot.py` | Reproducibility snapshot (`snapshot.json`, `code.diff`): Python, platform, packages, git, dataset fingerprint; `compare()` |
 | `core/experiment_engine/recording.py` | What a worker records around a run: snapshot + `MlflowTracker` (`core/tracking/mlflow_tracker.py`) |
@@ -145,6 +148,10 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   epoch); the worker mirrors each run to MLflow (`mlflow_tracking` setting; `TEDO_LAB_MLFLOW=0`
   switches it off, which the test suite does). Tracking never fails a run. "Reproduce" queues the
   same `experiment.yaml` as a child run and lists environment differences first.
+- **Worker stdin**: the worker hands stdin to the cancel watcher through a private copy and points
+  standard input at the null device (`detach_stdin`). On Windows a child process that inherits a
+  pipe another thread is reading hangs at start; never undo this, and give `subprocess` calls
+  `stdin=DEVNULL` anyway.
 - **Quiet jobs**: housekeeping tasks (`submit_task(..., quiet=True)`) are not recorded, not
   "active", and never ask before quitting. Never delete a `QProcess` inside its own signal:
   keep it alive until the event loop is back (see `JobQueue._release`, `MlflowUi._release`).
@@ -171,7 +178,8 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   lines, recessive grid, values in text colours, gaps for missing data, hover crosshair.
   Series colour `series_1` is validated against the dark surface. Scatter groups: `series_1..3` pass
   all-pairs checks; with more than three groups one is highlighted and the rest fold into
-  `series_other`.
+  `series_other`. Overlaid lines (Compare) use `SERIES` (`series_1..8`, validated for adjacent
+  pairs), at most eight runs, never cycled, with a legend and direct labels for four or fewer.
 - **CNN Explainer** is a port of poloclub/cnn-explainer (MIT): keep its notice in
   `labs/computer_vision/explainer/LICENSE-cnn-explainer.txt` and the credit on the page. Never copy
   its Tiny ImageNet images or pretrained weights (ImageNet-derived). Its numpy engine must match
@@ -242,6 +250,8 @@ Design for it now:
       COCO annotation inspector (local files; categories, per-image licences, boxes/polygons/RLE),
       Model Zoo (27 cards, excluded tools listed), Model Registry (versions, stages, notes, MLflow
       registry); `run.py` one-file launcher
-- [ ] Phase 8 — Compare, benchmarking, report export
+- [x] Phase 8 — Benchmarking (worker `--benchmark`, latency/throughput/peak GPU memory by batch
+      size, runs and untrained models), Compare Experiments (8 runs, measures table, overlaid curves),
+      reports as CSV/JSON/Markdown/PDF (comparison and single run); Windows worker hang fixed
 - [ ] Phase 9 — Plugin Store, Terminal, Notebook, Jupyter, Colab, Deep Learning builder
 - [ ] Phase 10 — hardening, README, ROADMAP

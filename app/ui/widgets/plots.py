@@ -33,7 +33,9 @@ def _font(family: str, size: int) -> QFont:
 def _nice(value: float) -> str:
     if value == 0 or not math.isfinite(value):
         return "0" if value == 0 else str(value)
-    return f"{value:.3g}" if 1e-3 <= abs(value) < 1e5 else f"{value:.1e}"
+    if 1000 <= abs(value) < 1e9:
+        return f"{value:,.0f}"
+    return f"{value:.3g}" if 1e-3 <= abs(value) < 1000 else f"{value:.1e}"
 
 
 class _Plot(QWidget):

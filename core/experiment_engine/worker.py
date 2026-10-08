@@ -3,6 +3,7 @@
     python -m core.experiment_engine.worker <run_dir> [--runner module:Class] [--cancel-on-eof]
                                                        [--resume <checkpoint>]
                                                        [--evaluate <checkpoint> --split test|val]
+    python -m core.experiment_engine.worker <folder> --benchmark [--cancel-on-eof]
 
 Reads ``<run_dir>/experiment.yaml``, picks the runner, runs it, and writes
 :class:`~core.experiment_engine.events.ProgressEvent` lines to stdout. Anything
@@ -33,6 +34,7 @@ from core.common.cancel import Cancelled, CancelToken
 from core.common.logging_setup import setup_logging
 from core.common.masking import mask_text
 from core.common.paths import CODE_ROOT
+from core.common.references import resolve
 from core.hardware.devices import resolve_device
 
 from .events import JsonLinesCallbacks
@@ -40,7 +42,11 @@ from .recording import RunRecording, open_recording
 from .runner import RunContext, RunnerRegistry, RunResult
 from .spec import SpecError, load_spec
 
-__all__ = ["EXIT_CANCELLED", "EXIT_FAILED", "EXIT_OK", "main", "run_experiment"]
+__all__ = ["BENCHMARK_FILE", "EXIT_CANCELLED", "EXIT_FAILED", "EXIT_OK", "main", "run_benchmark_job",
+           "run_experiment"]
+
+#: What a benchmark folder holds: the request (``target`` plus its settings) and, after, the results.
+BENCHMARK_FILE, BENCHMARK_RESULTS = "benchmark.json", "results.json"
 
 EXIT_OK, EXIT_FAILED, EXIT_CANCELLED = 0, 1, 2
 _EXIT = {"completed": EXIT_OK, "early_stopped": EXIT_OK, "cancelled": EXIT_CANCELLED,
@@ -170,6 +176,41 @@ def run_evaluation(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelTo
                          error=mask_text(f"{type(exc).__name__}: {exc}"))
 
 
+def _allowed_benchmarks() -> list[str]:
+    import yaml
+
+    data = yaml.safe_load((CODE_ROOT / "configs" / "runners.yaml").read_text(encoding="utf-8")) or {}
+    return list(data.get("benchmarks", []))
+
+
+def run_benchmark_job(folder: Path, callbacks: JsonLinesCallbacks, token: CancelToken) -> RunResult:
+    """Run the benchmark ``folder/benchmark.json`` asks for and write ``folder/results.json``. The
+    target must be listed under ``benchmarks:`` in ``configs/runners.yaml``. Never raises."""
+    started = time.monotonic()
+    try:
+        config = json.loads((folder / BENCHMARK_FILE).read_text(encoding="utf-8"))
+        target = config.pop("target", "labs.benchmark.latency:run_benchmark")
+        if target not in _allowed_benchmarks():
+            raise SpecError(f"{target} is not a benchmark listed in configs/runners.yaml")
+        function = resolve(target)
+        ctx = RunContext(folder.name, folder, resolve_device(config.get("device", "auto")), token)
+        callbacks.emit("run_start", device=ctx.device, run_dir=str(folder), benchmark=True)
+        results = function(config, callbacks, ctx)
+        results["created_at"] = datetime.now(UTC).isoformat(timespec="seconds")
+        target_file = folder / BENCHMARK_RESULTS
+        target_file.write_text(json.dumps(results, indent=2), encoding="utf-8")
+        callbacks.on_artifact(target_file, "benchmark")
+        best = max((row["throughput"] for row in results.get("rows", [])), default=0.0)
+        return RunResult(folder.name, "completed", {"best_throughput": float(best)},
+                         duration_s=time.monotonic() - started)
+    except (Cancelled, KeyboardInterrupt):
+        return RunResult(folder.name, "cancelled", duration_s=time.monotonic() - started)
+    except Exception as exc:
+        log.exception("Benchmark %s failed", folder.name)
+        return RunResult(folder.name, "failed", duration_s=time.monotonic() - started,
+                         error=mask_text(f"{type(exc).__name__}: {exc}"))
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="core.experiment_engine.worker")
     parser.add_argument("run_dir", type=Path)
@@ -181,6 +222,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--evaluate", type=Path, default=None, metavar="CHECKPOINT",
                         help="score this checkpoint instead of training")
     parser.add_argument("--split", choices=("test", "val"), default="test")
+    parser.add_argument("--benchmark", action="store_true",
+                        help="run_dir is a benchmark folder: time inference instead of training")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args(argv)
 
@@ -192,7 +235,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     token = CancelToken()
     watch_for_cancel(detach_stdin(), token, cancel_on_eof=args.cancel_on_eof)
 
-    if args.evaluate is not None:
+    if args.benchmark:
+        result = run_benchmark_job(run_dir, callbacks, token)
+    elif args.evaluate is not None:
         result = run_evaluation(run_dir, callbacks, token, checkpoint=args.evaluate.resolve(),
                                 split=args.split, runner_entry=args.runner)
     else:

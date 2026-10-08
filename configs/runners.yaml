@@ -8,3 +8,7 @@ runners:
   - labs.computer_vision.experimental:OcrRunner
   - labs.computer_vision.experimental:PoseRunner
   - labs.computer_vision.experimental:TrackingRunner
+
+# Benchmarks the worker may run (``worker <folder> --benchmark``), as "module:function".
+benchmarks:
+  - labs.benchmark.latency:run_benchmark

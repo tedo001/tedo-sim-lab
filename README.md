@@ -5,7 +5,7 @@ Qt for Python (PySide6). Pick a dataset, a model, hyperparameters and a device; 
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
-> **Status: V0.1 in development — build phase 7 of 10.** The window and every page, the live
+> **Status: V0.1 in development — build phase 8 of 10.** The window and every page, the live
 > hardware monitor and dashboard, the dataset/model/plugin catalogue with licences, the lab
 > database, and two kinds of experiment end to end:
 >
@@ -22,6 +22,9 @@ from its saved folder.
 >   have, the Model Zoo (27 permissively licensed models, their weights' own terms, and what the
 >   licence policy keeps out) and a Model Registry (versions of models trained here, mirrored into
 >   MLflow's registry).
+> - **Measuring and reporting**: Benchmarking (latency and throughput by batch size and device, in the
+>   worker process), Compare Experiments (up to eight runs side by side with overlaid curves) and
+>   reports exported as CSV, JSON, Markdown or PDF.
 >
 > Describe either in the Experiment Builder (or start from a lab preset), follow it on the Training
 > page, evaluate and reproduce it, and find every run in MLflow. Pages that are not built say which
