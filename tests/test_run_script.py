@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+import pytest
 
 import run
 
@@ -28,8 +31,8 @@ def test_own_options_are_not_passed_to_the_app(monkeypatch) -> None:
     calls = []
     monkeypatch.setattr(run, "make_venv", lambda: calls.append("venv"))
     monkeypatch.setattr(run, "install", lambda build: calls.append(f"install {build}"))
-    monkeypatch.setattr(run, "venv_python", lambda venv=run.VENV: Path(run.__file__))  # "exists"
-    monkeypatch.setattr(run, "MARKER", Path("/nonexistent/marker.json"))
+    monkeypatch.setattr(run, "check_venv", lambda: (3, 12))  # a good environment exists
+    monkeypatch.setattr(run, "VENV", Path("/nonexistent/.venv"))
     monkeypatch.setattr(run, "has_nvidia_gpu", lambda: False)
     monkeypatch.setattr(run.Path, "write_text", lambda self, *a, **k: 0)
     started = []
@@ -38,3 +41,21 @@ def test_own_options_are_not_passed_to_the_app(monkeypatch) -> None:
     assert calls == ["install cpu"] and not started
     assert run.main(["--cpu", "--workspace", "D:/lab"]) == 0
     assert started[-1][-3:] == ["app.main", "--workspace", "D:/lab"]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="fakes a Python with a shell script")
+def test_an_environment_with_an_old_python_is_moved_aside(tmp_path, monkeypatch) -> None:
+    venv = tmp_path / ".venv"
+    python = run.venv_python(venv)
+    python.parent.mkdir(parents=True)
+    python.write_text("#!/bin/sh\necho 3 9\n")  # what an environment made with Python 3.9 answers
+    python.chmod(0o755)
+    monkeypatch.setattr(run, "ROOT", tmp_path)
+    monkeypatch.setattr(run, "VENV", venv)
+    assert run.version_of([str(python)]) == (3, 9)
+    assert run.check_venv() is None  # too old: moved, so a new one gets made
+    assert not venv.exists() and (tmp_path / ".venv-python3.9-old" / "bin" / "python").is_file()
+    python.parent.mkdir(parents=True)
+    python.write_text("#!/bin/sh\necho 3 12\n")
+    python.chmod(0o755)
+    assert run.check_venv() == (3, 12) and venv.exists()

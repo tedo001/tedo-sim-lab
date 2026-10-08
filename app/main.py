@@ -14,7 +14,18 @@ import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
-from core.common import AppPaths, ConfigError, CredentialStore, load_config, mask_text, setup_logging
+if sys.version_info < (3, 11):  # noqa: UP036 (say so plainly, before newer-Python code fails oddly)
+    sys.exit(f"TEDO AI Research Lab needs Python 3.11 or newer; this is {sys.version.split()[0]}. "
+             "Start it with 'python run.py', which finds a suitable Python and sets up its environment.")
+
+from core.common import (  # noqa: E402 (after the version check)
+    AppPaths,
+    ConfigError,
+    CredentialStore,
+    load_config,
+    mask_text,
+    setup_logging,
+)
 
 __all__ = ["main", "parse_args"]
 

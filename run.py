@@ -13,8 +13,10 @@ Options of its own:
     --reinstall    install again even if nothing changed
     --cpu          use the CPU build of PyTorch even when a GPU is present
 
-Needs Python 3.11 or newer. Uses only the standard library, so it runs before anything is
-installed.
+Needs Python 3.11 or newer; started with an older one, it looks for a newer Python on this
+machine and restarts with it. An existing ``.venv`` made with a Python that is too old is moved
+aside (``.venv-python3.9-old``) and replaced. Uses only the standard library and syntax that old
+Pythons can read, so it runs before anything is installed.
 """
 
 from __future__ import annotations
@@ -30,7 +32,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 VENV = ROOT / ".venv"
-MARKER = VENV / "tedo-installed.json"
+#: Written into the environment once it is installed: what it was made from.
+MARKER = "tedo-installed.json"
 MINIMUM = (3, 11)
 #: PyTorch's own package indexes. CUDA 12.6 wheels run on any NVIDIA driver made for CUDA 12.
 TORCH_INDEX = {"cuda": "https://download.pytorch.org/whl/cu126",
@@ -43,8 +46,8 @@ def say(text: str) -> None:
     print(f"[tedo] {text}", flush=True)
 
 
-def venv_python(venv: Path = VENV) -> Path:
-    return venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+def venv_python(venv: Path | None = None) -> Path:
+    return (venv or VENV) / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
 def has_nvidia_gpu() -> bool:
@@ -69,9 +72,61 @@ def torch_build(force_cpu: bool, system: str | None = None, gpu: bool | None = N
     return "cuda" if (has_nvidia_gpu() if gpu is None else gpu) else "cpu"
 
 
-def fingerprint(build: str) -> dict[str, str]:
+def fingerprint(build: str, python: tuple[int, int] | None = None) -> dict[str, str]:
+    """What the installed environment was made from; a change means install again."""
     digest = hashlib.sha256((ROOT / "pyproject.toml").read_bytes()).hexdigest()
-    return {"pyproject": digest, "torch": build, "python": platform.python_version()}
+    version = ".".join(map(str, python)) if python else platform.python_version()
+    return {"pyproject": digest, "torch": build, "python": version}
+
+
+def version_of(command: list[str]) -> tuple[int, int] | None:
+    """The (major, minor) version of the Python that ``command`` runs, or None if it does not run."""
+    try:
+        result = subprocess.run([*command, "-c", "import sys; print(*sys.version_info[:2])"],
+                                capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    parts = result.stdout.split()
+    return (int(parts[0]), int(parts[1])) if result.returncode == 0 and len(parts) == 2 else None
+
+
+def newer_python() -> list[str] | None:
+    """A command for an installed Python new enough for the lab, newest-but-safest first."""
+    candidates: list[list[str]] = []
+    if os.name == "nt" and shutil.which("py"):
+        candidates += [["py", f"-3.{minor}"] for minor in (12, 13, 11, 14)]
+    for name in ("python3.12", "python3.13", "python3.11", "python3", "python"):
+        found = shutil.which(name)
+        if found:
+            candidates.append([found])
+    for command in candidates:
+        version = version_of(command)
+        if version and version >= MINIMUM:
+            return command
+    return None
+
+
+def check_venv() -> tuple[int, int] | None:
+    """The Python version inside ``.venv``. An environment made with a Python that is too old
+    (or broken) is moved aside, not deleted, so a fresh one can be made."""
+    if not venv_python().is_file():
+        return None
+    version = version_of([str(venv_python())])
+    if version and version >= MINIMUM:
+        return version
+    label = ".".join(map(str, version)) if version else "broken"
+    backup = ROOT / f".venv-python{label}-old"
+    number = 2
+    while backup.exists():
+        backup, number = ROOT / f".venv-python{label}-old-{number}", number + 1
+    say(f"The environment in {VENV.name} uses Python {label}; the lab needs "
+        f"{'.'.join(map(str, MINIMUM))} or newer. Moving it to {backup.name} and making a new one.")
+    try:
+        VENV.rename(backup)
+    except OSError as exc:
+        sys.exit(f"[tedo] Could not move {VENV} ({exc}). Close programs that use it (an IDE, a terminal "
+                 "with it activated), or delete the folder, then run this file again.")
+    return None
 
 
 def run(command: list[str], **kwargs) -> int:  # noqa: ANN003 (passed to subprocess)
@@ -103,19 +158,29 @@ def install(build: str) -> None:
 
 def main(argv: list[str]) -> int:
     if sys.version_info < MINIMUM:
-        say(f"Python {'.'.join(map(str, MINIMUM))} or newer is needed; this is {platform.python_version()}. "
-            "Get it from https://www.python.org/downloads/ and run this file with it.")
-        return 1
+        command = newer_python() if not os.environ.get("TEDO_RUN_RESTARTED") else None
+        if command is None:
+            needed = ".".join(map(str, MINIMUM))
+            say(f"Python {needed} or newer is needed; this is {platform.python_version()}. "
+                "Install it from https://www.python.org/downloads/ (tick 'Add python.exe to PATH'), "
+                "then run this file again.")
+            return 1
+        say(f"This is Python {platform.python_version()}; restarting with {' '.join(command)} …")
+        return subprocess.call([*command, str(Path(__file__).resolve()), *argv],
+                               env={**os.environ, "TEDO_RUN_RESTARTED": "1"})
     options = {name for name in OWN_OPTIONS if name in argv}
     app_args = [arg for arg in argv if arg not in OWN_OPTIONS]
-    if not venv_python().is_file():
+    version = check_venv()
+    if version is None:
         make_venv()
+        version = version_of([str(venv_python())])
     build = torch_build("--cpu" in options)
-    wanted = fingerprint(build)
-    installed = json.loads(MARKER.read_text(encoding="utf-8")) if MARKER.is_file() else None
+    wanted = fingerprint(build, version)
+    marker = VENV / MARKER
+    installed = json.loads(marker.read_text(encoding="utf-8")) if marker.is_file() else None
     if installed != wanted or "--reinstall" in options:
         install(build)
-        MARKER.write_text(json.dumps(wanted, indent=2), encoding="utf-8")
+        marker.write_text(json.dumps(wanted, indent=2), encoding="utf-8")
         say("Ready.")
     if "--setup-only" in options:
         return 0

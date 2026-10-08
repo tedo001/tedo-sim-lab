@@ -39,7 +39,9 @@ python run.py            # Windows: double-click run.bat
 
 The first start makes a private environment in `.venv/`, installs PyTorch (the CUDA build when it
 finds an NVIDIA GPU, otherwise the CPU build; a few GB) and the lab, then opens the app. Later starts
-open it straight away and reinstall only when `pyproject.toml` changes. Arguments go to the app
+open it straight away and reinstall only when `pyproject.toml` changes. Started with an older Python,
+it looks for Python 3.11+ on the machine and restarts with it; an existing `.venv` made with an older
+Python is moved aside (to `.venv-python3.9-old`, say) and replaced. Arguments go to the app
 (`python run.py --workspace D:/lab`); `--setup-only`, `--reinstall` and `--cpu` are the launcher's own.
 
 ## Install by hand
