@@ -52,7 +52,7 @@ class HomePage(Page):
 
     def _status_card(self) -> Card:
         card = Card("Build status", "what works in this build", padded=False)
-        self.status_table = DataTable(("Page", "Section", "Status"), stretch_column=2)
+        self.status_table = DataTable(("Page", "Section", "Status"), stretch_column=1)
         for spec in NAV:
             self.status_table.add_row((spec.title, _SECTION_NAMES[spec.section],
                                        Pill(status_text(spec), _tone(spec.planned_for))))

@@ -34,6 +34,7 @@ class DataTable(QTableWidget):
         super().__init__(0, len(headers), parent)
         self.setObjectName("DataTable")
         self._mono_columns = set(mono_columns)
+        self._widget_widths: dict[int, int] = {}  # Qt's size-to-content ignores cell widgets
         self.setHorizontalHeaderLabels(list(headers))
         self.verticalHeader().setVisible(False)
         self.verticalHeader().setDefaultSectionSize(self.ROW_HEIGHT)
@@ -60,10 +61,13 @@ class DataTable(QTableWidget):
             if isinstance(value, QWidget):
                 holder = QWidget()
                 box = QHBoxLayout(holder)
-                box.setContentsMargins(8, 0, 8, 0)
+                box.setContentsMargins(0, 0, 0, 0)  # the item padding already insets the cell
                 box.addWidget(value)
                 box.addStretch(1)
                 self.setCellWidget(row, column, holder)
+                value.ensurePolished()
+                width = value.sizeHint().width() + 16  # + the 8 px item padding each side
+                self._widget_widths[column] = max(self._widget_widths.get(column, 0), width)
             else:
                 item = QTableWidgetItem(value)
                 if column in self._mono_columns:
@@ -72,8 +76,12 @@ class DataTable(QTableWidget):
         self._fit_height()
         return row
 
+    def sizeHintForColumn(self, column: int) -> int:
+        return max(super().sizeHintForColumn(column), self._widget_widths.get(column, 0))
+
     def clear_rows(self) -> None:
         self.setRowCount(0)
+        self._widget_widths.clear()
         self._fit_height()
 
     def showEvent(self, event: QShowEvent) -> None:

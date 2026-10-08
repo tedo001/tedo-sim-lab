@@ -55,11 +55,17 @@ def ctx(qapp, workspace, keyring_backend):
 
 
 @pytest.fixture
-def window(qapp, qtbot, ctx):
+def ui_state(tmp_path):
+    from app.services.ui_state import UiState
+    return UiState.in_file(tmp_path / "ui-state.ini")
+
+
+@pytest.fixture
+def window(qapp, qtbot, ctx, ui_state):
     from app.main_window import MainWindow
     from app.ui.theme import apply_theme
     apply_theme(qapp)
-    main_window = MainWindow(ctx)
+    main_window = MainWindow(ctx, ui_state)
     qtbot.addWidget(main_window)
     main_window.show()
     return main_window

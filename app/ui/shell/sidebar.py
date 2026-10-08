@@ -1,4 +1,7 @@
-"""The left navigation: sections from :data:`app.navigation.NAV`, one item per page."""
+"""The left navigation: sections from :data:`app.navigation.NAV`, one item per page.
+
+Collapsible (Ctrl+B) to an icon rail; in the rail each item's tooltip names the page.
+"""
 
 from __future__ import annotations
 
@@ -38,10 +41,12 @@ class NavItem(QPushButton):
         self._icon = QLabel()
         self._text = label(spec.title, "NavText")
         tag = _tag(spec)
+        self._tag = label(tag, "NavTag") if tag else None
         row.addWidget(self._icon)
         row.addWidget(self._text, 1)
-        if tag:
-            row.addWidget(label(tag, "NavTag"))
+        if self._tag:
+            row.addWidget(self._tag)
+        self._row = row
         for child in self.findChildren(QLabel):
             child.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.set_active(False)
@@ -56,6 +61,15 @@ class NavItem(QPushButton):
     def is_active(self) -> bool:
         return self.property("active") == "true"
 
+    def set_compact(self, compact: bool) -> None:
+        """Icon only (sidebar collapsed) or icon, title and tag."""
+        self._text.setVisible(not compact)
+        if self._tag:
+            self._tag.setVisible(not compact)
+        inset = (SIZES["sidebar_rail"] - SIZES["icon"]) // 2 - 2
+        self._row.setContentsMargins(inset if compact else 12, 0, 0 if compact else 12, 0)
+        self.setToolTip(f"{self.spec.title}: {self.spec.summary}" if compact else self.spec.summary)
+
 
 class Sidebar(QFrame):
     page_requested = Signal(str)
@@ -65,6 +79,9 @@ class Sidebar(QFrame):
         self.setObjectName("Sidebar")
         self.setFixedWidth(SIZES["sidebar_width"])
         self.items: dict[str, NavItem] = {}
+        self._headings: list[QLabel] = []
+        self._dividers: list[QFrame] = []
+        self._collapsed = False
 
         body = QWidget()
         body.setObjectName("SidebarBody")
@@ -76,7 +93,15 @@ class Sidebar(QFrame):
             if not specs:
                 continue
             if heading:
-                column.addWidget(label(heading.upper(), "NavSection"))
+                heading_label = label(heading.upper(), "NavSection")
+                divider = QFrame()
+                divider.setObjectName("NavDivider")
+                divider.setFixedHeight(1)
+                divider.hide()
+                self._headings.append(heading_label)
+                self._dividers.append(divider)
+                column.addWidget(heading_label)
+                column.addWidget(divider)
             for spec in specs:
                 item = NavItem(spec)
                 item.clicked.connect(lambda _=False, page_id=spec.id: self.page_requested.emit(page_id))
@@ -95,3 +120,16 @@ class Sidebar(QFrame):
     def set_current(self, page_id: str) -> None:
         for item_id, item in self.items.items():
             item.set_active(item_id == page_id)
+
+    def set_collapsed(self, collapsed: bool) -> None:
+        self._collapsed = collapsed
+        self.setFixedWidth(SIZES["sidebar_rail"] if collapsed else SIZES["sidebar_width"])
+        for heading in self._headings:
+            heading.setVisible(not collapsed)
+        for divider in self._dividers:
+            divider.setVisible(collapsed)
+        for item in self.items.values():
+            item.set_compact(collapsed)
+
+    def collapsed(self) -> bool:
+        return self._collapsed

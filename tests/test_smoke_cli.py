@@ -24,7 +24,7 @@ def test_smoke_test_visits_every_page(tmp_path: Path) -> None:
     result = run_app("--smoke-test", "--screenshots", str(shots), tmp_path=tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
     assert f"SMOKE OK - {len(NAV)} pages" in result.stdout
-    assert len(list(shots.glob("*.png"))) == len(NAV)
+    assert len(list(shots.glob("*.png"))) == len(NAV) + 1  # + the split-view layout
     assert not list(tmp_path.glob("tedo-smoke-*")), "temporary workspace was not removed"
 
 

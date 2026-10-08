@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QGuiApplication, QResizeEvent
 from PySide6.QtWidgets import QGridLayout, QLabel, QSizePolicy, QWidget
 
-__all__ = ["KeyValues", "PathLabel", "Pill", "label", "repolish"]
+__all__ = ["ElidedLabel", "KeyValues", "PathLabel", "Pill", "label", "repolish"]
 
 
 def repolish(widget: QWidget) -> None:
@@ -51,39 +51,58 @@ class Pill(QLabel):
         return str(self.property("tone"))
 
 
-class PathLabel(QLabel):
-    """A path in the monospace face, shortened in the middle when it does not fit.
+class ElidedLabel(QLabel):
+    """One line that shortens with "…" when it does not fit, so narrow panes never clip.
 
-    The full path is in the tooltip and behind a right-click "Copy path".
+    The full text is in the tooltip and behind a right-click "Copy".
     """
 
-    def __init__(self, path: str | Path, parent: QWidget | None = None) -> None:
+    def __init__(self, text: str, name: str = "KvValueMono", *,
+                 mode: Qt.TextElideMode = Qt.TextElideMode.ElideRight, copy_label: str = "Copy",
+                 parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setObjectName("KvValueMono")
-        self.full_text = str(path)
-        self.setToolTip(self.full_text)
-        self.setMinimumWidth(80)
+        self.setObjectName(name)
+        self._mode = mode
+        self.full_text = text
+        self.setToolTip(text)
+        self.setMinimumWidth(60)
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        copy = QAction("Copy path", self)
+        copy = QAction(copy_label, self)
         copy.triggered.connect(lambda: QGuiApplication.clipboard().setText(self.full_text))
         self.addAction(copy)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
-        self.setText(self.full_text)
+        self.setText(text)
+
+    def set_full_text(self, text: str) -> None:
+        self.full_text = text
+        self.setToolTip(text)
+        self._elide()
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
-        shown = self.fontMetrics().elidedText(self.full_text, Qt.TextElideMode.ElideMiddle,
-                                              max(self.width(), 0))
+        self._elide()
+
+    def _elide(self) -> None:
+        shown = self.fontMetrics().elidedText(self.full_text, self._mode, max(self.width(), 0))
         if shown != self.text():
             self.setText(shown)
+
+
+class PathLabel(ElidedLabel):
+    """A path in the monospace face, shortened in the middle (both ends stay readable)."""
+
+    def __init__(self, path: str | Path, parent: QWidget | None = None) -> None:
+        super().__init__(str(path), mode=Qt.TextElideMode.ElideMiddle, copy_label="Copy path",
+                         parent=parent)
 
 
 class KeyValues(QWidget):
     """Aligned ``key  value`` rows, values optionally in the monospace face.
 
     Machine-written values (paths, URIs, versions, hashes) go in mono; words
-    people wrote stay in the text face. A :class:`~pathlib.Path` value becomes a
-    :class:`PathLabel`.
+    people wrote stay in the text face. Every value is one line that shortens
+    with "…" when space runs out (full text in the tooltip); a :class:`~pathlib.Path`
+    shortens in the middle.
     """
 
     def __init__(self, rows: Iterable[tuple[str, str | Path | QWidget]] = (), *, mono: bool = True,
@@ -106,8 +125,7 @@ class KeyValues(QWidget):
         if isinstance(value, Path):
             value = PathLabel(value)
         elif isinstance(value, str):
-            value = label(value, "KvValueMono" if self._mono else "KvValue",
-                          wrap=True, selectable=True)
+            value = ElidedLabel(value, "KvValueMono" if self._mono else "KvValue")
         self._grid.addWidget(value, row, 1)
 
     def value_text(self, key: str) -> str | None:
@@ -118,7 +136,7 @@ class KeyValues(QWidget):
             if key_item and isinstance(key_item.widget(), QLabel) and \
                     key_item.widget().text() == key and value_item:
                 widget = value_item.widget()
-                if isinstance(widget, PathLabel):
+                if isinstance(widget, ElidedLabel):
                     return widget.full_text
                 return widget.text() if isinstance(widget, QLabel) else None
         return None

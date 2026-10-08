@@ -53,7 +53,7 @@ class SettingsPage(Page):
 
         credentials = Card("Credentials", "values are never shown", padded=False)
         self.credential_table = DataTable(("Credential", "Variable", "Source"), mono_columns=(1,),
-                                          stretch_column=2)
+                                          stretch_column=0)
         for key, title in KNOWN_CREDENTIALS.items():
             text, tone = _SOURCE[ctx.credentials.source(key)]
             self.credential_table.add_row((title, key, Pill(text, tone)))

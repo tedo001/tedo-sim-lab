@@ -1,4 +1,4 @@
-"""The title row: wordmark, version, Ctrl+K page search and settings.
+"""The title row: sidebar toggle, wordmark, Ctrl+K page search, split view and settings.
 
 Search covers pages in this build; datasets, models and runs join it once
 their registries exist (build phases 2 and 7).
@@ -19,8 +19,20 @@ from ..widgets import label
 __all__ = ["TopBar"]
 
 
+def _tool_button(name: str, tooltip: str) -> QToolButton:
+    button = QToolButton()
+    button.setObjectName("TopBarButton")
+    button.setIcon(icon(name, COLORS["text_dim"], 18))
+    button.setIconSize(QSize(18, 18))
+    button.setToolTip(tooltip)
+    button.setAccessibleName(tooltip.split(" (")[0])
+    return button
+
+
 class TopBar(QFrame):
     page_requested = Signal(str)
+    sidebar_toggle_requested = Signal()
+    split_toggle_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -29,8 +41,11 @@ class TopBar(QFrame):
         self._titles = {spec.title: spec.id for spec in NAV}
 
         row = QHBoxLayout(self)
-        row.setContentsMargins(16, 0, 12, 0)
+        row.setContentsMargins(10, 0, 12, 0)
         row.setSpacing(10)
+        self.sidebar_button = _tool_button("panel-left-close", "Collapse sidebar (Ctrl+B)")
+        self.sidebar_button.clicked.connect(self.sidebar_toggle_requested.emit)
+        row.addWidget(self.sidebar_button)
         row.addWidget(label("TEDO", "Wordmark"))
         row.addWidget(label("AI RESEARCH LAB", "WordmarkSub"))
         row.addWidget(label(f"v{__version__}", "VersionTag"), 0, Qt.AlignmentFlag.AlignVCenter)
@@ -55,18 +70,27 @@ class TopBar(QFrame):
         row.addWidget(self.search)
         row.addStretch(1)
 
-        self.settings_button = QToolButton()
-        self.settings_button.setObjectName("TopBarButton")
-        self.settings_button.setIcon(icon("settings", COLORS["text_dim"], 18))
-        self.settings_button.setIconSize(QSize(18, 18))
-        self.settings_button.setToolTip("Settings")
-        self.settings_button.setAccessibleName("Settings")
+        self.split_button = _tool_button("columns-2", "Split view (Ctrl+\\)")
+        self.split_button.setCheckable(True)
+        self.split_button.clicked.connect(lambda _=False: self.split_toggle_requested.emit())
+        row.addWidget(self.split_button)
+        self.settings_button = _tool_button("settings", "Settings")
         self.settings_button.clicked.connect(lambda: self.page_requested.emit("settings"))
         row.addWidget(self.settings_button)
 
         search_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
         search_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
         search_shortcut.activated.connect(self.focus_search)
+
+    def show_sidebar_collapsed(self, collapsed: bool) -> None:
+        name, tip = (("panel-left-open", "Expand sidebar (Ctrl+B)") if collapsed
+                     else ("panel-left-close", "Collapse sidebar (Ctrl+B)"))
+        self.sidebar_button.setIcon(icon(name, COLORS["text_dim"], 18))
+        self.sidebar_button.setToolTip(tip)
+
+    def show_split_open(self, open_: bool) -> None:
+        self.split_button.setChecked(open_)
+        self.split_button.setToolTip("Close split view (Ctrl+\\)" if open_ else "Split view (Ctrl+\\)")
 
     def focus_search(self) -> None:
         self.search.setFocus(Qt.FocusReason.ShortcutFocusReason)

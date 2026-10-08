@@ -59,6 +59,28 @@ def run_smoke(window: MainWindow, app: QApplication, *, uncaught: list[str],
             file = screenshot_dir / f"{len(report.visited):02d}-{spec.id}.png"
             window.grab().save(str(file))
             report.screenshots.append(file)
+    try:
+        _exercise_layout(window, app, screenshot_dir, report)
+    except Exception as exc:
+        report.errors.append(f"layout: {type(exc).__name__}: {exc}")
     report.errors.extend(uncaught)
     window.close()
     return report
+
+
+def _exercise_layout(window: MainWindow, app: QApplication, screenshot_dir: Path | None,
+                     report: SmokeReport) -> None:
+    """Collapse the sidebar and open split view, then put everything back."""
+    window.navigate("home")
+    window.set_sidebar_collapsed(True)
+    window.set_split_open(True, "documentation")
+    app.processEvents()
+    if not (window.sidebar_collapsed() and window.split_open()):
+        raise RuntimeError("sidebar rail or split view did not open")
+    if screenshot_dir is not None:
+        file = screenshot_dir / "zz-layout-rail-and-split.png"
+        window.grab().save(str(file))
+        report.screenshots.append(file)
+    window.set_split_open(False)
+    window.set_sidebar_collapsed(False)
+    app.processEvents()

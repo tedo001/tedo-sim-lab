@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 from string import Template
 
@@ -15,6 +16,7 @@ __all__ = ["COLORS", "FONT_FAMILY", "MONO_FAMILY", "SIZES", "TONES", "apply_them
 
 _HERE = Path(__file__).resolve().parent
 FONTS_DIR = _HERE.parents[1] / "resources" / "fonts"
+ICONS_DIR = _HERE.parents[1] / "resources" / "icons"
 
 _fonts_loaded: list[str] | None = None
 
@@ -46,10 +48,26 @@ def _pill_rules() -> str:
         for tone, colour in TONES.items())
 
 
+def coloured_asset(name: str, colour: str) -> str:
+    """A copy of icon ``name`` drawn in ``colour``, for QSS ``url()``s (which cannot recolour).
+
+    Written to the temporary folder, never next to the code: the installed app's
+    folder is read-only.
+    """
+    folder = Path(tempfile.gettempdir()) / "tedo-ai-lab-theme"
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / f"{name}-{colour.lstrip('#').lower()}.svg"
+    if not target.exists():
+        source = (ICONS_DIR / f"{name}.svg").read_text(encoding="utf-8")
+        target.write_text(source.replace("currentColor", colour), encoding="utf-8")
+    return target.as_posix()
+
+
 def stylesheet() -> str:
     """The rendered style sheet: the QSS template with every token filled in."""
     template = Template((_HERE / "style.qss").read_text(encoding="utf-8"))
     values = dict(COLORS, font=FONT_FAMILY, mono=MONO_FAMILY, radius=SIZES["radius"],
+                  chevron=coloured_asset("chevron-down", COLORS["text_dim"]),
                   font_px=SIZES["font"], mono_px=SIZES["font_mono"],
                   page_title_px=SIZES["page_title"], card_title_px=SIZES["card_title"])
     return template.substitute(values) + "\n" + _pill_rules() + "\n"
@@ -74,10 +92,15 @@ def _palette() -> QPalette:
 
 
 def apply_theme(app: QApplication) -> None:
+    """Fonts, Fusion, palette and style sheet. Idempotent: re-applying an unchanged style
+    sheet would re-polish every widget in the application."""
     load_fonts()
+    sheet = stylesheet()
+    if app.styleSheet() == sheet:
+        return
     app.setStyle("Fusion")
     app.setPalette(_palette())
     font = QFont(FONT_FAMILY)
     font.setPixelSize(SIZES["font"])
     app.setFont(font)
-    app.setStyleSheet(stylesheet())
+    app.setStyleSheet(sheet)

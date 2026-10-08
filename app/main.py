@@ -54,6 +54,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     from .errors import install_excepthook, install_qt_message_handler
     from .main_window import MainWindow
     from .services.context import build_context
+    from .services.ui_state import UiState
     from .ui.theme import apply_theme
 
     uncaught: list[str] = []
@@ -71,7 +72,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 3
     for problem in ctx.catalog.errors:
         log.warning("Catalogue: %s", problem)
-    window = MainWindow(ctx)
+    # The smoke test must not touch the person's remembered layout.
+    ui_state = UiState.in_file(paths.workspace / "ui-state.ini") if args.smoke_test else UiState()
+    window = MainWindow(ctx, ui_state)
 
     if args.smoke_test:
         from .smoke import run_smoke

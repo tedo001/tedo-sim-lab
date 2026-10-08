@@ -25,6 +25,7 @@ QLineEdit#GlobalSearch {
 QLineEdit#GlobalSearch:focus { border-color: ${accent}; }
 QToolButton#TopBarButton { border: none; border-radius: ${radius}px; padding: 6px; }
 QToolButton#TopBarButton:hover { background: ${raised}; }
+QToolButton#TopBarButton:checked { background: ${selected}; }
 
 /* ── sidebar ───────────────────────────────────────────────────────── */
 QFrame#Sidebar { background: ${sidebar}; border-right: 1px solid ${border_soft}; }
@@ -41,6 +42,7 @@ QPushButton#NavItem:hover { background: ${raised}; }
 QPushButton#NavItem[active="true"] { background: ${selected}; border-left-color: ${accent}; }
 QLabel#NavText { color: ${text_dim}; background: transparent; }
 QLabel#NavText[active="true"] { color: ${text}; font-weight: 500; }
+QFrame#NavDivider { border: none; border-top: 1px solid ${border}; margin: 6px 12px; }
 QLabel#NavTag { font-family: "${mono}"; font-size: 10px; color: ${text_faint}; background: transparent; }
 
 /* ── pages ─────────────────────────────────────────────────────────── */
@@ -124,3 +126,18 @@ QScrollBar:horizontal { background: transparent; height: 8px; margin: 0; }
 QScrollBar::handle:horizontal { background: ${border}; border-radius: 4px; min-width: 24px; }
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
 QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
+
+/* ── split view ─────────────────────────────────────────────────────── */
+QSplitter#MainSplitter::handle { background: ${border}; }
+QFrame#SplitPane { background: ${bg}; border: none; }
+QFrame#SplitHead { background: ${sidebar}; border: none; border-bottom: 1px solid ${border_soft}; }
+
+/* ── combo boxes (the arrow is a token-coloured asset: QSS drops the native one) ── */
+QComboBox { padding-right: 26px; }
+QComboBox::drop-down { border: none; width: 24px; subcontrol-origin: padding;
+                       subcontrol-position: center right; }
+QComboBox::down-arrow { image: url("${chevron}"); width: 12px; height: 12px; }
+QComboBox QAbstractItemView {
+    background: ${surface}; border: 1px solid ${border}; outline: 0;
+    selection-background-color: ${selected}; selection-color: ${text};
+}

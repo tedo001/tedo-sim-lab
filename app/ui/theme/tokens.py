@@ -60,6 +60,7 @@ SIZES: dict[str, int] = {
     "page_margin": 20,
     "gap": 12,
     "sidebar_width": 224,
+    "sidebar_rail": 52,
     "topbar_height": 48,
     "icon": 16,
 }

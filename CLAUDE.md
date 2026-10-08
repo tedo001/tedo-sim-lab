@@ -58,9 +58,11 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | --- | --- |
 | `app/main.py` | Entry point: args, workspace, settings, logging, theme, window, smoke test |
 | `app/navigation.py` | `NAV`: every page in sidebar order. Drives sidebar, search, placeholders, smoke test |
-| `app/main_window.py` | Top bar + sidebar + `QStackedWidget`; pages built on first visit |
+| `app/main_window.py` | Top bar + sidebar + splitter (main page stack, optional split pane); Ctrl+B / Ctrl+\\ |
+| `app/ui/shell/` | `TopBar`, `Sidebar` (collapses to an icon rail), `SplitPane` (second page, own instances) |
+| `app/services/ui_state.py` | `UiState`: remembered layout via `QSettings` (per person, never in a project) |
 | `app/ui/pages/` | One module per built page; `PAGE_FACTORIES` maps id → page class |
-| `app/ui/widgets/` | Kit: `Page`, `PageHead`, `Card`, `Pill`, `KeyValues`, `PathLabel`, `DataTable`, `MarkdownView` |
+| `app/ui/widgets/` | Kit: `Page`, `PageHead`, `Card`, `Pill`, `KeyValues`, `ElidedLabel`/`PathLabel`, `DataTable`, `MarkdownView` |
 | `app/ui/theme/` | `tokens.py` (all colours/sizes), `style.qss` (template), fonts |
 | `app/resources/` | Bundled fonts (Inter, JetBrains Mono — OFL) and Lucide icons (ISC) |
 | `app/services/context.py` | `AppContext` (paths, config, credentials, catalogue, store, jobs, navigate); `build_context()` |
@@ -119,6 +121,8 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   would look like importable packages.
 - **Text faces**: Inter for words people wrote, JetBrains Mono for anything a machine
   wrote (paths, URIs, versions, hashes, metrics, logs).
+- **Narrow panes**: pages must work at half width (split view). Key/value rows are single
+  line and elide (full text in tooltip); tables stretch a text column, never a pill column.
 - **Look**: dark, restrained, flat. Colours only from `tokens.py`; one accent (muted
   blue) for anything pressable; status shown with tinted pills. No gradients or glow.
 - **Workspace**: runtime folders (`models/ datasets/ experiments/ notebooks/ results/
