@@ -131,7 +131,8 @@ def test_training_page_follows_a_run_into_the_explainer(ctx, qtbot, visited) -> 
     builder.refresh()
     run_id = builder.run()
     assert run_id and visited[-1] == "training" and page.selected == run_id
-    qtbot.waitUntil(lambda: ctx.experiments.view(run_id).status == "completed", timeout=180_000)
+    from tests.ui.test_experiment_service import wait_for
+    assert wait_for(qtbot, ctx, run_id, ("completed", "failed")).status == "completed"
     detail = page.detail
     assert detail.status.text() == "Completed" and detail.results.isVisibleTo(page)
     assert [epoch for epoch, _ in detail.charts["val_acc"].points()] == [1, 2]

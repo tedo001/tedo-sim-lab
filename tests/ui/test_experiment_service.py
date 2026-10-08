@@ -26,7 +26,16 @@ def spec(epochs: int = 2, steps: int = 3, name: str = "Fake MNIST · TinyVGG") -
 
 
 def wait_for(qtbot, ctx, run_id, statuses, timeout=180_000):
-    qtbot.waitUntil(lambda: ctx.experiments.view(run_id).status in statuses, timeout=timeout)
+    """Wait for the run to reach one of ``statuses``; on timeout, say where it got stuck."""
+    try:
+        qtbot.waitUntil(lambda: ctx.experiments.view(run_id).status in statuses, timeout=timeout)
+    except Exception as exc:
+        view = ctx.experiments.view(run_id)
+        jobs = [(job.title, job.status, job.error) for job in ctx.jobs.jobs()]
+        log = "\n".join(ctx.experiments.log_lines(run_id, limit=60))
+        files = sorted(p.name for p in view.run_dir.iterdir()) if view.run_dir.is_dir() else []
+        raise AssertionError(f"run {run_id} is still {view.status!r}; jobs {jobs}; files {files}\n"
+                             f"run.log:\n{log}") from exc
     return ctx.experiments.view(run_id)
 
 
