@@ -1,9 +1,22 @@
 # CLAUDE.md — TEDO AI Research Lab
 
-A PyQt6 desktop workbench for ML and computer-vision research. An experiment is a
+A Qt (PySide6) desktop workbench for ML and computer-vision research. An experiment is a
 file (`experiment.yaml`); it runs in the background, is tracked in SQLite and MLflow,
 and leaves a run folder it can be reproduced from. V0.1 is being built in phases
 (see **Build status** at the end).
+
+## Licence rule (from the owner — always follow)
+
+**Only permissively licensed tools: MIT or Apache-2.0** (BSD, ISC and PSF count as
+equivalent). **Never copyleft** such as AGPL or GPL; Ultralytics YOLO is excluded for this
+reason. Enforced in code and tests:
+
+- `configs/dependency_licences.yaml` lists every dependency's licence;
+  `tests/test_dependency_licences.py` fails on a missing or non-permissive one.
+- Third-party model cards and plugins are refused at load time unless their licence is
+  permissive (`tool_licence_problem`; `origin: builtin` = this project's own code).
+- The one documented exception is **PySide6 (LGPL-3.0)**: no permissive Qt binding exists.
+  PyQt6 (GPL) is not used. Keep Qt a separate, replaceable shared library.
 
 ## Git rules (from the owner — always follow)
 
@@ -33,7 +46,7 @@ then `pip install -e ".[dev]"`. Linux needs Qt's system libraries:
 ## Architecture
 
 ```
-app/      PyQt6 lives only here: shell, pages, widgets, theme, Qt services
+app/      Qt (PySide6) lives only here: shell, pages, widgets, theme, Qt services
 labs/     domain logic per lab (dataset adapters, model builders, runners) — no Qt
 plugins/  integrations, one folder each with plugin.yaml — no Qt, lazy optional deps
 core/     contracts and engines — no Qt, never imports app/labs/plugins
@@ -100,7 +113,7 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 - **Licences**: every dataset/model card has a licence category (`open-source`,
   `research-only`, `non-commercial`, `commercial`, `gated`, `proprietary`, `unspecified`).
   Never auto-download gated/restricted items; downloads are always user-initiated.
-  Ultralytics is AGPL-3.0. Never download or redistribute ImageNet images.
+  Never download or redistribute ImageNet images. Tool licences: see the licence rule above.
 - **Optional dependencies**: check with `core.common.optional.is_installed()` (package
   metadata), never `find_spec` — the workspace's `datasets/` and `models/` folders
   would look like importable packages.
@@ -139,7 +152,7 @@ Design for it now:
       MLflow on SQLite; CI on GitHub Actions)
 - [x] Phase 1 — skeleton, theme, sidebar, every page (placeholders), logging with
       masking, settings, credentials, smoke test, CI
-- [x] Phase 2 — catalogue (10 dataset, 20 model cards, 9 plugins, 5 experimental runners),
+- [x] Phase 2 — catalogue (10 dataset, 18 model cards, 8 plugins, 5 experimental runners),
       licence policy, SQLite schema + migrations + LabStore, strict spec with canonical YAML,
       worker protocol, Qt JobQueue
 - [ ] Phase 3 — hardware monitor and dashboard

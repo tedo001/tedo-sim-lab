@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QAbstractButton
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QAbstractButton
 
 from app.navigation import NAV, page
 from app.ui.pages.placeholder import PlaceholderPage, status_text
@@ -72,7 +72,7 @@ def test_status_text() -> None:
 
 
 def test_future_releases_are_tagged_in_the_sidebar(window) -> None:
-    from PyQt6.QtWidgets import QLabel
+    from PySide6.QtWidgets import QLabel
     tags = {item_id: [w.text() for w in item.findChildren(QLabel) if w.objectName() == "NavTag"]
             for item_id, item in window.sidebar.items.items()}
     assert tags["audio"] == ["v0.2"]

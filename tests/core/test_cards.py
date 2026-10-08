@@ -135,8 +135,9 @@ def test_shipped_catalogue_has_what_v01_needs(datasets, models) -> None:
                     "breast_cancer", "digits"):
         assert card_id in datasets
     for card_id in ("simple_cnn", "lenet5", "resnet18", "xgboost", "random_forest", "kmeans",
-                    "yolov8"):
+                    "rt_detr", "sam"):
         assert card_id in models
+    assert "yolov8" not in models and "llama3_8b" not in models  # licence policy
 
 
 def test_restricted_datasets_are_never_downloadable(datasets) -> None:
@@ -155,9 +156,39 @@ def test_licences_without_a_published_licence_say_so(datasets) -> None:
         assert datasets.get(card_id).license.category == LicenseCategory.UNSPECIFIED
 
 
-def test_ultralytics_is_flagged_copyleft(models) -> None:
-    yolo = models.get("yolov8")
-    assert yolo.license.copyleft and "AGPL" in yolo.license.name
+MODEL = dedent("""\
+    cards:
+      - id: some_model
+        name: Some Model
+        architecture: X
+        framework: pytorch
+        tasks: [object_detection]
+        source_url: https://example.org/m
+        license: {LICENCE}
+""")
+
+
+@pytest.mark.parametrize("licence, allowed", [
+    ("{category: open-source, name: MIT, spdx: MIT}", True),
+    ("{category: open-source, name: Apache-2.0, spdx: Apache-2.0}", True),
+    ("{category: open-source, name: BSD-3-Clause, spdx: BSD-3-Clause}", True),
+    ("{category: open-source, name: AGPL-3.0, spdx: AGPL-3.0-only, copyleft: true}", False),
+    ("{category: open-source, name: GPL-3.0, spdx: GPL-3.0-only}", False),
+    ("{category: gated, name: Some Community Licence}", False),
+])
+def test_only_permissive_third_party_models_load(tmp_path: Path, licence: str, allowed: bool) -> None:
+    registry = ModelRegistry()
+    errors = registry.load_file(write(tmp_path, "m.yaml", MODEL.replace("{LICENCE}", licence)))
+    assert ("some_model" in registry) is allowed
+    if not allowed:
+        assert "not allowed" in errors[0].message
+
+
+def test_builtin_models_are_covered_by_the_project_licence(models) -> None:
+    assert models.get("simple_cnn").origin == "builtin"
+    for card in models.all():
+        if card.origin == "third_party":
+            assert card.license.spdx and not card.license.copyleft, card.id
 
 
 def test_pretrained_weights_carry_their_own_licence(models) -> None:

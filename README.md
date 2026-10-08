@@ -1,7 +1,7 @@
 # TEDO AI Research Lab
 
 A desktop workbench for machine-learning and computer-vision research, built with
-PyQt6. Pick a dataset, a model, hyperparameters and a device; run the experiment
+Qt for Python (PySide6). Pick a dataset, a model, hyperparameters and a device; run the experiment
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
@@ -28,7 +28,7 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install -e ".[dev]"
 ```
 
-Optional extras: `[cv]` (Ultralytics — AGPL-3.0, ONNX), `[ocr]` (PaddleOCR, EasyOCR,
+Optional extras: `[cv]` (ONNX, ONNX Runtime, Transformers for RT-DETR), `[ocr]` (PaddleOCR, EasyOCR,
 Tesseract), `[nlp]` (Transformers, Hugging Face Hub), `[integrations]` (Kaggle,
 Roboflow, Jupyter, SHAP). The app starts without any of them.
 
@@ -59,7 +59,15 @@ pytest
 QT_QPA_PLATFORM=offscreen python -m app.main --smoke-test
 ```
 
-## Licences of bundled assets
+## Licences
+
+The lab only uses permissively licensed tools (MIT, Apache-2.0, BSD); copyleft tools such as
+Ultralytics YOLO (AGPL-3.0) are excluded. Every dependency's licence is listed in
+[configs/dependency_licences.yaml](configs/dependency_licences.yaml) and checked by the tests.
+The one exception is the Qt binding, PySide6, which is LGPL-3.0: no permissively licensed
+Python binding for Qt exists.
+
+Bundled assets:
 
 - Inter and JetBrains Mono fonts — SIL Open Font License 1.1
   (`app/resources/fonts/OFL-*.txt`)

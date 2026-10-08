@@ -1,5 +1,7 @@
 # Image-classification models built into the lab (build phase 4 makes them
 # "stable") and external vision models listed for later releases.
+# Owner policy: third-party models must be permissively licensed (MIT, Apache-2.0, BSD);
+# copyleft ones such as Ultralytics YOLO (AGPL-3.0) are not allowed.
 cards:
   - id: simple_cnn
     name: SimpleCNN
@@ -13,6 +15,7 @@ cards:
       name: This project's licence (none chosen yet)
       notes: Written for this lab; covered by the repository's licence once one is chosen.
     input_spec: C×H×W, H and W at least 8
+    origin: builtin
     builder: labs.computer_vision.models:build_simple_cnn
     maturity: planned
     planned_for: v0.1
@@ -27,6 +30,7 @@ cards:
     source_url: http://yann.lecun.com/exdb/lenet/
     license: *this_project
     input_spec: C×H×W, resized to 32×32
+    origin: builtin
     builder: labs.computer_vision.models:build_lenet5
     maturity: planned
     planned_for: v0.1
@@ -61,27 +65,6 @@ cards:
     maturity: planned
     planned_for: v0.1
     tags: [cnn, residual, pretrained]
-
-  - id: yolov8
-    name: YOLOv8
-    description: Ultralytics' real-time detector, also for segmentation and pose.
-    architecture: YOLOv8 (Ultralytics)
-    framework: ultralytics
-    tasks: [object_detection, instance_segmentation, pose_estimation]
-    source_url: https://github.com/ultralytics/ultralytics
-    license:
-      category: open-source
-      name: AGPL-3.0
-      spdx: AGPL-3.0-only
-      url: https://github.com/ultralytics/ultralytics/blob/main/LICENSE
-      copyleft: true
-      notes: Copyleft. Software that uses it, including over a network, must be released under
-        AGPL-3.0 unless you hold an Ultralytics Enterprise licence. Its weights carry the same
-        licence.
-    requires: ["ultralytics>=8.2"]
-    maturity: planned
-    planned_for: v0.5
-    tags: [detection, real-time, agpl]
 
   - id: rt_detr
     name: RT-DETR

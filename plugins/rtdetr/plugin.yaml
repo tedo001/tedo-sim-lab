@@ -3,17 +3,16 @@ name: rtdetr
 title: RT-DETR
 version: 0.1.0
 author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
-description: "RT-DETR detection transformer through the Ultralytics package."
+description: "RT-DETR real-time detection transformer, through Hugging Face Transformers."
 license:
   category: open-source
-  name: AGPL-3.0 (Ultralytics implementation)
-  spdx: AGPL-3.0-only
-  url: https://github.com/ultralytics/ultralytics/blob/main/LICENSE
-  copyleft: true
-  notes: The original RT-DETR code (lyuwenyu/RT-DETR) is Apache-2.0; this integration uses the Ultralytics implementation, which is AGPL-3.0.
+  name: Apache-2.0 (Hugging Face Transformers; RT-DETR weights on the Hub)
+  spdx: Apache-2.0
+  url: https://github.com/huggingface/transformers/blob/main/LICENSE
+  notes: The original RT-DETR code (lyuwenyu/RT-DETR) is Apache-2.0 too. The Ultralytics implementation (AGPL-3.0) is deliberately not used.
 capabilities: [detector]
 entry: plugins.rtdetr.plugin:RtDetrPlugin
-requires: ["ultralytics>=8.2"]
+requires: ["transformers>=4.42"]
 maturity: planned
 planned_for: v0.5
-homepage: https://docs.ultralytics.com/models/rtdetr/
+homepage: https://huggingface.co/docs/transformers/model_doc/rt_detr

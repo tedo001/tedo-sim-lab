@@ -7,7 +7,7 @@ Plugin Store (build phase 9); until then, set environment variables.
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget
 
 from core.common import KNOWN_CREDENTIALS, experiment_python, mlflow_tracking_uri
 

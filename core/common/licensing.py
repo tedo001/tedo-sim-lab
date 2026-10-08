@@ -16,7 +16,13 @@ from typing import Protocol
 from pydantic import BaseModel, ConfigDict
 
 __all__ = ["CATEGORY_LABELS", "DownloadDecision", "Downloadable", "LicenseCategory", "LicenseInfo",
-           "download_policy"]
+           "PERMISSIVE_SPDX", "download_policy", "tool_licence_problem"]
+
+#: Owner policy for *tools* (libraries, plugins, model code): permissive licences only.
+#: MIT and Apache-2.0, plus BSD, ISC and the PSF licence, which grant the same freedoms.
+#: Copyleft (AGPL, GPL) is never allowed. Data and pretrained weights are judged by
+#: :func:`download_policy` instead.
+PERMISSIVE_SPDX = frozenset({"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "PSF-2.0"})
 
 
 class LicenseCategory(StrEnum):
@@ -103,3 +109,17 @@ def download_policy(item: Downloadable) -> DownloadDecision:
         return DownloadDecision(True, terms,
                                 f"I will use this under its terms: {terms}.{note}")
     return DownloadDecision(True, terms)
+
+
+def tool_licence_problem(licence: LicenseInfo) -> str | None:
+    """Why a third-party tool with ``licence`` is not allowed in the lab, or ``None`` if it is."""
+    if licence.copyleft:
+        return (f"{licence.name} is copyleft; the lab only uses permissively licensed tools "
+                "(MIT, Apache-2.0, BSD)")
+    if licence.spdx is None:
+        return f"{licence.name} has no SPDX identifier, so its terms cannot be checked"
+    options = [part.strip() for part in licence.spdx.split(" OR ")]
+    if not any(option in PERMISSIVE_SPDX for option in options):
+        return (f"{licence.spdx} is not a permissive licence; the lab only uses MIT, Apache-2.0 "
+                "or BSD-licensed tools")
+    return None

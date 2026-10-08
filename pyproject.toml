@@ -13,7 +13,7 @@ authors = [{ name = "tedo001", email = "durgamani.d.e.c.e.50@gmail.com" }]
 # experiments on a CPU-only machine. Install CPU-only PyTorch first on machines
 # without CUDA (see README).
 dependencies = [
-    "PyQt6>=6.6",
+    "PySide6-Essentials>=6.6",       # Qt for Python, LGPL-3.0 (no permissive Qt binding exists)
     "pyqtgraph>=0.13.7",
     "numpy>=1.26",
     "pandas>=2.1",
@@ -26,7 +26,7 @@ dependencies = [
     "GitPython>=3.1.40",
     "torch>=2.2",
     "torchvision>=0.17",
-    "opencv-python-headless>=4.9",   # headless: the GUI wheel bundles a Qt that clashes with PyQt6
+    "opencv-python-headless>=4.9",   # headless: the GUI wheel bundles its own Qt, which clashes
     "scikit-learn>=1.4",
     "xgboost>=2.0",
     "mlflow>=2.12",
@@ -36,8 +36,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Ultralytics is AGPL-3.0: the lab asks for an explicit acknowledgement before using it.
-cv = ["ultralytics>=8.2", "onnx>=1.15", "onnxruntime>=1.17"]
+# Owner policy: permissive licences only (see configs/dependency_licences.yaml). No AGPL/GPL,
+# so no Ultralytics; RT-DETR comes from Hugging Face Transformers (Apache-2.0).
+cv = ["onnx>=1.15", "onnxruntime>=1.17", "transformers>=4.42"]
 ocr = ["paddleocr>=2.7", "paddlepaddle>=2.6", "easyocr>=1.7", "pytesseract>=0.3.10"]
 nlp = ["transformers>=4.40", "huggingface_hub>=0.23"]
 integrations = [
@@ -65,7 +66,7 @@ app = ["resources/fonts/*", "resources/icons/*", "ui/theme/*.qss"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra"
-qt_api = "pyqt6"
+qt_api = "pyside6"
 markers = [
     "slow: takes more than a few seconds (real training runs)",
     "network: downloads data; skipped when offline",

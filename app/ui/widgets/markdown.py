@@ -7,8 +7,8 @@ document is loaded.
 
 from __future__ import annotations
 
-from PyQt6.QtGui import QColor, QFont, QTextBlockFormat, QTextCharFormat, QTextCursor, QTextDocument
-from PyQt6.QtWidgets import QTextBrowser, QWidget
+from PySide6.QtGui import QColor, QFont, QTextBlockFormat, QTextCharFormat, QTextCursor, QTextDocument
+from PySide6.QtWidgets import QTextBrowser, QWidget
 
 from ..theme.tokens import COLORS, FONT_FAMILY, MONO_FAMILY
 

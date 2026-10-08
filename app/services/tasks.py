@@ -10,7 +10,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
+from PySide6.QtCore import QObject, QRunnable, Signal
 
 from core.common.cancel import Cancelled, CancelToken, ProgressFn
 from core.common.masking import mask_text
@@ -21,10 +21,10 @@ log = logging.getLogger("tedo.tasks")
 
 
 class TaskSignals(QObject):
-    progress = pyqtSignal(float, str)
-    succeeded = pyqtSignal(object)
-    failed = pyqtSignal(str)
-    cancelled = pyqtSignal()
+    progress = Signal(float, str)
+    succeeded = Signal(object)
+    failed = Signal(str)
+    cancelled = Signal()
 
 
 class TaskRunnable(QRunnable):

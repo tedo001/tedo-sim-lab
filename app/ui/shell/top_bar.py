@@ -6,9 +6,9 @@ their registries exist (build phases 2 and 7).
 
 from __future__ import annotations
 
-from PyQt6.QtCore import QSize, QStringListModel, Qt, pyqtSignal
-from PyQt6.QtGui import QAction, QKeySequence, QShortcut
-from PyQt6.QtWidgets import QCompleter, QFrame, QHBoxLayout, QLineEdit, QToolButton, QWidget
+from PySide6.QtCore import QSize, QStringListModel, Qt, Signal
+from PySide6.QtGui import QAction, QKeySequence, QShortcut
+from PySide6.QtWidgets import QCompleter, QFrame, QHBoxLayout, QLineEdit, QToolButton, QWidget
 
 from ... import __version__
 from ...navigation import NAV
@@ -20,7 +20,7 @@ __all__ = ["TopBar"]
 
 
 class TopBar(QFrame):
-    page_requested = pyqtSignal(str)
+    page_requested = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -64,8 +64,9 @@ class TopBar(QFrame):
         self.settings_button.clicked.connect(lambda: self.page_requested.emit("settings"))
         row.addWidget(self.settings_button)
 
-        QShortcut(QKeySequence("Ctrl+K"), self, activated=self.focus_search,
-                  context=Qt.ShortcutContext.ApplicationShortcut)
+        search_shortcut = QShortcut(QKeySequence("Ctrl+K"), self)
+        search_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        search_shortcut.activated.connect(self.focus_search)
 
     def focus_search(self) -> None:
         self.search.setFocus(Qt.FocusReason.ShortcutFocusReason)

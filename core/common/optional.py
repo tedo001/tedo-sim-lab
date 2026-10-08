@@ -39,7 +39,7 @@ def is_installed(distribution: str | Sequence[str]) -> bool:
 
 
 def requirement_met(requirement: str) -> bool:
-    """Is ``requirement`` (a pip requirement such as ``"ultralytics>=8.2"``) satisfied?"""
+    """Is ``requirement`` (a pip requirement such as ``"transformers>=4.42"``) satisfied?"""
     from packaging.requirements import InvalidRequirement, Requirement
 
     try:

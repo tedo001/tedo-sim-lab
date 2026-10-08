@@ -15,22 +15,3 @@ cards:
     maturity: planned
     planned_for: v0.2
     tags: [speech, multilingual]
-
-  - id: llama3_8b
-    name: Llama 3 8B
-    description: Meta's 8-billion-parameter language model.
-    architecture: Decoder-only Transformer
-    framework: huggingface
-    tasks: [text_generation]
-    source_url: https://huggingface.co/meta-llama/Meta-Llama-3-8B
-    license:
-      category: gated
-      name: Meta Llama 3 Community License
-      url: https://llama.meta.com/llama3/license/
-      notes: Accept Meta's licence on Hugging Face before you can download it. Products above
-        700 million monthly active users need a separate licence from Meta, and use must follow
-        the acceptable-use policy.
-    min_vram_gb: 16
-    maturity: planned
-    planned_for: v0.3
-    tags: [llm, gated]

@@ -18,7 +18,7 @@ class ObjectDetectionRunner(ExperimentalRunner):
     id = "object_detection"
     title = "Object detection"
     tasks = frozenset({Task.OBJECT_DETECTION})
-    planned_for = "v0.5 (YOLO, RT-DETR, Faster R-CNN)"
+    planned_for = "v0.5 (RT-DETR, DETR, Faster R-CNN)"
 
 
 class SegmentationRunner(ExperimentalRunner):

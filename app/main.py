@@ -47,7 +47,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     log = setup_logging(paths.logs, args.log_level or config.log_level)
     log.info("Starting with workspace %s", paths.workspace)
 
-    from PyQt6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
 
     from core.tracking import MigrationError
 

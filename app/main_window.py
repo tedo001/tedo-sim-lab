@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import platform
 
-from PyQt6.QtCore import QT_VERSION_STR, pyqtSignal
-from PyQt6.QtGui import QCloseEvent
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtCore import Signal, qVersion
+from PySide6.QtGui import QCloseEvent
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
 
 from . import __version__
 from .navigation import NAV, page
@@ -20,7 +20,7 @@ WINDOW_TITLE = "TEDO AI Research Lab"
 
 
 class MainWindow(QMainWindow):
-    page_changed = pyqtSignal(str)
+    page_changed = Signal(str)
 
     def __init__(self, ctx: AppContext, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         self.status_label = QLabel(f"workspace {ctx.paths.workspace}")
         self.statusBar().addWidget(self.status_label, 1)
         self.statusBar().addPermanentWidget(QLabel(
-            f"Python {platform.python_version()} · Qt {QT_VERSION_STR} · v{__version__}"))
+            f"Python {platform.python_version()} · Qt {qVersion()} · v{__version__}"))
         self.statusBar().setSizeGripEnabled(False)
 
         self.navigate(NAV[0].id)
@@ -90,7 +90,7 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def _confirm_quit(self, count: int) -> bool:
-        from PyQt6.QtWidgets import QMessageBox
+        from PySide6.QtWidgets import QMessageBox
         answer = QMessageBox.question(
             self, "Jobs are still running",
             f"{count} job(s) are queued or running. Quitting cancels them (checkpoints already "

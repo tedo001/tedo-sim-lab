@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from pathlib import Path
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QGuiApplication, QResizeEvent
-from PyQt6.QtWidgets import QGridLayout, QLabel, QSizePolicy, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QGuiApplication, QResizeEvent
+from PySide6.QtWidgets import QGridLayout, QLabel, QSizePolicy, QWidget
 
 __all__ = ["KeyValues", "PathLabel", "Pill", "label", "repolish"]
 

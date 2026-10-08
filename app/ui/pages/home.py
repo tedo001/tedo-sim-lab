@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import platform
 
-from PyQt6.QtCore import PYQT_VERSION_STR, QT_VERSION_STR, Qt
-from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QVBoxLayout, QWidget
+from PySide6 import __version__ as PYSIDE_VERSION
+from PySide6.QtCore import Qt, qVersion
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QVBoxLayout, QWidget
 
 from core.common import mlflow_tracking_uri
 
@@ -74,7 +75,7 @@ class HomePage(Page):
             ("Logs", paths.logs / "app.log"),
             ("Settings", paths.settings_file),
             ("Python", platform.python_version()),
-            ("Qt / PyQt", f"{QT_VERSION_STR} / {PYQT_VERSION_STR}"),
+            ("Qt / PySide6", f"{qVersion()} / {PYSIDE_VERSION}"),
         ))
         card.add(self.workspace_values)
         buttons = QHBoxLayout()

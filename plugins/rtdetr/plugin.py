@@ -1,4 +1,4 @@
-"""RT-DETR: rT-DETR detection transformer through the Ultralytics package.
+"""RT-DETR: the real-time detection transformer, through Hugging Face Transformers.
 
 No optional dependency is imported here; actions import theirs when they run.
 """

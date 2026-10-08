@@ -19,7 +19,7 @@ def test_home_lists_every_page(ctx, qtbot) -> None:
 
 
 def test_home_buttons_navigate(ctx, qtbot) -> None:
-    from PyQt6.QtWidgets import QPushButton
+    from PySide6.QtWidgets import QPushButton
     visited = []
     ctx.navigate = visited.append
     home = HomePage(ctx)
@@ -42,7 +42,7 @@ def test_settings_shows_sources_never_values(ctx, keyring_backend, qtbot) -> Non
     assert sources["HF_TOKEN"] == "Environment variable"
     assert sources["KAGGLE_KEY"] == "OS keyring"
     assert sources["GITHUB_TOKEN"] == "Not set"
-    from PyQt6.QtWidgets import QLabel
+    from PySide6.QtWidgets import QLabel
     shown = " ".join(widget.text() for widget in settings.findChildren(QLabel))
     assert "hidden" not in shown
 

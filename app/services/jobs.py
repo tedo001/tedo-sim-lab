@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from PyQt6.QtCore import QObject, QProcess, QProcessEnvironment, QThreadPool, QTimer, pyqtSignal
+from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QThreadPool, QTimer, Signal
 
 from core.common.cancel import CancelToken, ProgressFn
 from core.common.masking import mask_text
@@ -68,11 +68,11 @@ class Job:
 
 
 class JobQueue(QObject):
-    job_queued = pyqtSignal(str)
-    job_started = pyqtSignal(str)
-    job_event = pyqtSignal(str, object)          # job id, ProgressEvent
-    job_progress = pyqtSignal(str, float, str)   # job id, fraction (<0 = unknown), message
-    job_finished = pyqtSignal(str, str)          # job id, final status
+    job_queued = Signal(str)
+    job_started = Signal(str)
+    job_event = Signal(str, object)          # job id, ProgressEvent
+    job_progress = Signal(str, float, str)   # job id, fraction (<0 = unknown), message
+    job_finished = Signal(str, str)          # job id, final status
 
     def __init__(self, command_factory: Callable[[Path], WorkerCommand], *,
                  max_concurrent_runs: int = 1, store: LabStore | None = None,
@@ -85,6 +85,7 @@ class JobQueue(QObject):
         self._jobs: dict[str, Job] = {}
         self._pending: deque[str] = deque()
         self._processes: dict[str, QProcess] = {}
+        self._retired: list[QProcess] = []
         self._buffers: dict[str, dict[str, str]] = {}
         self._last_run_end: dict[str, ProgressEvent] = {}
         self._tasks: dict[str, tuple[TaskRunnable, CancelToken]] = {}
@@ -116,7 +117,7 @@ class JobQueue(QObject):
     def _start_process(self, job: Job) -> None:
         assert job.run_dir is not None
         command = self._command_factory(job.run_dir)
-        process = QProcess(self)
+        process = QProcess()  # owned by Python, released after its signals finish (see _release)
         environment = QProcessEnvironment.systemEnvironment()
         for key, value in command.env.items():
             environment.insert(key, value)
@@ -141,7 +142,7 @@ class JobQueue(QObject):
             return
         raw = (process.readAllStandardOutput() if stream == "stdout"
                else process.readAllStandardError())
-        text = self._buffers[job_id][stream] + bytes(raw).decode("utf-8", errors="replace")
+        text = self._buffers[job_id][stream] + bytes(raw.data()).decode("utf-8", errors="replace")
         lines = text.split("\n")
         self._buffers[job_id][stream] = "" if flush else lines.pop()
         job = self._jobs[job_id]
@@ -179,10 +180,17 @@ class JobQueue(QObject):
             self._pump()
 
     def _release(self, job_id: str) -> None:
+        """Forget a finished process. It is still inside its own ``finished`` signal here, so it
+        is kept alive until the event loop is back, then dropped (PySide6 owns it; no parent,
+        no ``deleteLater``: deleting a QProcess mid-emission corrupts the heap)."""
         process = self._processes.pop(job_id, None)
         self._buffers.pop(job_id, None)
         if process is not None:
-            process.deleteLater()
+            self._retired.append(process)
+            QTimer.singleShot(0, self._drop_retired)
+
+    def _drop_retired(self) -> None:
+        self._retired = [p for p in self._retired if p.state() != QProcess.ProcessState.NotRunning]
 
     # Tasks ------------------------------------------------------------------
     def submit_task(self, fn: Callable[[CancelToken, ProgressFn], Any], *, title: str) -> str:

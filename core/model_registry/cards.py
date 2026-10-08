@@ -7,12 +7,13 @@ BSD-3-Clause, but weights trained on ImageNet inherit ImageNet's terms. Each
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from pathlib import Path
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from core.common.cards import Card, CardRegistry
-from core.common.licensing import LicenseInfo
+from core.common.cards import Card, CardError, CardRegistry
+from core.common.licensing import LicenseInfo, tool_licence_problem
 from core.common.optional import missing_requirements
 from core.common.references import UnresolvedReference, is_reference, resolve
 from core.common.vocab import Framework, InstallStatus, Maturity
@@ -54,6 +55,9 @@ class ModelCard(Card):
     maturity: Maturity = "planned"
     #: For planned and experimental models: the release that makes them usable.
     planned_for: str | None = None
+    #: ``builtin`` = written for this lab (covered by the project's own licence);
+    #: ``third_party`` = must pass the permissive-licence policy.
+    origin: Literal["builtin", "third_party"] = "third_party"
 
     @field_validator("builder")
     @classmethod
@@ -71,6 +75,13 @@ class ModelCard(Card):
 
 class ModelRegistry(CardRegistry[ModelCard]):
     card_type = ModelCard
+
+    def add(self, card: ModelCard, source: Path) -> CardError | None:
+        """Refuse third-party models whose code licence breaks the permissive-only policy."""
+        problem = None if card.origin == "builtin" else tool_licence_problem(card.license)
+        if problem:
+            return CardError(source, f"not allowed: {problem}", card.id)
+        return super().add(card, source)
 
     def builder(self, card_id: str) -> ModelBuilder:
         card = self.get(card_id)

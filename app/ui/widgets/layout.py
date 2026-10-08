@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLayout, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLayout, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 
 from ..theme.tokens import SIZES
 from .basics import label

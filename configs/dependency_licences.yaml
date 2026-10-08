@@ -1,0 +1,68 @@
+# The licence of every package in pyproject.toml (core and optional groups).
+#
+# Owner policy: tools must be permissively licensed: MIT or Apache-2.0, with BSD,
+# ISC and the PSF licence treated as equivalent. Copyleft (AGPL, GPL) is never used.
+# tests/test_dependency_licences.py fails if a dependency is missing here or breaks
+# the policy. A package may only stay with a written `exception`.
+#
+# These are *direct* dependencies. GPU builds of PyTorch also bundle NVIDIA's CUDA
+# runtime, which ships under NVIDIA's own redistributable licence.
+
+packages:
+  # Desktop UI
+  PySide6-Essentials:
+    spdx: LGPL-3.0-only
+    exception: >-
+      No permissively licensed Python binding for Qt exists. PySide6 (Qt for Python, by The
+      Qt Company) is LGPL-3.0: the lab may keep any licence of its own, provided Qt stays a
+      separate, replaceable shared library, which is how the app and the installer ship it.
+      PyQt6 (GPL-3.0) was dropped for this reason.
+  pyqtgraph: {spdx: MIT}
+
+  # Data, numerics and storage
+  numpy: {spdx: BSD-3-Clause}
+  pandas: {spdx: BSD-3-Clause}
+  PyYAML: {spdx: MIT}
+  pydantic: {spdx: MIT}
+  packaging: {spdx: Apache-2.0 OR BSD-2-Clause}
+  psutil: {spdx: BSD-3-Clause}
+  nvidia-ml-py: {spdx: BSD-3-Clause}
+  keyring: {spdx: MIT}
+  GitPython: {spdx: BSD-3-Clause}
+
+  # Machine learning
+  torch: {spdx: BSD-3-Clause}
+  torchvision: {spdx: BSD-3-Clause}
+  opencv-python-headless: {spdx: Apache-2.0}
+  scikit-learn: {spdx: BSD-3-Clause}
+  xgboost: {spdx: Apache-2.0}
+  mlflow: {spdx: Apache-2.0}
+  matplotlib: {spdx: PSF-2.0}
+  nltk: {spdx: Apache-2.0}
+  pycocotools: {spdx: BSD-2-Clause}
+
+  # Optional: [cv]
+  onnx: {spdx: Apache-2.0}
+  onnxruntime: {spdx: MIT}
+  transformers: {spdx: Apache-2.0}
+
+  # Optional: [ocr]
+  paddleocr: {spdx: Apache-2.0}
+  paddlepaddle: {spdx: Apache-2.0}
+  easyocr: {spdx: Apache-2.0}
+  pytesseract: {spdx: Apache-2.0}
+
+  # Optional: [nlp] and [integrations]
+  huggingface_hub: {spdx: Apache-2.0}
+  kaggle: {spdx: Apache-2.0}
+  roboflow: {spdx: Apache-2.0}
+  jupyterlab: {spdx: BSD-3-Clause}
+  jupyter_client: {spdx: BSD-3-Clause}
+  ipykernel: {spdx: BSD-3-Clause}
+  nbformat: {spdx: BSD-3-Clause}
+  shap: {spdx: MIT}
+
+  # Development
+  pytest: {spdx: MIT}
+  pytest-qt: {spdx: MIT}
+  ruff: {spdx: MIT}

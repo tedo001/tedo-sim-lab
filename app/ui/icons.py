@@ -8,9 +8,9 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from PyQt6.QtCore import QByteArray, Qt
-from PyQt6.QtGui import QIcon, QPainter, QPixmap
-from PyQt6.QtSvg import QSvgRenderer
+from PySide6.QtCore import QByteArray, Qt
+from PySide6.QtGui import QIcon, QPainter, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 
 from .theme.tokens import COLORS, SIZES
 

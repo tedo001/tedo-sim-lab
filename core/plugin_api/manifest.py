@@ -45,6 +45,9 @@ class PluginManifest(BaseModel):
     requires: tuple[str, ...] = ()
     credentials: tuple[CredentialSpec, ...] = ()
     maturity: Literal["stable", "experimental", "planned"] = "planned"
+    #: ``builtin`` = this lab's own code; ``third_party`` integrations must pass the
+    #: permissive-licence policy.
+    origin: Literal["builtin", "third_party"] = "third_party"
     #: For planned plugins: when they arrive, e.g. "v0.1 · build phase 9" or "v0.5".
     planned_for: str | None = None
     homepage: str | None = None

@@ -98,8 +98,8 @@ NAV: tuple[PageSpec, ...] = (
     _p("model_zoo", "Model Zoo", "data", "boxes",
        "Third-party models with their license, size and hardware needs.", "v0.1", 7,
        "Vision, OCR, NLP, audio and classical models",
-       "Restrictively licensed models are never installed automatically "
-       "(Ultralytics YOLO is AGPL-3.0)"),
+       "Only permissively licensed models (MIT, Apache-2.0, BSD); copyleft ones such as "
+       "Ultralytics YOLO (AGPL-3.0) are excluded"),
     _p("model_registry", "Model Registry", "data", "package-check",
        "Models trained in this lab and the runs they came from.", "v0.1", 7,
        "Versions, metrics, checkpoint and source run for every model"),

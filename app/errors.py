@@ -1,7 +1,9 @@
 """Uncaught exceptions: log them (masked) and tell the person, never abort silently.
 
-PyQt6 aborts the whole process on an exception raised inside a slot unless
-``sys.excepthook`` is replaced, so this hook is installed before any window.
+An exception raised inside a Qt slot never reaches the caller: depending on
+the binding it is printed and swallowed or aborts the process. Routing it
+through ``sys.excepthook`` makes every one logged and visible, so this hook
+is installed before any window.
 """
 
 from __future__ import annotations
@@ -44,7 +46,7 @@ def install_excepthook(*, show_dialog: bool = True,
         if show_dialog and not showing:
             showing = True
             try:
-                from PyQt6.QtWidgets import QApplication, QMessageBox
+                from PySide6.QtWidgets import QApplication, QMessageBox
                 if QApplication.instance() is not None:
                     QMessageBox.critical(None, "Something went wrong",
                                          mask_text(f"{kind.__name__}: {error}") +
@@ -62,7 +64,7 @@ _QUIET = ("propagateSizeHints",)
 
 def install_qt_message_handler() -> None:
     """Send Qt's own warnings to the ``tedo.qt`` logger instead of stderr."""
-    from PyQt6.QtCore import QtMsgType, qInstallMessageHandler
+    from PySide6.QtCore import QtMsgType, qInstallMessageHandler
 
     qt_log = logging.getLogger("tedo.qt")
     levels = {QtMsgType.QtDebugMsg: logging.DEBUG, QtMsgType.QtInfoMsg: logging.INFO,

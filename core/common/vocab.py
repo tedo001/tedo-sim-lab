@@ -51,7 +51,6 @@ class Framework(StrEnum):
     PYTORCH = "pytorch"
     SKLEARN = "sklearn"
     XGBOOST = "xgboost"
-    ULTRALYTICS = "ultralytics"
     PADDLE = "paddle"
     HUGGINGFACE = "huggingface"
 

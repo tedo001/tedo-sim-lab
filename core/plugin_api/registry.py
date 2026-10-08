@@ -9,6 +9,7 @@ import yaml
 from pydantic import ValidationError
 
 from core.common.cards import CardError, format_validation_error
+from core.common.licensing import tool_licence_problem
 from core.common.references import UnresolvedReference, resolve
 from core.common.secrets import CredentialStore
 
@@ -42,6 +43,10 @@ class PluginRegistry:
                 continue
             except (OSError, ValueError, yaml.YAMLError) as exc:
                 errors.append(CardError(file, f"unreadable: {exc}", file.parent.name))
+                continue
+            problem = None if manifest.origin == "builtin" else tool_licence_problem(manifest.license)
+            if problem:
+                errors.append(CardError(file, f"not allowed: {problem}", manifest.name))
                 continue
             if manifest.name in self._manifests:
                 errors.append(CardError(file, "duplicate plugin name", manifest.name))

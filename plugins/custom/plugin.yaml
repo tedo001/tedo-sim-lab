@@ -10,4 +10,5 @@ license:
 capabilities: [custom]
 entry: plugins.custom.plugin:CustomPlugin
 requires: []
+origin: builtin
 maturity: experimental

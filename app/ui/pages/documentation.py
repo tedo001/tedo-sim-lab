@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QSizePolicy, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QSizePolicy, QWidget
 
 from ...services.context import AppContext
 from ..widgets import Card, Page, label
