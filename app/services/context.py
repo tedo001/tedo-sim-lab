@@ -20,6 +20,7 @@ from .downloads import DownloadService
 from .experiments import ExperimentService
 from .hardware import HardwareService
 from .jobs import JobQueue, worker_command
+from .mlflow_ui import MlflowUi
 
 __all__ = ["AppContext", "build_context"]
 
@@ -39,12 +40,14 @@ class AppContext:
     hardware: HardwareService
     experiments: ExperimentService
     downloads: DownloadService
+    mlflow_ui: MlflowUi
     #: Switch the main window to another page; set by :class:`app.main_window.MainWindow`.
     navigate: Callable[[str], None] = field(default=_nowhere)
 
     def close(self) -> None:
         """Stop background work and close the database (app exit)."""
         self.hardware.stop()
+        self.mlflow_ui.stop()
         self.jobs.shutdown()
         self.store.close()
 
@@ -71,4 +74,5 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
     hardware = HardwareService(python=python, code_root=paths.code_root, probe=probe_hardware)
     experiments = ExperimentService(paths, store, jobs, catalog)
     downloads = DownloadService(catalog.datasets, jobs)
-    return AppContext(paths, config, credentials, catalog, store, jobs, hardware, experiments, downloads)
+    return AppContext(paths, config, credentials, catalog, store, jobs, hardware, experiments, downloads,
+                      MlflowUi(paths, config))

@@ -64,6 +64,8 @@ class ActiveJobCard(Card):
 
     def _started(self, job_id: str) -> None:
         job = self.jobs.job(job_id)
+        if job.quiet:
+            return
         self._job_id = job_id
         self.pill.setText("Running")
         self.pill.set_tone("info")
@@ -160,7 +162,8 @@ class MlflowCard(Card):
     def __init__(self, ctx: AppContext, parent: QWidget | None = None) -> None:
         super().__init__("MLflow", parent=parent)
         version = distribution_version("mlflow")
-        self.pill = Pill("Tracking from build phase 5", "planned")
+        tracking = ctx.config.mlflow_tracking and bool(distribution_version("mlflow"))
+        self.pill = Pill("Tracking every run" if tracking else "Off", "ok" if tracking else "warn")
         self.add_head_widget(self.pill)
         self.values = KeyValues((
             ("Tracking URI", mlflow_tracking_uri(ctx.config, ctx.paths)),

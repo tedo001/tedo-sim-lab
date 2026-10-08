@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ["TEDO_LAB_MLFLOW"] = "0"  # MLflow costs seconds per run; tests/core/test_tracking.py turns it on
 
 import pytest  # noqa: E402
 

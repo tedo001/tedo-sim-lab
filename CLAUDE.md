@@ -78,6 +78,10 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/services/experiments.py` | `ExperimentService`: launch (experiment row + run folder + queue), record worker events in `LabStore`, cancel, resume, builder drafts; `runs.py`: `RunView`, `LiveState` (ETA) |
 | `app/services/downloads.py` | `DownloadService`: one background download per dataset, licence acknowledgement |
 | `app/ui/pages/builder/` | Experiment Builder (`form.py` ⇄ `ExperimentSpec`, `choosers.py` dataset/model + downloads) |
+| `core/experiment_engine/snapshot.py` | Reproducibility snapshot (`snapshot.json`, `code.diff`): Python, platform, packages, git, dataset fingerprint; `compare()` |
+| `core/experiment_engine/recording.py` | What a worker records around a run: snapshot + `MlflowTracker` (`core/tracking/mlflow_tracker.py`) |
+| `app/ui/pages/evaluation.py` | Evaluation: scores, `ConfusionMatrixView`, per-class report, re-score best/last on test/val (`worker --evaluate`) |
+| `app/ui/pages/mlflow_page.py` | MLflow page: tracking store, runs read in a quiet task, `MlflowUi` service (`app/services/mlflow_ui.py`) |
 | `app/ui/pages/training.py` | Training page (`training_run.py`: progress, ETA, `EpochChart` curves, results, log, cancel/resume) |
 | `app/ui/pages/explainer/` | CNN Explainer page: `overview` (all maps, links), `detail_*` (conv, ReLU, pool, input, softmax), `playground`, `inputs` (samples, open image, draw pad), `article` |
 | `core/hardware/` | `info.probe_hardware()` (run as `python -m core.hardware.info`), `sampler`, `devices` |
@@ -123,8 +127,14 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   installs go there too. PyTorch downloads (pretrained weights) go to `<workspace>/models/torch-hub`.
 - **Runs**: a run folder is `experiments/<name>-<experiment id>/<run id>/` with `experiment.yaml`,
   `checkpoints/{last,best}.pt` (`last.pt` every epoch = the resume point), `metrics.jsonl`,
-  `run_info.json`, `test_confusion.json`, `run.log` and, for TinyVGG, `explainer.npz/json`. The app
-  records events in `LabStore` (metrics per epoch); MLflow tracking arrives in phase 5.
+  `run_info.json`, `test_confusion.json`, `snapshot.json` (+ `code.diff`), `run.log`, `evaluations/`
+  and, for TinyVGG, `explainer.npz/json`. The app records events in `LabStore` (metrics per
+  epoch); the worker mirrors each run to MLflow (`mlflow_tracking` setting; `TEDO_LAB_MLFLOW=0`
+  switches it off, which the test suite does). Tracking never fails a run. "Reproduce" queues the
+  same `experiment.yaml` as a child run and lists environment differences first.
+- **Quiet jobs**: housekeeping tasks (`submit_task(..., quiet=True)`) are not recorded, not
+  "active", and never ask before quitting. Never delete a `QProcess` inside its own signal:
+  keep it alive until the event loop is back (see `JobQueue._release`, `MlflowUi._release`).
 - **Database**: one SQLite file per workspace (`database/lab.db`), WAL mode, one connection
   per thread. Schema changes are new numbered files in `core/tracking/migrations/`; never edit
   an applied one. Paths inside the workspace are stored relative (projects can move).
@@ -199,7 +209,10 @@ Design for it now:
 - [x] Phase 4b (built early) — CNN Explainer (port of poloclub/cnn-explainer via tedo001, MIT):
       layer overview, convolution / ReLU / pooling / softmax views, hyperparameter playground,
       article, samples / open image / draw a digit; lists trained TinyVGG runs first
-- [ ] Phase 5 — MLflow tracking, reproducibility snapshot, reproduce run, Evaluation
+- [x] Phase 5 — MLflow tracking from the worker (params, per-epoch metrics, artifacts, tags,
+      never fails a run), reproducibility snapshot, Reproduce (child run, differences, result
+      comparison), Evaluation page (confusion matrix, per-class report, re-score checkpoints),
+      MLflow page with the MLflow UI
 - [ ] Phase 6 — Classical ML / XGBoost lab
 - [ ] Phase 7 — Dataset Hub, Ontology Explorer, COCO inspector, Model Zoo, Model Registry
 - [ ] Phase 8 — Compare, benchmarking, report export

@@ -51,7 +51,8 @@ class TrainingPage(Page):
             history = self.ctx.experiments.history(view.id, ("val_acc", "train_loss"))
             done = len(history["train_loss"])
             best = max((value for _, value in history["val_acc"]), default=None)
-            self.table.add_row((view.name, f"{view.dataset} · {view.model}",
+            name = f"{view.name} · reproduction" if view.parent_run_id else view.name
+            self.table.add_row((name, f"{view.dataset} · {view.model}",
                                 Pill(status_text(view.status), STATUS_TONES.get(view.status, "planned")),
                                 f"{done}/{view.epochs or '?'}", "—" if best is None else f"{best:.2%}",
                                 local_time(view.started_at)))

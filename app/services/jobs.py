@@ -66,6 +66,9 @@ class Job:
     run_id: str | None = None
     #: Extra worker arguments, e.g. ``("--resume", "<checkpoint>")``.
     args: tuple[str, ...] = ()
+    #: Housekeeping (reading MLflow, scanning folders): not recorded, not "active", never asks
+    #: before quitting.
+    quiet: bool = False
     created_at: float = field(default_factory=time.time)
     error: str | None = None
     result: Any = None
@@ -105,7 +108,8 @@ class JobQueue(QObject):
         return self._jobs[job_id]
 
     def active(self) -> list[Job]:
-        return [job for job in self.jobs() if job.status in ("queued", "running")]
+        """Queued or running jobs a person started (quiet housekeeping excluded)."""
+        return [job for job in self.jobs() if job.status in ("queued", "running") and not job.quiet]
 
     # Runs -------------------------------------------------------------------
     def submit_run(self, run_dir: Path, *, title: str | None = None, run_id: str | None = None,
@@ -200,10 +204,11 @@ class JobQueue(QObject):
         self._retired = [p for p in self._retired if p.state() != QProcess.ProcessState.NotRunning]
 
     # Tasks ------------------------------------------------------------------
-    def submit_task(self, fn: Callable[[CancelToken, ProgressFn], Any], *, title: str) -> str:
+    def submit_task(self, fn: Callable[[CancelToken, ProgressFn], Any], *, title: str,
+                    quiet: bool = False) -> str:
         """Run ``fn(cancel_token, progress)`` on a worker thread; its return value becomes
         ``job(id).result``."""
-        job = Job(new_id(), "task", title)
+        job = Job(new_id(), "task", title, quiet=quiet)
         self._register(job)
         token = CancelToken()
         runnable = TaskRunnable(fn, token)
@@ -264,13 +269,13 @@ class JobQueue(QObject):
     # Bookkeeping --------------------------------------------------------------
     def _register(self, job: Job) -> None:
         self._jobs[job.id] = job
-        if self._store is not None:
+        if self._store is not None and not job.quiet:
             self._store.add_job(job.id, job.kind, job.title, run_id=job.run_id)
         self.job_queued.emit(job.id)
 
     def _set_status(self, job: Job, status: JobStatus) -> None:
         job.status = status
-        if self._store is not None:
+        if self._store is not None and not job.quiet:
             self._store.set_job_status(job.id, status, error=mask_text(job.error) if job.error else None)
 
     def _finish(self, job: Job, status: JobStatus) -> None:

@@ -30,8 +30,11 @@ class CountingRunner(ExperimentRunner):
                 print("noise a library printed to stdout")
                 callbacks.on_step(step, 3, {"loss": loss})
                 loss *= 0.9
-            callbacks.on_epoch_end(epoch, {"loss": loss, "val_accuracy": 0.5 + epoch / 100})
-        return RunResult(ctx.run_id, "completed", {"loss": loss}, duration_s=time.monotonic() - started)
+            metrics = {"loss": loss, "val_accuracy": 0.5 + epoch / 100}
+            callbacks.on_epoch_end(epoch, metrics)
+            ctx.tracker.log_metrics(metrics, step=epoch, epoch=epoch)
+        return RunResult(ctx.run_id, "completed", {"loss": loss, "epochs_completed": float(epochs)},
+                         duration_s=time.monotonic() - started)
 
 
 class WaitingRunner(ExperimentRunner):

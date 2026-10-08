@@ -34,6 +34,8 @@ class AppConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    #: Mirror every run to MLflow (when it is installed in the experiment Python).
+    mlflow_tracking: bool = True
     #: Empty = SQLite in ``<workspace>/database/mlflow.db``.
     mlflow_tracking_uri: str = ""
     #: ``auto`` = PowerShell on Windows, ``$SHELL`` or bash elsewhere.

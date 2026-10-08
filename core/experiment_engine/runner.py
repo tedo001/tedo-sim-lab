@@ -92,6 +92,12 @@ class ExperimentRunner(ABC):
     @abstractmethod
     def run(self, spec: ExperimentSpec, callbacks: RunCallbacks, ctx: RunContext) -> RunResult: ...
 
+    def evaluate(self, spec: ExperimentSpec, callbacks: RunCallbacks, ctx: RunContext, checkpoint: Path,
+                 split: str) -> dict[str, object]:
+        """Score a saved checkpoint on ``split`` ("test" or "val"): metrics, and whatever else the
+        runner can say (classes, confusion matrix). Runners that cannot, say so."""
+        raise NotImplementedError(f"{self.title} cannot evaluate checkpoints")
+
 
 class ExperimentalRunner(ExperimentRunner):
     """A task the lab lists but cannot run yet. Selecting it explains when it arrives."""

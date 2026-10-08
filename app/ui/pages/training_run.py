@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 
 from PySide6.QtCore import QUrl
@@ -63,7 +64,7 @@ class RunDetail(QWidget):
         self.status = Pill("", "planned")
         self.summary.add_head_widget(self.status)
         self.values = KeyValues((("Dataset · model", ""), ("Device", ""), ("Started", ""), ("Duration", ""),
-                                 ("Run folder", "")))
+                                 ("Run folder", ""), ("Code", ""), ("MLflow run", "")))
         self.summary.add(self.values)
         self.progress = QProgressBar()
         self.progress.setRange(0, 1000)
@@ -74,6 +75,8 @@ class RunDetail(QWidget):
         self.summary.add(self.progress_text)
         self.error = label("", "Body", wrap=True)
         self.summary.add(self.error)
+        self.lineage = label("", "Body", wrap=True)
+        self.summary.add(self.lineage)
         buttons = QHBoxLayout()
         self.cancel_button = QPushButton(icon("x"), "Cancel")
         self.cancel_button.clicked.connect(lambda: self.view and ctx.experiments.cancel(self.view.id))
@@ -83,14 +86,17 @@ class RunDetail(QWidget):
         self.folder_button = QPushButton(icon("folder-open"), "Open run folder")
         self.folder_button.clicked.connect(lambda: self.view and QDesktopServices.openUrl(
             QUrl.fromLocalFile(str(self.view.run_dir))))
+        self.reproduce_button = QPushButton(icon("git-compare"), "Reproduce")
+        self.reproduce_button.setToolTip("Run the same experiment.yaml again and compare the results")
+        self.reproduce_button.clicked.connect(self._reproduce)
         self.again_button = QPushButton(icon("sliders-horizontal"), "Edit as new")
         self.again_button.setToolTip("Open this experiment in the Experiment Builder")
         self.again_button.clicked.connect(self._edit)
         self.explain_button = QPushButton(icon("brain-circuit"), "Open in CNN Explainer")
         self.explain_button.clicked.connect(lambda: self.view and ctx.experiments.explain(self.view.id,
                                                                                         ctx.navigate))
-        for button in (self.cancel_button, self.resume_button, self.folder_button, self.again_button,
-                       self.explain_button):
+        for button in (self.cancel_button, self.resume_button, self.reproduce_button, self.folder_button,
+                       self.again_button, self.explain_button):
             buttons.addWidget(button)
         buttons.addStretch(1)
         self.summary.add(buttons)
@@ -153,6 +159,11 @@ class RunDetail(QWidget):
                    if running else view.duration_s)
         self.values.set_value("Duration", duration_text(seconds))
         self.values.set_value("Run folder", str(view.run_dir))
+        self.values.set_value("Code", (view.git_commit or "not a git checkout")[:12])
+        self.values.set_value("MLflow run", view.mlflow_run_id or "not tracked")
+        self.lineage.setText(self._lineage(view))
+        self.lineage.setVisible(bool(self.lineage.text()))
+        self.reproduce_button.setVisible(view.finished_ok)
         self.error.setText(view.error or "")
         self.error.setVisible(bool(view.error))
         self.cancel_button.setVisible(view.active)
@@ -205,6 +216,27 @@ class RunDetail(QWidget):
     def _log_line(self, run_id: str, line: str) -> None:
         if self.view is not None and run_id == self.view.id:
             self.log.appendPlainText(line)
+
+    def _lineage(self, view: RunView) -> str:
+        """For a reproduction: what differed before it ran and how its results compare."""
+        if not view.parent_run_id:
+            return ""
+        lines = [f"Reproduction of run {view.parent_run_id}."]
+        record = view.run_dir / "reproduces.json"
+        if record.is_file():
+            notes = json.loads(record.read_text(encoding="utf-8")).get("notes", [])
+            lines += [f"– {note}" for note in notes] or ["– same Python, packages and code as the original"]
+        mine = self.ctx.store.latest_metrics(view.id)
+        theirs = self.ctx.store.latest_metrics(view.parent_run_id)
+        for key in ("test_acc", "test_f1"):
+            if key in mine and key in theirs:
+                lines.append(f"{key}: {mine[key]:.4f} now, {theirs[key]:.4f} originally "
+                             f"(difference {mine[key] - theirs[key]:+.4f})")
+        return "\n".join(lines)
+
+    def _reproduce(self) -> None:
+        if self.view is not None and self.view.finished_ok:
+            self.ctx.experiments.reproduce(self.view.id)
 
     def _resume(self) -> None:
         if self.view is not None and self.view.resumable:

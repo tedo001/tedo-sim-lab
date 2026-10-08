@@ -12,6 +12,5 @@ license:
 capabilities: [tracker]
 entry: plugins.mlflow.plugin:MlflowPlugin
 requires: ["mlflow>=2.12"]
-maturity: planned
-planned_for: v0.1 · build phase 5
+maturity: stable
 homepage: https://mlflow.org/

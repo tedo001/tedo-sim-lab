@@ -165,3 +165,19 @@ def test_folding_normalisation_is_exact() -> None:
     image = rng.uniform(size=(3, 20, 20))
     normalised = (image - np.array(mean)[:, None, None]) / np.array(std)[:, None, None]
     np.testing.assert_allclose(run(folded, image).logits, run(net, normalised).logits, atol=1e-10)
+
+
+def test_worker_evaluates_a_checkpoint(workspace) -> None:
+    import json as json_module
+
+    from core.experiment_engine.worker import run_evaluation
+    run_dir, _, result = train(workspace, make_spec(epochs=1, max_steps_per_epoch=2), "evaluated")
+    assert result.status == "completed"
+    recorder = Recorder()
+    best = run_dir / "checkpoints" / "best.pt"
+    evaluated = run_evaluation(run_dir, recorder, CancelToken(), checkpoint=best, split="val")
+    assert evaluated.status == "completed" and "val_acc" in evaluated.metrics
+    report = json_module.loads((run_dir / "evaluations" / "val-best.json").read_text())
+    assert report["split"] == "val" and len(report["classes"]) == 10 and report["metrics"]["acc"] >= 0
+    missing = run_evaluation(run_dir, Recorder(), CancelToken(), checkpoint=run_dir / "nope.pt", split="test")
+    assert missing.status == "failed" and "no checkpoint" in missing.error

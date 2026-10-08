@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-__all__ = ["confusion_matrix", "summary"]
+__all__ = ["confusion_matrix", "per_class", "summary"]
 
 
 def confusion_matrix(targets: np.ndarray, predictions: np.ndarray, num_classes: int) -> np.ndarray:
@@ -28,3 +28,17 @@ def summary(matrix: np.ndarray) -> dict[str, float]:
         f1 = np.where(precision + recall > 0, 2 * precision * recall / (precision + recall), 0.0)
     return {"acc": float(hits.sum() / total) if total else 0.0, "precision": float(precision.mean()),
             "recall": float(recall.mean()), "f1": float(f1.mean())}
+
+
+def per_class(matrix: np.ndarray) -> list[dict[str, float]]:
+    """Precision, recall, F1 and support for every class (rows of ``matrix`` are the truth)."""
+    matrix = np.asarray(matrix, dtype=np.float64)
+    hits, predicted, actual = np.diag(matrix), matrix.sum(axis=0), matrix.sum(axis=1)
+    rows = []
+    for index in range(len(matrix)):
+        precision = hits[index] / predicted[index] if predicted[index] else 0.0
+        recall = hits[index] / actual[index] if actual[index] else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+        rows.append({"precision": float(precision), "recall": float(recall), "f1": float(f1),
+                     "support": float(actual[index])})
+    return rows

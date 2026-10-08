@@ -8,6 +8,8 @@ A run folder is ``<workspace>/experiments/<name>-<id>/<run id>/`` and holds
 
 from __future__ import annotations
 
+import json
+import shutil
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -18,6 +20,7 @@ from core.catalog import Catalog
 from core.common import AppPaths
 from core.experiment_engine.events import ProgressEvent
 from core.experiment_engine.runner import NoRunnerError
+from core.experiment_engine.snapshot import compare, environment
 from core.experiment_engine.spec import ExperimentSpec, dump_spec, dump_spec_text, spec_hash
 from core.tracking import LabStore, new_id
 
@@ -77,6 +80,53 @@ class ExperimentService(QObject):
             raise ValueError("only a cancelled, failed or interrupted run with a last.pt can resume")
         self.store.requeue_run(run_id)
         self._queue(run_id, view.run_dir, view.name, ("--resume", str(view.last_checkpoint)))
+
+    def reproduction_notes(self, run_id: str) -> list[str]:
+        """What differs between the run's recorded environment and this one."""
+        view = self.view(run_id)
+        snapshot = view.run_dir / "snapshot.json"
+        if not snapshot.is_file():
+            return ["the original run has no snapshot.json (it predates phase 5), so differences "
+                    "in the environment cannot be checked"]
+        return compare(json.loads(snapshot.read_text(encoding="utf-8")), environment(self.paths.code_root))
+
+    def reproduce(self, run_id: str) -> str:
+        """Run the same experiment.yaml again as a child of ``run_id``; returns the new run id."""
+        view = self.view(run_id)
+        notes = self.reproduction_notes(run_id)
+        new_id_ = new_id()
+        run_dir = view.run_dir.parent / new_id_
+        run_dir.mkdir(parents=True)
+        shutil.copy2(view.run_dir / "experiment.yaml", run_dir / "experiment.yaml")
+        (run_dir / "reproduces.json").write_text(json.dumps({"parent_run_id": run_id, "notes": notes},
+                                                            indent=2), encoding="utf-8")
+        runner = self.store.run(run_id)["runner"]
+        self.store.create_run(view.experiment_id, run_dir, runner, run_id=new_id_, parent_run_id=run_id)
+        self._queue(new_id_, run_dir, view.name)
+        return new_id_
+
+    def evaluate(self, run_id: str, checkpoint: str = "best", split: str = "test") -> str:
+        """Queue scoring ``checkpoints/<checkpoint>.pt`` on ``split``; returns the job id. The result
+        lands in ``evaluations/<split>-<checkpoint>.json`` in the run folder."""
+        view = self.view(run_id)
+        path = view.run_dir / "checkpoints" / f"{checkpoint}.pt"
+        if not path.is_file():
+            raise FileNotFoundError(f"run {run_id} has no {checkpoint}.pt")
+        return self.jobs.submit_run(view.run_dir, title=f"Evaluate {view.name} ({checkpoint}, {split})",
+                                    args=("--evaluate", str(path), "--split", split))
+
+    def evaluations(self, run_id: str) -> list[tuple[str, Path]]:
+        """(title, file) of every evaluation of a run: the test at the end of training first."""
+        view = self.view(run_id)
+        found = []
+        if (view.run_dir / "test_confusion.json").is_file():
+            found.append(("End of training · test split · best checkpoint",
+                          view.run_dir / "test_confusion.json"))
+        for path in sorted((view.run_dir / "evaluations").glob("*.json")):
+            split, _, checkpoint = path.stem.partition("-")
+            found.append((f"Re-evaluated · {'validation' if split == 'val' else split} split · {checkpoint} "
+                          "checkpoint", path))
+        return found
 
     def cancel(self, run_id: str) -> None:
         job_id = self._job_of_run.get(run_id)
@@ -149,8 +199,11 @@ class ExperimentService(QObject):
         if run_id is None:
             return
         payload, live = event.payload, self._live.setdefault(run_id, LiveState())
-        if event.type == "run_start" and payload.get("device"):
-            self.store.set_run_device(run_id, str(payload["device"]))
+        if event.type == "run_start":
+            self.store.set_run_details(run_id, device=payload.get("device"),
+                                       git_commit=payload.get("git_commit"))
+            if payload.get("mlflow_run_id"):
+                self.store.set_mlflow_run(run_id, str(payload["mlflow_run_id"]))
             self.run_changed.emit(run_id)
         elif event.type == "epoch_start":
             live.on_epoch_start(int(payload.get("epoch", 0)), int(payload.get("total", 0)))

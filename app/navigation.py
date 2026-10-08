@@ -109,8 +109,7 @@ NAV: tuple[PageSpec, ...] = (
     _p("training", "Training", "experiments", "activity",
        "Queued, running and finished runs, live."),
     _p("evaluation", "Evaluation", "experiments", "target",
-       "Evaluate a checkpoint on a held-out split.", "v0.1", 5,
-       "Metrics, confusion matrix and per-class report"),
+       "Scores, confusion matrix and per-class report; re-score a checkpoint on a split."),
     _p("benchmarking", "Benchmarking", "experiments", "timer",
        "Inference latency and throughput.", "v0.1", 8,
        "FPS and latency by batch size and device"),
@@ -120,10 +119,7 @@ NAV: tuple[PageSpec, ...] = (
        "Overlaid training curves",
        "Export to CSV, JSON, Markdown and PDF"),
     _p("mlflow", "MLflow", "experiments", "chart-line",
-       "Runs tracked in MLflow.", "v0.1", 5,
-       "Run list and run details",
-       "Launch or connect to the MLflow UI",
-       "Default store: SQLite at database/mlflow.db, artifacts in mlruns/"),
+       "Runs tracked in MLflow, and the MLflow UI."),
 
     # ── Tools ────────────────────────────────────────────────────────
     _p("terminal", "Terminal", "tools", "terminal",

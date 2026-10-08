@@ -13,9 +13,11 @@ from ...services.context import AppContext
 from .builder import ExperimentBuilderPage
 from .computer_vision import ComputerVisionPage
 from .documentation import DocumentationPage
+from .evaluation import EvaluationPage
 from .explainer import ExplainerPage
 from .hardware import HardwarePage
 from .home import HomePage
+from .mlflow_page import MlflowPage
 from .placeholder import PlaceholderPage
 from .settings import SettingsPage
 from .training import TrainingPage
@@ -27,6 +29,8 @@ PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "cnn_explainer": ExplainerPage,
     "computer_vision": ComputerVisionPage,
     "experiment_builder": ExperimentBuilderPage,
+    "evaluation": EvaluationPage,
+    "mlflow": MlflowPage,
     "documentation": DocumentationPage,
     "hardware": HardwarePage,
     "settings": SettingsPage,

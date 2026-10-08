@@ -38,6 +38,9 @@ class RunView:
     duration_s: float | None
     error: str | None
     spec: ExperimentSpec | None
+    parent_run_id: str | None = None
+    mlflow_run_id: str | None = None
+    git_commit: str | None = None
 
     @classmethod
     def from_row(cls, row: sqlite3.Row, run_dir: Path) -> RunView:
@@ -47,7 +50,8 @@ class RunView:
             spec = None
         return cls(row["id"], row["experiment_id"], row["experiment_name"], row["task"], row["status"],
                    run_dir, row["device"], row["created_at"], row["started_at"], row["ended_at"],
-                   row["duration_s"], row["error"], spec)
+                   row["duration_s"], row["error"], spec, row["parent_run_id"], row["mlflow_run_id"],
+                   row["git_commit"])
 
     @property
     def dataset(self) -> str:
@@ -68,6 +72,10 @@ class RunView:
     @property
     def last_checkpoint(self) -> Path:
         return self.run_dir / "checkpoints" / "last.pt"
+
+    @property
+    def finished_ok(self) -> bool:
+        return self.status in ("completed", "early_stopped")
 
     @property
     def resumable(self) -> bool:

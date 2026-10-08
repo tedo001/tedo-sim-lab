@@ -67,6 +67,10 @@ testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra"
 qt_api = "pyside6"
+filterwarnings = [
+    # MLflow's own SQLAlchemy usage; nothing the lab can change.
+    "ignore:The ``noload`` loader strategy is deprecated:DeprecationWarning",
+]
 markers = [
     "slow: takes more than a few seconds (real training runs)",
     "network: downloads data; skipped when offline",

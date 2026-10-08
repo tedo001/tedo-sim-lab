@@ -43,6 +43,10 @@ COLORS: dict[str, str] = {
     "heat_neg": "#E66767",
     "heat_zero": "#383835",
     "heat_pos": "#5598E7",
+    # Sequential scale for counts and shares (confusion matrices): one hue, dark (receding into
+    # the surface) for none to light blue for most, OKLab-interpolated so lightness only rises.
+    "seq_low": "#20252C",
+    "seq_high": "#9EC5F4",
 }
 
 #: Pill tones → the status colour they are drawn in.

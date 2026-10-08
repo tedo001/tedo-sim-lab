@@ -118,8 +118,9 @@ class LabStore:
         self._update_run(run_id, status=status, ended_at=utc_now(), error=error,
                          duration_s=duration_s)
 
-    def set_run_device(self, run_id: str, device: str) -> None:
-        self._update_run(run_id, device=device)
+    def set_run_details(self, run_id: str, *, device: str | None = None,
+                        git_commit: str | None = None) -> None:
+        self._update_run(run_id, device=device, git_commit=git_commit)
 
     def requeue_run(self, run_id: str) -> None:
         """A finished run goes back in the queue (resume): no end time, no error."""

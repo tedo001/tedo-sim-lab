@@ -228,6 +228,28 @@ class TorchClassificationRunner(ExperimentRunner):
         return RunResult(ctx.run_id, status, results, best if best.is_file() else None,
                          time.monotonic() - started)
 
+    def evaluate(self, spec: ExperimentSpec, callbacks: RunCallbacks, ctx: RunContext, checkpoint: Path,
+                 split: str) -> dict[str, object]:
+        import torch
+        from torch.utils.data import DataLoader
+
+        paths, adapter, _card, builder = self._parts(spec)
+        size = input_size_for(spec, adapter, builder)
+        data = build_data(spec, adapter, paths.datasets, size)
+        dataset = data.test if split == "test" else data.val
+        if dataset is None:
+            raise ValueError("this experiment has no validation split (val_fraction is 0)")
+        model = builder(num_classes=len(data.classes), in_channels=data.in_channels, input_size=size,
+                        pretrained=None, **spec.model.params).to(ctx.device)
+        model.load_state_dict(torch.load(checkpoint, map_location=ctx.device, weights_only=True)["model"])
+        callbacks.on_log(f"Evaluating {checkpoint.name} on {len(dataset):,} {split} images")
+        loader = DataLoader(dataset, batch_size=spec.training.batch_size,
+                            num_workers=spec.runtime.num_workers)
+        loss_fn = torch.nn.CrossEntropyLoss()
+        metrics, matrix = evaluate(model, loader, loss_fn, ctx.device, len(data.classes),
+                                   Mixed(spec.runtime.precision, ctx.device), cancel=ctx.cancel)
+        return {"metrics": metrics, "classes": list(data.classes), "matrix": matrix.tolist()}
+
     @staticmethod
     def _save(folder: Path, model: Any, optimizer: Any, schedule: Any, epoch: int, monitor: Monitor,
               spec: ExperimentSpec, improved: bool, callbacks: RunCallbacks) -> None:

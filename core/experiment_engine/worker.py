@@ -2,6 +2,7 @@
 
     python -m core.experiment_engine.worker <run_dir> [--runner module:Class] [--cancel-on-eof]
                                                        [--resume <checkpoint>]
+                                                       [--evaluate <checkpoint> --split test|val]
 
 Reads ``<run_dir>/experiment.yaml``, picks the runner, runs it, and writes
 :class:`~core.experiment_engine.events.ProgressEvent` lines to stdout. Anything
@@ -17,11 +18,13 @@ Exit codes: 0 completed or early-stopped, 1 failed, 2 cancelled.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
 import threading
 import time
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TextIO
 
@@ -32,6 +35,7 @@ from core.common.paths import CODE_ROOT
 from core.hardware.devices import resolve_device
 
 from .events import JsonLinesCallbacks
+from .recording import RunRecording, open_recording
 from .runner import RunContext, RunnerRegistry, RunResult
 from .spec import SpecError, load_spec
 
@@ -65,6 +69,7 @@ def run_experiment(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelTo
     """Load the spec, choose the runner and run it; never raises."""
     started = time.monotonic()
     run_id = run_dir.name
+    recording: RunRecording | None = None
     try:
         spec = load_spec(run_dir / "experiment.yaml")
         registry = RunnerRegistry()
@@ -80,9 +85,13 @@ def run_experiment(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelTo
             raise SpecError("; ".join(problems))
         if resume_from is not None and not resume_from.is_file():
             raise SpecError(f"cannot resume: {resume_from} does not exist")
-        ctx = RunContext(run_id, run_dir, resolve_device(spec.runtime.device), token,
+        device = resolve_device(spec.runtime.device)
+        recording = open_recording(spec, run_dir, run_id, runner=runner.id, device=device)
+        ctx = RunContext(run_id, run_dir, device, token, tracker=recording.tracker,
                          resume_from=resume_from)
-        callbacks.on_run_start(ctx)
+        callbacks.emit("run_start", device=device, run_dir=str(run_dir), **recording.start_payload())
+        for note in recording.notes:
+            callbacks.on_log(note)
         log.info("Running %s with %s on %s", spec.name, runner.id, ctx.device)
         result = runner.run(spec, callbacks, ctx)
     except (Cancelled, KeyboardInterrupt):
@@ -91,7 +100,52 @@ def run_experiment(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelTo
         log.exception("Run %s failed", run_id)
         result = RunResult(run_id, "failed", duration_s=time.monotonic() - started,
                            error=mask_text(f"{type(exc).__name__}: {exc}"))
+    if recording is not None:
+        try:
+            recording.finish(run_dir, result)
+        except Exception:  # recording must never change the outcome
+            log.exception("Could not finish recording run %s", run_id)
     return result
+
+
+def evaluations_dir(run_dir: Path) -> Path:
+    return run_dir / "evaluations"
+
+
+def run_evaluation(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelToken, *, checkpoint: Path,
+                   split: str, runner_entry: str | None = None) -> RunResult:
+    """Score ``checkpoint`` on ``split`` and write ``evaluations/<split>-<checkpoint>.json``;
+    the lab database and MLflow are left alone. Never raises."""
+    started = time.monotonic()
+    run_id = run_dir.name
+    try:
+        spec = load_spec(run_dir / "experiment.yaml")
+        registry = RunnerRegistry()
+        if runner_entry:
+            registry.load_entries([runner_entry])
+        else:
+            registry.load_config(CODE_ROOT / "configs" / "runners.yaml")
+        runner = registry.for_spec(spec)
+        if not checkpoint.is_file():
+            raise SpecError(f"no checkpoint at {checkpoint}")
+        ctx = RunContext(run_id, run_dir, resolve_device(spec.runtime.device), token)
+        callbacks.emit("run_start", device=ctx.device, run_dir=str(run_dir), evaluation=True)
+        report = runner.evaluate(spec, callbacks, ctx, checkpoint, split)
+        report = {"checkpoint": checkpoint.name, "split": split, "device": ctx.device,
+                  "evaluated_at": datetime.now(UTC).isoformat(timespec="seconds"), **report}
+        folder = evaluations_dir(run_dir)
+        folder.mkdir(exist_ok=True)
+        target = folder / f"{split}-{checkpoint.stem}.json"
+        target.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        callbacks.on_artifact(target, "evaluation")
+        metrics = {f"{split}_{key}": float(value) for key, value in dict(report.get("metrics", {})).items()}
+        return RunResult(run_id, "completed", metrics, duration_s=time.monotonic() - started)
+    except (Cancelled, KeyboardInterrupt):
+        return RunResult(run_id, "cancelled", duration_s=time.monotonic() - started)
+    except Exception as exc:
+        log.exception("Evaluation of %s failed", run_id)
+        return RunResult(run_id, "failed", duration_s=time.monotonic() - started,
+                         error=mask_text(f"{type(exc).__name__}: {exc}"))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -102,6 +156,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                         help="cancel when stdin closes (the app sets this)")
     parser.add_argument("--resume", type=Path, default=None,
                         help="checkpoint to continue from (e.g. <run_dir>/checkpoints/last.pt)")
+    parser.add_argument("--evaluate", type=Path, default=None, metavar="CHECKPOINT",
+                        help="score this checkpoint instead of training")
+    parser.add_argument("--split", choices=("test", "val"), default="test")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args(argv)
 
@@ -113,8 +170,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     token = CancelToken()
     watch_for_cancel(sys.stdin, token, cancel_on_eof=args.cancel_on_eof)
 
-    result = run_experiment(run_dir, callbacks, token, runner_entry=args.runner,
-                            resume_from=args.resume.resolve() if args.resume else None)
+    if args.evaluate is not None:
+        result = run_evaluation(run_dir, callbacks, token, checkpoint=args.evaluate.resolve(),
+                                split=args.split, runner_entry=args.runner)
+    else:
+        result = run_experiment(run_dir, callbacks, token, runner_entry=args.runner,
+                                resume_from=args.resume.resolve() if args.resume else None)
     callbacks.on_run_end(result)
     return _EXIT[result.status]
 
