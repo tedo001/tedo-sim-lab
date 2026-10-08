@@ -1,0 +1,17 @@
+# PaddleOCR plugin manifest. Read before any plugin code is imported.
+name: paddleocr
+title: PaddleOCR
+version: 0.1.0
+author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
+description: "Text detection and recognition with PaddleOCR."
+license:
+  category: open-source
+  name: Apache-2.0
+  spdx: Apache-2.0
+  url: https://github.com/PaddlePaddle/PaddleOCR/blob/main/LICENSE
+capabilities: [ocr]
+entry: plugins.paddleocr.plugin:PaddleOcrPlugin
+requires: ["paddleocr>=2.7", "paddlepaddle>=2.6"]
+maturity: planned
+planned_for: v0.5
+homepage: https://github.com/PaddlePaddle/PaddleOCR

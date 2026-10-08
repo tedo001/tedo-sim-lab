@@ -1,0 +1,17 @@
+# MLflow plugin manifest. Read before any plugin code is imported.
+name: mlflow
+title: MLflow
+version: 0.1.0
+author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
+description: "Experiment tracking: every run is mirrored to MLflow, and the MLflow UI can be opened from the lab."
+license:
+  category: open-source
+  name: Apache-2.0
+  spdx: Apache-2.0
+  url: https://github.com/mlflow/mlflow/blob/master/LICENSE.txt
+capabilities: [tracker]
+entry: plugins.mlflow.plugin:MlflowPlugin
+requires: ["mlflow>=2.12"]
+maturity: planned
+planned_for: v0.1 · build phase 5
+homepage: https://mlflow.org/

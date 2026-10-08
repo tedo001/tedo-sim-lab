@@ -1,0 +1,143 @@
+# Classical models (build phase 6 makes them "stable").
+_sklearn: &sklearn
+  category: open-source
+  name: BSD-3-Clause (scikit-learn)
+  spdx: BSD-3-Clause
+  url: https://github.com/scikit-learn/scikit-learn/blob/main/COPYING
+
+cards:
+  - id: logistic_regression
+    name: Logistic Regression
+    architecture: Linear model with a logistic link
+    framework: sklearn
+    tasks: [tabular_classification]
+    source_url: https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+    license: *sklearn
+    builder: labs.classical_ml.models:build_logistic_regression
+    maturity: planned
+    planned_for: v0.1
+    tags: [linear, baseline]
+
+  - id: linear_regression
+    name: Linear Regression
+    architecture: Ordinary least squares
+    framework: sklearn
+    tasks: [tabular_regression]
+    source_url: https://scikit-learn.org/stable/modules/linear_model.html#ordinary-least-squares
+    license: *sklearn
+    builder: labs.classical_ml.models:build_linear_regression
+    maturity: planned
+    planned_for: v0.1
+    tags: [linear, baseline]
+
+  - id: decision_tree
+    name: Decision Tree
+    architecture: CART decision tree
+    framework: sklearn
+    tasks: [tabular_classification, tabular_regression]
+    source_url: https://scikit-learn.org/stable/modules/tree.html
+    license: *sklearn
+    builder: labs.classical_ml.models:build_decision_tree
+    maturity: planned
+    planned_for: v0.1
+    tags: [tree, interpretable]
+
+  - id: random_forest
+    name: Random Forest
+    architecture: Bagged decision trees
+    framework: sklearn
+    tasks: [tabular_classification, tabular_regression]
+    source_url: https://scikit-learn.org/stable/modules/ensemble.html#random-forests
+    license: *sklearn
+    builder: labs.classical_ml.models:build_random_forest
+    maturity: planned
+    planned_for: v0.1
+    tags: [tree, ensemble]
+
+  - id: gradient_boosting
+    name: Gradient Boosting
+    architecture: Gradient-boosted decision trees (scikit-learn)
+    framework: sklearn
+    tasks: [tabular_classification, tabular_regression]
+    source_url: https://scikit-learn.org/stable/modules/ensemble.html#gradient-boosting
+    license: *sklearn
+    builder: labs.classical_ml.models:build_gradient_boosting
+    maturity: planned
+    planned_for: v0.1
+    tags: [tree, ensemble, boosting]
+
+  - id: xgboost
+    name: XGBoost
+    architecture: Gradient-boosted decision trees (XGBoost)
+    framework: xgboost
+    tasks: [tabular_classification, tabular_regression]
+    source_url: https://github.com/dmlc/xgboost
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://github.com/dmlc/xgboost/blob/master/LICENSE
+    builder: labs.classical_ml.models:build_xgboost
+    maturity: planned
+    planned_for: v0.1
+    tags: [tree, ensemble, boosting, gpu]
+
+  - id: svm
+    name: Support Vector Machine
+    architecture: Kernel SVM (libsvm)
+    framework: sklearn
+    tasks: [tabular_classification, tabular_regression]
+    source_url: https://scikit-learn.org/stable/modules/svm.html
+    license: *sklearn
+    builder: labs.classical_ml.models:build_svm
+    maturity: planned
+    planned_for: v0.1
+    tags: [kernel]
+
+  - id: knn
+    name: k-Nearest Neighbours
+    architecture: Instance-based neighbours vote
+    framework: sklearn
+    tasks: [tabular_classification, tabular_regression]
+    source_url: https://scikit-learn.org/stable/modules/neighbors.html
+    license: *sklearn
+    builder: labs.classical_ml.models:build_knn
+    maturity: planned
+    planned_for: v0.1
+    tags: [instance-based]
+
+  - id: naive_bayes
+    name: Gaussian Naive Bayes
+    architecture: Naive Bayes with Gaussian likelihoods
+    framework: sklearn
+    tasks: [tabular_classification]
+    source_url: https://scikit-learn.org/stable/modules/naive_bayes.html
+    license: *sklearn
+    builder: labs.classical_ml.models:build_naive_bayes
+    maturity: planned
+    planned_for: v0.1
+    tags: [probabilistic, baseline]
+
+  - id: pca
+    name: PCA
+    architecture: Principal component analysis
+    framework: sklearn
+    tasks: [dimensionality_reduction]
+    source_url: https://scikit-learn.org/stable/modules/decomposition.html#pca
+    license: *sklearn
+    builder: labs.classical_ml.models:build_pca
+    maturity: planned
+    planned_for: v0.1
+    tags: [unsupervised, linear]
+
+  - id: kmeans
+    name: k-Means
+    architecture: Lloyd's k-means clustering
+    framework: sklearn
+    tasks: [clustering]
+    source_url: https://scikit-learn.org/stable/modules/clustering.html#k-means
+    license: *sklearn
+    builder: labs.classical_ml.models:build_kmeans
+    maturity: planned
+    planned_for: v0.1
+    tags: [unsupervised, clustering]

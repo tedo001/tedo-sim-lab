@@ -1,0 +1,19 @@
+# RT-DETR plugin manifest. Read before any plugin code is imported.
+name: rtdetr
+title: RT-DETR
+version: 0.1.0
+author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
+description: "RT-DETR detection transformer through the Ultralytics package."
+license:
+  category: open-source
+  name: AGPL-3.0 (Ultralytics implementation)
+  spdx: AGPL-3.0-only
+  url: https://github.com/ultralytics/ultralytics/blob/main/LICENSE
+  copyleft: true
+  notes: The original RT-DETR code (lyuwenyu/RT-DETR) is Apache-2.0; this integration uses the Ultralytics implementation, which is AGPL-3.0.
+capabilities: [detector]
+entry: plugins.rtdetr.plugin:RtDetrPlugin
+requires: ["ultralytics>=8.2"]
+maturity: planned
+planned_for: v0.5
+homepage: https://docs.ultralytics.com/models/rtdetr/

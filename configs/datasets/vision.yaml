@@ -1,0 +1,119 @@
+# Image datasets. Licence facts are taken from each source; where the authors
+# publish no licence the category is "unspecified", never "open-source".
+# Loaders flip from maturity "planned" to "stable" in build phase 4.
+cards:
+  - id: mnist
+    name: MNIST
+    description: Handwritten digits, 28×28 greyscale.
+    tasks: [image_classification]
+    modality: image
+    source_url: https://yann.lecun.com/exdb/mnist/
+    license:
+      category: unspecified
+      name: No licence published
+      notes: The original page states no licence; some catalogues list CC BY-SA 3.0.
+        Cite LeCun, Cortes and Burges.
+    size: ~11 MB
+    num_classes: 10
+    splits: {train: 60000, test: 10000}
+    auto_download_allowed: true
+    adapter: labs.computer_vision.datasets:MnistAdapter
+    maturity: planned
+    citation: Y. LeCun, C. Cortes, C. J. C. Burges. The MNIST database of handwritten digits.
+    tags: [digits, greyscale, beginner]
+
+  - id: fashion_mnist
+    name: Fashion-MNIST
+    description: Zalando article images in 10 classes, a drop-in replacement for MNIST.
+    tasks: [image_classification]
+    modality: image
+    source_url: https://github.com/zalandoresearch/fashion-mnist
+    license:
+      category: open-source
+      name: MIT
+      spdx: MIT
+      url: https://github.com/zalandoresearch/fashion-mnist/blob/master/LICENSE
+    size: ~30 MB
+    num_classes: 10
+    splits: {train: 60000, test: 10000}
+    auto_download_allowed: true
+    adapter: labs.computer_vision.datasets:FashionMnistAdapter
+    maturity: planned
+    citation: H. Xiao, K. Rasul, R. Vollgraf. Fashion-MNIST, arXiv:1708.07747, 2017.
+    tags: [clothing, greyscale, beginner]
+
+  - id: cifar10
+    name: CIFAR-10
+    description: 32×32 colour images of 10 object classes.
+    tasks: [image_classification]
+    modality: image
+    source_url: https://www.cs.toronto.edu/~kriz/cifar.html
+    license:
+      category: unspecified
+      name: No licence published
+      notes: The authors ask that you cite the technical report.
+    size: ~163 MB
+    num_classes: 10
+    splits: {train: 50000, test: 10000}
+    auto_download_allowed: true
+    adapter: labs.computer_vision.datasets:Cifar10Adapter
+    maturity: planned
+    citation: A. Krizhevsky. Learning Multiple Layers of Features from Tiny Images, 2009.
+    tags: [colour, objects]
+
+  - id: cifar100
+    name: CIFAR-100
+    description: 32×32 colour images of 100 classes in 20 superclasses.
+    tasks: [image_classification]
+    modality: image
+    source_url: https://www.cs.toronto.edu/~kriz/cifar.html
+    license:
+      category: unspecified
+      name: No licence published
+      notes: The authors ask that you cite the technical report.
+    size: ~161 MB
+    num_classes: 100
+    splits: {train: 50000, test: 10000}
+    auto_download_allowed: true
+    citation: A. Krizhevsky. Learning Multiple Layers of Features from Tiny Images, 2009.
+    tags: [colour, objects, fine-grained]
+
+  - id: imagenet
+    name: ImageNet (ILSVRC 2012)
+    description: 1.28 M training images in 1000 WordNet-based classes.
+    tasks: [image_classification]
+    modality: image
+    source_url: https://image-net.org/
+    license:
+      category: gated
+      name: ImageNet Terms of Access
+      url: https://image-net.org/download.php
+      notes: Non-commercial research and educational use only. The lab never downloads or
+        redistributes ImageNet images; the Ontology Explorer uses only the public class list.
+    size: ~150 GB
+    num_classes: 1000
+    splits: {train: 1281167, val: 50000, test: 100000}
+    access_requirements: An image-net.org account and acceptance of the Terms of Access
+    auto_download_allowed: false
+    citation: O. Russakovsky et al. ImageNet Large Scale Visual Recognition Challenge. IJCV, 2015.
+    tags: [wordnet, large-scale]
+
+  - id: coco2017
+    name: COCO 2017
+    description: Everyday scenes with boxes, masks, keypoints and captions for 80 object categories.
+    tasks: [object_detection, instance_segmentation, image_captioning]
+    modality: image
+    source_url: https://cocodataset.org/
+    license:
+      category: non-commercial
+      name: CC BY 4.0 (annotations); per-image Flickr licences (images)
+      url: https://cocodataset.org/#termsofuse
+      notes: The annotations are CC BY 4.0. The COCO Consortium does not own the images; each
+        keeps its Flickr licence (listed per image in the annotation file), and several of those
+        are non-commercial. Filter by licence before any commercial use.
+    size: ~19 GB images (train + val), 241 MB annotations
+    num_classes: 80
+    splits: {train: 118287, val: 5000, test: 40670}
+    auto_download_allowed: false
+    citation: T.-Y. Lin et al. Microsoft COCO - Common Objects in Context. ECCV, 2014.
+    tags: [detection, segmentation, captions]

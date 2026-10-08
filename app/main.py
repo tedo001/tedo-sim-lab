@@ -49,9 +49,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     from PyQt6.QtWidgets import QApplication
 
+    from core.tracking import MigrationError
+
     from .errors import install_excepthook, install_qt_message_handler
     from .main_window import MainWindow
-    from .services.context import AppContext
+    from .services.context import build_context
     from .ui.theme import apply_theme
 
     uncaught: list[str] = []
@@ -61,11 +63,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     app.setApplicationName("TEDO AI Research Lab")
     app.setOrganizationName("TEDO")
     apply_theme(app)
-    window = MainWindow(AppContext(paths, config, CredentialStore()))
+    try:
+        ctx = build_context(paths, config, CredentialStore())
+    except MigrationError as exc:
+        print(f"tedo-lab: {exc}", file=sys.stderr)
+        log.error("Cannot open the lab database: %s", exc)
+        return 3
+    for problem in ctx.catalog.errors:
+        log.warning("Catalogue: %s", problem)
+    window = MainWindow(ctx)
 
     if args.smoke_test:
         from .smoke import run_smoke
         report = run_smoke(window, app, uncaught=uncaught, screenshot_dir=args.screenshots)
+        ctx.close()
         print(report.summary())
         if report.ok and args.workspace is None:  # keep the workspace (and its log) on failure
             setup_logging(None, console=True)       # release the log file (Windows locks it)
@@ -73,7 +84,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0 if report.ok else 1
 
     window.show()
-    return app.exec()
+    code = app.exec()
+    ctx.close()
+    return code
 
 
 if __name__ == "__main__":

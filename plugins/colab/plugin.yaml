@@ -1,0 +1,17 @@
+# Google Colab plugin manifest. Read before any plugin code is imported.
+name: colab
+title: Google Colab
+version: 0.1.0
+author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
+description: "Export an experiment as a Colab notebook and import its results back."
+license:
+  category: proprietary
+  name: Google Colab Terms of Service
+  url: https://research.google.com/colaboratory/tos_v5.html
+  notes: The lab only writes a notebook file; running it on Colab is governed by Google's terms and usage limits.
+capabilities: [notebook, exporter]
+entry: plugins.colab.plugin:ColabPlugin
+requires: ["nbformat>=5.10"]
+maturity: planned
+planned_for: v0.1 · build phase 9
+homepage: https://colab.research.google.com/

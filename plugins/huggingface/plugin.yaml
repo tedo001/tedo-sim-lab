@@ -1,0 +1,20 @@
+# Hugging Face plugin manifest. Read before any plugin code is imported.
+name: huggingface
+title: Hugging Face
+version: 0.1.0
+author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
+description: "Models and datasets from the Hugging Face Hub. Gated repositories need your token and accepted terms."
+license:
+  category: open-source
+  name: Apache-2.0 (huggingface_hub)
+  spdx: Apache-2.0
+  url: https://github.com/huggingface/huggingface_hub/blob/main/LICENSE
+  notes: Every model and dataset on the Hub has its own licence; gated ones require accepting terms on the Hub first.
+capabilities: [dataset_source, model_source]
+entry: plugins.huggingface.plugin:HuggingFacePlugin
+requires: ["huggingface_hub>=0.23"]
+credentials:
+  - {key: HF_TOKEN, label: Hugging Face token, required: false}
+maturity: planned
+planned_for: v0.1 · build phase 9
+homepage: https://huggingface.co/docs/huggingface_hub

@@ -5,6 +5,7 @@ from __future__ import annotations
 import platform
 
 from PyQt6.QtCore import QT_VERSION_STR, pyqtSignal
+from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
 
 from . import __version__
@@ -78,3 +79,20 @@ class MainWindow(QMainWindow):
 
     def current_page_id(self) -> str:
         return self._current
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Ask before abandoning running jobs; then stop them cleanly."""
+        active = self.ctx.jobs.active()
+        if active and self.isVisible() and not self._confirm_quit(len(active)):
+            event.ignore()
+            return
+        self.ctx.jobs.shutdown()
+        super().closeEvent(event)
+
+    def _confirm_quit(self, count: int) -> bool:
+        from PyQt6.QtWidgets import QMessageBox
+        answer = QMessageBox.question(
+            self, "Jobs are still running",
+            f"{count} job(s) are queued or running. Quitting cancels them (checkpoints already "
+            "written are kept). Quit anyway?")
+        return answer == QMessageBox.StandardButton.Yes

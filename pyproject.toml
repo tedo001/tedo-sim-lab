@@ -19,6 +19,7 @@ dependencies = [
     "pandas>=2.1",
     "PyYAML>=6.0",
     "pydantic>=2.6",
+    "packaging>=23",
     "psutil>=5.9",
     "nvidia-ml-py>=12.535",          # provides `import pynvml`; harmless without a GPU
     "keyring>=24",

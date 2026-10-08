@@ -9,6 +9,7 @@ any key the lab does not know.
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 from typing import Any, Literal
 
@@ -17,7 +18,8 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .paths import AppPaths
 
-__all__ = ["AppConfig", "ConfigError", "load_config", "mlflow_tracking_uri", "save_config"]
+__all__ = ["AppConfig", "ConfigError", "experiment_python", "load_config", "mlflow_tracking_uri",
+           "save_config"]
 
 _CREDENTIAL_KEY = re.compile(r"(?i)(key|token|secret|password|passwd|credential)")
 
@@ -38,6 +40,14 @@ class AppConfig(BaseModel):
     terminal_shell: str = "auto"
     max_concurrent_runs: int = Field(default=1, ge=1, le=8)
     default_device: str = "auto"
+    #: Python that runs experiments and installs plugin packages. Empty = the app's own
+    #: interpreter. The packaged (installer) app needs a real Python environment here.
+    python_executable: str = ""
+
+
+def experiment_python(config: AppConfig) -> str:
+    """The interpreter experiment workers run under."""
+    return config.python_executable or sys.executable
 
 
 def _reject_credentials(data: dict[str, Any]) -> None:

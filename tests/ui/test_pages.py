@@ -7,7 +7,7 @@ from app.ui.pages.documentation import DocumentationPage, find_documents
 from app.ui.pages.home import HomePage
 from app.ui.pages.settings import SettingsPage
 from app.ui.widgets import Pill
-from core.common import AppConfig, CredentialStore
+from core.common import CredentialStore
 from core.common.secrets import KEYRING_SERVICE
 
 
@@ -30,11 +30,11 @@ def test_home_buttons_navigate(ctx, qtbot) -> None:
     assert visited == ["documentation", "settings"]
 
 
-def test_settings_shows_sources_never_values(workspace, keyring_backend, qtbot) -> None:
-    from app.services.context import AppContext
+def test_settings_shows_sources_never_values(ctx, keyring_backend, qtbot) -> None:
+    from dataclasses import replace
     keyring_backend.set_password(KEYRING_SERVICE, "KAGGLE_KEY", "kaggle-hidden-123")
     store = CredentialStore(env={"HF_TOKEN": "hf_hiddenvalue000000000000000"}, backend=keyring_backend)
-    settings = SettingsPage(AppContext(workspace, AppConfig(), store))
+    settings = SettingsPage(replace(ctx, credentials=store))
     qtbot.addWidget(settings)
     table = settings.credential_table
     sources = {table.item(row, 1).text(): table.cellWidget(row, 2).findChild(Pill).text()

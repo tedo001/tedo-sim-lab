@@ -1,0 +1,20 @@
+# Roboflow plugin manifest. Read before any plugin code is imported.
+name: roboflow
+title: Roboflow
+version: 0.1.0
+author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
+description: "Import datasets from Roboflow Universe and your Roboflow projects."
+license:
+  category: open-source
+  name: Apache-2.0 (roboflow-python)
+  spdx: Apache-2.0
+  url: https://github.com/roboflow/roboflow-python/blob/main/LICENSE
+  notes: Each Roboflow dataset has its own licence, shown on its project page.
+capabilities: [dataset_source]
+entry: plugins.roboflow.plugin:RoboflowPlugin
+requires: ["roboflow>=1.1"]
+credentials:
+  - {key: ROBOFLOW_API_KEY, label: Roboflow API key}
+maturity: planned
+planned_for: v0.1 · build phase 9
+homepage: https://docs.roboflow.com/api-reference

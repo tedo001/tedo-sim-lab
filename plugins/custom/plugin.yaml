@@ -1,0 +1,13 @@
+# Custom plugin (template) plugin manifest. Read before any plugin code is imported.
+name: custom
+title: Custom plugin (template)
+version: 0.1.0
+author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
+description: "A starting point for your own integration: copy this folder, rename it, and edit plugin.yaml and plugin.py."
+license:
+  category: unspecified
+  name: This project's licence (none chosen yet)
+capabilities: [custom]
+entry: plugins.custom.plugin:CustomPlugin
+requires: []
+maturity: experimental

@@ -46,9 +46,12 @@ def keyring_backend() -> MemoryKeyring:
 
 
 @pytest.fixture
-def ctx(workspace, keyring_backend):
-    from app.services.context import AppContext
-    return AppContext(workspace, AppConfig(), CredentialStore(env={}, backend=keyring_backend))
+def ctx(qapp, workspace, keyring_backend):
+    """A full application context on a temporary workspace (catalogue, database, job queue)."""
+    from app.services.context import build_context
+    context = build_context(workspace, AppConfig(), CredentialStore(env={}, backend=keyring_backend))
+    yield context
+    context.close()
 
 
 @pytest.fixture

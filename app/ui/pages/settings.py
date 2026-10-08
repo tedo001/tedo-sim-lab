@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from PyQt6.QtWidgets import QWidget
 
-from core.common import KNOWN_CREDENTIALS, mlflow_tracking_uri
+from core.common import KNOWN_CREDENTIALS, experiment_python, mlflow_tracking_uri
 
 from ...services.context import AppContext
 from ..widgets import Card, DataTable, KeyValues, Page, Pill, label
@@ -44,6 +44,8 @@ class SettingsPage(Page):
             ("Terminal shell", config.terminal_shell),
             ("Concurrent runs", str(config.max_concurrent_runs)),
             ("Default device", config.default_device),
+            ("Experiment Python", config.python_executable
+             or f"{experiment_python(config)} (this app's Python)"),
         )))
         configuration.add(label("Edit settings.yaml and restart to change these. Editing from "
                                 "this page is not built yet.", "CardCaption", wrap=True))

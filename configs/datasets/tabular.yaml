@@ -1,0 +1,74 @@
+# Small tabular datasets bundled with scikit-learn (no download), all from the
+# UCI Machine Learning Repository, which publishes them under CC BY 4.0.
+# Loaders flip to "stable" in build phase 6.
+cards:
+  - id: iris
+    name: Iris
+    description: Three iris species measured on four features.
+    tasks: [tabular_classification, clustering]
+    modality: tabular
+    source_url: https://archive.ics.uci.edu/dataset/53/iris
+    license: &uci
+      category: open-source
+      name: CC BY 4.0
+      spdx: CC-BY-4.0
+      url: https://creativecommons.org/licenses/by/4.0/
+      notes: Attribution required; cite the dataset and the UCI Machine Learning Repository.
+    size: 150 rows × 4 features
+    num_classes: 3
+    splits: {all: 150}
+    auto_download_allowed: true
+    adapter: labs.classical_ml.datasets:SklearnBuiltinAdapter
+    maturity: planned
+    citation: R. A. Fisher. Iris. UCI Machine Learning Repository, 1936.
+    tags: [sklearn, builtin, beginner]
+
+  - id: wine
+    name: Wine
+    description: Chemical analysis of wines from three cultivars.
+    tasks: [tabular_classification]
+    modality: tabular
+    source_url: https://archive.ics.uci.edu/dataset/109/wine
+    license: *uci
+    size: 178 rows × 13 features
+    num_classes: 3
+    splits: {all: 178}
+    auto_download_allowed: true
+    adapter: labs.classical_ml.datasets:SklearnBuiltinAdapter
+    maturity: planned
+    citation: S. Aeberhard, M. Forina. Wine. UCI Machine Learning Repository, 1991.
+    tags: [sklearn, builtin]
+
+  - id: breast_cancer
+    name: Breast Cancer Wisconsin (Diagnostic)
+    description: Features of cell nuclei from breast-mass images; malignant or benign.
+    tasks: [tabular_classification]
+    modality: tabular
+    source_url: https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic
+    license: *uci
+    size: 569 rows × 30 features
+    num_classes: 2
+    splits: {all: 569}
+    auto_download_allowed: true
+    adapter: labs.classical_ml.datasets:SklearnBuiltinAdapter
+    maturity: planned
+    citation: W. Wolberg, O. Mangasarian, N. Street, W. Street. Breast Cancer Wisconsin
+      (Diagnostic). UCI Machine Learning Repository, 1995.
+    tags: [sklearn, builtin, medical, binary]
+
+  - id: digits
+    name: Digits (8×8)
+    description: Handwritten digits as 8×8 pixel counts; scikit-learn's copy of the UCI test set.
+    tasks: [tabular_classification, clustering, dimensionality_reduction]
+    modality: tabular
+    source_url: https://archive.ics.uci.edu/dataset/80/optical+recognition+of+handwritten+digits
+    license: *uci
+    size: 1797 rows × 64 features
+    num_classes: 10
+    splits: {all: 1797}
+    auto_download_allowed: true
+    adapter: labs.classical_ml.datasets:SklearnBuiltinAdapter
+    maturity: planned
+    citation: E. Alpaydin, C. Kaynak. Optical Recognition of Handwritten Digits. UCI Machine
+      Learning Repository, 1998.
+    tags: [sklearn, builtin]

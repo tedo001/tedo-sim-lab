@@ -14,7 +14,8 @@ from collections.abc import Sequence
 from importlib import metadata
 from types import ModuleType
 
-__all__ = ["distribution_version", "is_installed", "optional_import"]
+__all__ = ["distribution_version", "is_installed", "missing_requirements", "optional_import",
+           "requirement_met"]
 
 log = logging.getLogger("tedo.optional")
 
@@ -35,6 +36,25 @@ def distribution_version(distribution: str | Sequence[str]) -> str | None:
 
 def is_installed(distribution: str | Sequence[str]) -> bool:
     return distribution_version(distribution) is not None
+
+
+def requirement_met(requirement: str) -> bool:
+    """Is ``requirement`` (a pip requirement such as ``"ultralytics>=8.2"``) satisfied?"""
+    from packaging.requirements import InvalidRequirement, Requirement
+
+    try:
+        parsed = Requirement(requirement)
+    except InvalidRequirement:
+        return False
+    version = distribution_version(parsed.name)
+    if version is None:
+        return False
+    return not parsed.specifier or parsed.specifier.contains(version, prereleases=True)
+
+
+def missing_requirements(requirements: Sequence[str]) -> list[str]:
+    """The entries of ``requirements`` that are not installed (or too old)."""
+    return [requirement for requirement in requirements if not requirement_met(requirement)]
 
 
 def optional_import(module: str, distribution: str | Sequence[str] | None = None

@@ -5,9 +5,11 @@ PyQt6. Pick a dataset, a model, hyperparameters and a device; run the experiment
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
-> **Status: V0.1 in development — build phase 1 of 10.** The window, navigation and
-> every page exist; pages that are not built yet say which phase or release
-> delivers them. See [CLAUDE.md](CLAUDE.md) for the architecture and build status.
+> **Status: V0.1 in development — build phase 2 of 10.** The window and every page, the
+> dataset/model/plugin catalogue with licences, the lab database, the experiment spec and
+> the background job queue exist; nothing trains yet (build phase 4). Pages that are not
+> built say which phase or release delivers them. See [CLAUDE.md](CLAUDE.md) for the
+> architecture and build status.
 
 ## Install
 

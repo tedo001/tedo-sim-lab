@@ -1,0 +1,9 @@
+# Experiment runners the worker can use, as "module:Class". core/ never imports
+# labs/ directly; it loads these at run time. Build phase 4 adds
+# TorchClassificationRunner, build phase 6 the scikit-learn and XGBoost runners.
+runners:
+  - labs.computer_vision.experimental:ObjectDetectionRunner
+  - labs.computer_vision.experimental:SegmentationRunner
+  - labs.computer_vision.experimental:OcrRunner
+  - labs.computer_vision.experimental:PoseRunner
+  - labs.computer_vision.experimental:TrackingRunner

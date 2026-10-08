@@ -1,0 +1,116 @@
+"""Run one experiment in its own process.
+
+    python -m core.experiment_engine.worker <run_dir> [--runner module:Class] [--cancel-on-eof]
+
+Reads ``<run_dir>/experiment.yaml``, picks the runner, runs it, and writes
+:class:`~core.experiment_engine.events.ProgressEvent` lines to stdout. Anything
+else the process prints goes to stderr, so the event stream stays clean.
+
+Cancel by writing ``cancel`` on stdin: the runner stops at its next check and
+the process exits 2. With ``--cancel-on-eof`` (what the app uses) a closed stdin
+also cancels, so a worker never outlives a crashed app.
+
+Exit codes: 0 completed or early-stopped, 1 failed, 2 cancelled.
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+import threading
+import time
+from collections.abc import Sequence
+from pathlib import Path
+from typing import TextIO
+
+from core.common.cancel import Cancelled, CancelToken
+from core.common.logging_setup import setup_logging
+from core.common.masking import mask_text
+from core.common.paths import CODE_ROOT
+from core.hardware.devices import resolve_device
+
+from .events import JsonLinesCallbacks
+from .runner import RunContext, RunnerRegistry, RunResult
+from .spec import SpecError, load_spec
+
+__all__ = ["EXIT_CANCELLED", "EXIT_FAILED", "EXIT_OK", "main", "run_experiment"]
+
+EXIT_OK, EXIT_FAILED, EXIT_CANCELLED = 0, 1, 2
+_EXIT = {"completed": EXIT_OK, "early_stopped": EXIT_OK, "cancelled": EXIT_CANCELLED,
+         "failed": EXIT_FAILED}
+
+log = logging.getLogger("tedo.worker")
+
+
+def watch_for_cancel(stream: TextIO, token: CancelToken, *, cancel_on_eof: bool) -> threading.Thread:
+    """Cancel ``token`` when a line ``cancel`` arrives (or at EOF, if asked)."""
+
+    def watch() -> None:
+        for line in stream:
+            if line.strip().lower() == "cancel":
+                token.cancel()
+                return
+        if cancel_on_eof:
+            token.cancel()
+
+    thread = threading.Thread(target=watch, name="cancel-watcher", daemon=True)
+    thread.start()
+    return thread
+
+
+def run_experiment(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelToken, *,
+                   runner_entry: str | None = None) -> RunResult:
+    """Load the spec, choose the runner and run it; never raises."""
+    started = time.monotonic()
+    run_id = run_dir.name
+    try:
+        spec = load_spec(run_dir / "experiment.yaml")
+        registry = RunnerRegistry()
+        if runner_entry:
+            problems = registry.load_entries([runner_entry])
+            if problems:
+                raise SpecError(problems[0])
+        else:
+            registry.load_config(CODE_ROOT / "configs" / "runners.yaml")
+        runner = registry.for_spec(spec)
+        problems = runner.validate(spec)
+        if problems:
+            raise SpecError("; ".join(problems))
+        ctx = RunContext(run_id, run_dir, resolve_device(spec.runtime.device), token)
+        callbacks.on_run_start(ctx)
+        log.info("Running %s with %s on %s", spec.name, runner.id, ctx.device)
+        result = runner.run(spec, callbacks, ctx)
+    except (Cancelled, KeyboardInterrupt):
+        result = RunResult(run_id, "cancelled", duration_s=time.monotonic() - started)
+    except Exception as exc:
+        log.exception("Run %s failed", run_id)
+        result = RunResult(run_id, "failed", duration_s=time.monotonic() - started,
+                           error=mask_text(f"{type(exc).__name__}: {exc}"))
+    return result
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="core.experiment_engine.worker")
+    parser.add_argument("run_dir", type=Path)
+    parser.add_argument("--runner", default=None, help="force a runner ('module:Class')")
+    parser.add_argument("--cancel-on-eof", action="store_true",
+                        help="cancel when stdin closes (the app sets this)")
+    parser.add_argument("--log-level", default="INFO")
+    args = parser.parse_args(argv)
+
+    events_out = sys.stdout
+    sys.stdout = sys.stderr  # print() from any library must not corrupt the event stream
+    setup_logging(None, args.log_level, console=True)
+    run_dir = args.run_dir.resolve()
+    callbacks = JsonLinesCallbacks(events_out, run_dir.name)
+    token = CancelToken()
+    watch_for_cancel(sys.stdin, token, cancel_on_eof=args.cancel_on_eof)
+
+    result = run_experiment(run_dir, callbacks, token, runner_entry=args.runner)
+    callbacks.on_run_end(result)
+    return _EXIT[result.status]
+
+
+if __name__ == "__main__":
+    sys.exit(main())

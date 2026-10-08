@@ -1,0 +1,133 @@
+# Image-classification models built into the lab (build phase 4 makes them
+# "stable") and external vision models listed for later releases.
+cards:
+  - id: simple_cnn
+    name: SimpleCNN
+    description: A small convolutional network for quick experiments on small images.
+    architecture: 2 × (Conv → BatchNorm → ReLU → MaxPool) → Linear
+    framework: pytorch
+    tasks: [image_classification]
+    source_url: https://github.com/tedo001/tedo-sim-lab
+    license: &this_project
+      category: unspecified
+      name: This project's licence (none chosen yet)
+      notes: Written for this lab; covered by the repository's licence once one is chosen.
+    input_spec: C×H×W, H and W at least 8
+    builder: labs.computer_vision.models:build_simple_cnn
+    maturity: planned
+    planned_for: v0.1
+    tags: [cnn, small, cpu]
+
+  - id: lenet5
+    name: LeNet-5
+    description: The classic convolutional network for digit recognition.
+    architecture: LeNet-5 (LeCun et al., 1998)
+    framework: pytorch
+    tasks: [image_classification]
+    source_url: http://yann.lecun.com/exdb/lenet/
+    license: *this_project
+    input_spec: C×H×W, resized to 32×32
+    builder: labs.computer_vision.models:build_lenet5
+    maturity: planned
+    planned_for: v0.1
+    tags: [cnn, small, cpu, classic]
+
+  - id: resnet18
+    name: ResNet-18
+    description: 18-layer residual network from torchvision, optionally ImageNet-pretrained.
+    architecture: ResNet-18 (He et al., 2016)
+    framework: pytorch
+    tasks: [image_classification]
+    source_url: https://pytorch.org/vision/stable/models/resnet.html
+    license:
+      category: open-source
+      name: BSD-3-Clause (torchvision code)
+      spdx: BSD-3-Clause
+      url: https://github.com/pytorch/vision/blob/main/LICENSE
+    params: 11689512
+    input_spec: 3×H×W (224×224 for the ImageNet weights); other inputs are adapted
+    weights:
+      - id: imagenet1k_v1
+        description: torchvision's ImageNet-1k weights (ResNet18_Weights.IMAGENET1K_V1).
+        license:
+          category: research-only
+          name: ImageNet Terms of Access (training data)
+          url: https://image-net.org/download.php
+          notes: Trained on ImageNet. torchvision warns that pretrained weights may carry terms
+            from their training data; treat them as non-commercial research use.
+        size_mb: 44.7
+        auto_download_allowed: true
+    builder: labs.computer_vision.models:build_resnet18
+    maturity: planned
+    planned_for: v0.1
+    tags: [cnn, residual, pretrained]
+
+  - id: yolov8
+    name: YOLOv8
+    description: Ultralytics' real-time detector, also for segmentation and pose.
+    architecture: YOLOv8 (Ultralytics)
+    framework: ultralytics
+    tasks: [object_detection, instance_segmentation, pose_estimation]
+    source_url: https://github.com/ultralytics/ultralytics
+    license:
+      category: open-source
+      name: AGPL-3.0
+      spdx: AGPL-3.0-only
+      url: https://github.com/ultralytics/ultralytics/blob/main/LICENSE
+      copyleft: true
+      notes: Copyleft. Software that uses it, including over a network, must be released under
+        AGPL-3.0 unless you hold an Ultralytics Enterprise licence. Its weights carry the same
+        licence.
+    requires: ["ultralytics>=8.2"]
+    maturity: planned
+    planned_for: v0.5
+    tags: [detection, real-time, agpl]
+
+  - id: rt_detr
+    name: RT-DETR
+    description: Real-time detection transformer from Baidu.
+    architecture: RT-DETR (Zhao et al., 2024)
+    framework: pytorch
+    tasks: [object_detection]
+    source_url: https://github.com/lyuwenyu/RT-DETR
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://github.com/lyuwenyu/RT-DETR/blob/main/LICENSE
+    maturity: planned
+    planned_for: v0.5
+    tags: [detection, transformer]
+
+  - id: sam
+    name: Segment Anything (SAM)
+    description: Meta's promptable segmentation model.
+    architecture: SAM (Kirillov et al., 2023)
+    framework: pytorch
+    tasks: [instance_segmentation]
+    source_url: https://github.com/facebookresearch/segment-anything
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://github.com/facebookresearch/segment-anything/blob/main/LICENSE
+    maturity: planned
+    planned_for: v0.5
+    tags: [segmentation, foundation-model]
+
+  - id: paddleocr
+    name: PaddleOCR
+    description: Text detection and recognition toolkit from PaddlePaddle.
+    architecture: PP-OCR pipeline
+    framework: paddle
+    tasks: [ocr]
+    source_url: https://github.com/PaddlePaddle/PaddleOCR
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://github.com/PaddlePaddle/PaddleOCR/blob/main/LICENSE
+    requires: ["paddleocr>=2.7", "paddlepaddle>=2.6"]
+    maturity: planned
+    planned_for: v0.5
+    tags: [ocr, text]

@@ -50,14 +50,31 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/ui/widgets/` | Kit: `Page`, `PageHead`, `Card`, `Pill`, `KeyValues`, `PathLabel`, `DataTable`, `MarkdownView` |
 | `app/ui/theme/` | `tokens.py` (all colours/sizes), `style.qss` (template), fonts |
 | `app/resources/` | Bundled fonts (Inter, JetBrains Mono — OFL) and Lucide icons (ISC) |
-| `app/services/context.py` | `AppContext` handed to every page (paths, config, credentials, navigate) |
-| `core/common/` | `AppPaths`, `AppConfig`, logging + secret masking, `CredentialStore`, optional imports |
+| `app/services/context.py` | `AppContext` (paths, config, credentials, catalogue, store, jobs, navigate); `build_context()` |
+| `app/services/jobs.py` | `JobQueue`: runs via `QProcess` worker (FIFO, `max_concurrent_runs`), tasks via `QThreadPool` |
+| `core/common/` | `AppPaths`, `AppConfig`, logging + masking, `CredentialStore`, licensing, vocab, cards, cancel |
+| `core/catalog.py` | `load_catalog()`: dataset, model, plugin and runner registries in one object |
+| `core/dataset_registry/` | `DatasetCard`, `DatasetRegistry` (live status), `DatasetAdapter` contract |
+| `core/model_registry/` | `ModelCard` (+ separately licensed `WeightsInfo`), `ModelRegistry` |
+| `core/plugin_api/` | `PluginManifest`, `Plugin`, `ManifestPlugin` (status/actions from manifest), `PluginRegistry` |
+| `core/experiment_engine/` | `ExperimentSpec` (strict, canonical YAML), runner contract, events, `worker` |
+| `core/tracking/` | SQLite: `Database` + `migrations/NNNN_*.sql`, `LabStore` (relative paths) |
+| `configs/` | Shipped cards (`datasets/`, `models/`) and `runners.yaml` (runner entries) |
+| `plugins/<name>/` | `plugin.yaml` manifest + `plugin.py` entry (a `ManifestPlugin` subclass) |
 
 ### Adding a page
 
 1. Add a `PageSpec` to `NAV` (`planned_for=None` once it is built).
 2. Write `app/ui/pages/<page>.py` (subclass `Page`, take `ctx: AppContext`).
 3. Register it in `PAGE_FACTORIES`. Tests fail if a built page has no factory or vice versa.
+
+### Adding a dataset, model, runner or plugin
+
+- Dataset/model: add a card to `configs/datasets/*.yaml` or `configs/models/*.yaml`. Licence
+  facts must come from the source; no licence published → `unspecified`. Cards start as
+  `maturity: planned`; flip to `stable` only when the loader/builder exists (a test checks).
+- Runner: subclass `ExperimentRunner` in `labs/…`, add its `"module:Class"` to `configs/runners.yaml`.
+- Plugin: copy `plugins/custom/`, edit `plugin.yaml` (name = folder) and `plugin.py`.
 
 ## Conventions
 
@@ -66,8 +83,16 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   (tooltip or pill: `Experimental`, `Not connected`, `Planned for vX.Y`). Unbuilt
   adapters raise `NotImplementedError` with a clear message.
 - **The UI never blocks**: training/evaluation run in a subprocess
-  (`python -m core.experiment_engine.worker <run_dir>`, JSON-lines events on stdout);
-  short tasks use `QThreadPool`. Cancel is cooperative ("cancel" on stdin), then kill.
+  (`python -m core.experiment_engine.worker <run_dir> [--runner m:C] [--cancel-on-eof]`):
+  one JSON event per stdout line, everything else printed goes to stderr; exit 0 done,
+  1 failed, 2 cancelled. Short tasks use `QThreadPool`. Cancel is cooperative ("cancel" on
+  stdin, `CancelToken`), then kill after a grace period. Runner discovery is by
+  `configs/runners.yaml` strings, so `core` never imports `labs`.
+- **Experiment Python**: workers run under `config.python_executable` (empty = the app's own
+  interpreter) with the code root on `PYTHONPATH`; plugin installs go there too.
+- **Database**: one SQLite file per workspace (`database/lab.db`), WAL mode, one connection
+  per thread. Schema changes are new numbered files in `core/tracking/migrations/`; never edit
+  an applied one. Paths inside the workspace are stored relative (projects can move).
 - **Secrets**: only from env vars or the OS keyring (`CredentialStore`, service
   `tedo-ai-lab`). `Secret` values mask themselves; every handed-out value is
   registered with `core.common.masking`, and every log handler has `SecretMaskingFilter`.
@@ -87,6 +112,19 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   reports/ database/ mlruns/ logs/`) are git-ignored; tests use a temporary workspace.
 - **MLflow** defaults to `sqlite:///<workspace>/database/mlflow.db`, artifacts in `mlruns/`.
 
+## Product direction (from the owner)
+
+After V0.1 the lab ships as a **Windows installer** (PyInstaller + Inno Setup, the way
+`tedo001/sentra` does it) and grows **IDE-like project handling**: open a local folder as a
+project and manage everything in it (files, editor, terminal, git, experiments, notebooks).
+Design for it now:
+
+- Never write into the code/install folder; all data goes to the workspace (= project folder).
+- Keep everything a project needs inside its folder; store paths relative to it.
+- The installed app cannot pip-install into itself: experiments and plugins use a separate
+  "experiment Python" environment (`python_executable`).
+- Resources are found relative to package files (works in a PyInstaller bundle).
+
 ## Environment notes
 
 - Development container: Linux, CPU only, Python 3.13. Target: Python ≥ 3.11, primary
@@ -101,7 +139,9 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
       MLflow on SQLite; CI on GitHub Actions)
 - [x] Phase 1 — skeleton, theme, sidebar, every page (placeholders), logging with
       masking, settings, credentials, smoke test, CI
-- [ ] Phase 2 — registries (dataset/model/plugin cards), SQLite schema, spec, job queue
+- [x] Phase 2 — catalogue (10 dataset, 20 model cards, 9 plugins, 5 experimental runners),
+      licence policy, SQLite schema + migrations + LabStore, strict spec with canonical YAML,
+      worker protocol, Qt JobQueue
 - [ ] Phase 3 — hardware monitor and dashboard
 - [ ] Phase 4 — Experiment Builder, Computer Vision lab, Torch classification runner, Training page
 - [ ] Phase 5 — MLflow tracking, reproducibility snapshot, reproduce run, Evaluation
