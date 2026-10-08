@@ -70,6 +70,9 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/services/hardware.py` | `HardwareService`: probe in its own process, 1 s psutil/NVML sampler, 2-min history |
 | `app/ui/widgets/charts.py` | `TimeSeriesChart` (small-multiple live chart, hover), `MeterBar` (title-row gauges) |
 | `app/ui/pages/resources.py` | `ResourceStats` / `ResourceCharts` shared by Home and the Hardware Monitor |
+| `labs/computer_vision/explainer/` | CNN Explainer engine (numpy, no torch): `Architecture`/`tiny_vgg`, `ExplainerNet` (state_dict-named weights, `.npz`), `run()` → `Trace`, `conv_step`/`pool_step`/`softmax_terms`/`linear_contributions`, `map_limits`, `ConvGeometry`, samples |
+| `labs/computer_vision/models.py` | PyTorch builders (`build_tiny_vgg`, `to_torch`: same layer names, so a `state_dict` loads into `ExplainerNet`) |
+| `app/ui/pages/explainer/` | CNN Explainer page: `overview` (all maps, links), `detail_*` (conv, ReLU, pool, input, softmax), `playground`, `inputs` (samples, open image, draw pad), `article` |
 | `core/hardware/` | `info.probe_hardware()` (run as `python -m core.hardware.info`), `sampler`, `devices` |
 | `core/common/` | `AppPaths`, `AppConfig`, logging + masking, `CredentialStore`, licensing, vocab, cards, cancel |
 | `core/catalog.py` | `load_catalog()`: dataset, model, plugin and runner registries in one object |
@@ -131,6 +134,10 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 - **Charts** follow the dataviz rules: one series per chart (small multiples), one axis, 2 px
   lines, recessive grid, values in text colours, gaps for missing data, hover crosshair.
   Series colour `series_1` is validated against the dark surface.
+- **CNN Explainer** is a port of poloclub/cnn-explainer (MIT): keep its notice in
+  `labs/computer_vision/explainer/LICENSE-cnn-explainer.txt` and the credit on the page. Never copy
+  its Tiny ImageNet images or pretrained weights (ImageNet-derived). Its numpy engine must match
+  PyTorch exactly (`tests/core/test_explainer.py`); activations use the diverging `heat_*` tokens.
 - **Narrow panes**: pages must work at half width (split view). Key/value rows are single
   line and elide (full text in tooltip); tables stretch a text column, never a pill column.
 - **Look**: dark, restrained, flat. Colours only from `tokens.py`; one accent (muted
@@ -166,14 +173,16 @@ Design for it now:
       MLflow on SQLite; CI on GitHub Actions)
 - [x] Phase 1 — skeleton, theme, sidebar, every page (placeholders), logging with
       masking, settings, credentials, smoke test, CI
-- [x] Phase 2 — catalogue (10 dataset, 18 model cards, 8 plugins, 5 experimental runners),
+- [x] Phase 2 — catalogue (10 dataset, 18 model cards (19 with TinyVGG), 8 plugins, 5 experimental runners),
       licence policy, SQLite schema + migrations + LabStore, strict spec with canonical YAML,
       worker protocol, Qt JobQueue
 - [x] Phase 3 — hardware probe (subprocess) + live sampler, Hardware Monitor, Home dashboard,
       title-row meters; also: licence policy (PySide6, no AGPL), collapsible sidebar, split view
 - [ ] Phase 4 — Experiment Builder, Computer Vision lab, Torch classification runner, Training page
-- [ ] Phase 4b — CNN Explainer (native port of tedo001/cnn-explainer, MIT): layer overview,
-      convolution / ReLU / pooling / softmax views, hyperparameter playground, on the lab's own models
+- [x] Phase 4b (built early) — CNN Explainer (port of poloclub/cnn-explainer via tedo001, MIT):
+      layer overview, convolution / ReLU / pooling / softmax views, hyperparameter playground,
+      article, samples / open image / draw a digit; TinyVGG untrained until Phase 4 trains it
+      (Phase 4: export trained TinyVGG weights as `.npz` and list them in the explainer)
 - [ ] Phase 5 — MLflow tracking, reproducibility snapshot, reproduce run, Evaluation
 - [ ] Phase 6 — Classical ML / XGBoost lab
 - [ ] Phase 7 — Dataset Hub, Ontology Explorer, COCO inspector, Model Zoo, Model Registry

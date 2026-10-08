@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from core.common.cards import Card, CardRegistry
 from core.common.references import UnresolvedReference, is_reference, resolve
@@ -20,6 +20,8 @@ class DatasetCard(Card):
     #: Human-readable download / disk size: "11 MB", "~150 GB".
     size: str
     num_classes: int | None = None
+    #: Class index → name, when the dataset defines names.
+    class_names: tuple[str, ...] = ()
     #: Split → number of samples. Empty when unknown.
     splits: dict[str, int] = Field(default_factory=dict)
     #: "" when anyone may fetch it; otherwise what a person must do first.
@@ -36,6 +38,12 @@ class DatasetCard(Card):
         if value is not None and not is_reference(value):
             raise ValueError("adapter must look like 'package.module:Class'")
         return value
+
+    @model_validator(mode="after")
+    def _class_count(self) -> DatasetCard:
+        if self.class_names and self.num_classes is not None and len(self.class_names) != self.num_classes:
+            raise ValueError(f"{len(self.class_names)} class names for {self.num_classes} classes")
+        return self
 
 
 class DatasetRegistry(CardRegistry[DatasetCard]):

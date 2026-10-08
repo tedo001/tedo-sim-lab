@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
     QBoxLayout,
@@ -120,6 +120,19 @@ class Card(QFrame):
     def add_head_widget(self, widget: QWidget) -> None:
         self._head_actions.addWidget(widget)
 
+    def sizeHint(self) -> QSize:
+        """Tall enough for wrapped text at the current width: the vertical policy is Maximum, so
+        a hint computed for a wider card would clip lines when the card is narrow."""
+        hint = super().sizeHint()
+        if self.width() > 0 and self.hasHeightForWidth():
+            hint.setHeight(max(hint.height(), self.heightForWidth(self.width())))
+        return hint
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        if event.size().width() != event.oldSize().width():
+            self.updateGeometry()
+
     def add(self, item: QWidget | QLayout) -> None:
         if isinstance(item, QLayout):
             self.content.addLayout(item)
@@ -147,8 +160,24 @@ class ResponsiveRow(QWidget):
     def stacked(self) -> bool:
         return self._box.direction() == QBoxLayout.Direction.TopToBottom
 
+    def _widgets(self) -> list[QWidget]:
+        items = (self._box.itemAt(i) for i in range(self._box.count()))
+        return [item.widget() for item in items if item is not None and item.widget() is not None]
+
+    def _side_by_side_width(self) -> int:
+        widgets = self._widgets()
+        return (sum(w.minimumSizeHint().width() for w in widgets)
+                + self._box.spacing() * max(len(widgets) - 1, 0))
+
+    def minimumSizeHint(self) -> QSize:
+        """As narrow as the widest child: below that the row stacks instead of overflowing."""
+        hint = super().minimumSizeHint()
+        widest = max((w.minimumSizeHint().width() for w in self._widgets()), default=0)
+        return QSize(widest, hint.height())
+
     def resizeEvent(self, event: QResizeEvent) -> None:
-        narrow = event.size().width() < self.breakpoint
+        width = event.size().width()
+        narrow = width < self.breakpoint or width < self._side_by_side_width()
         if narrow != self.stacked():
             self._box.setDirection(QBoxLayout.Direction.TopToBottom if narrow
                                    else QBoxLayout.Direction.LeftToRight)

@@ -59,6 +59,8 @@ NAV: tuple[PageSpec, ...] = (
        "LeNet-5 and ResNet18",
        "Detection, segmentation, OCR, pose and tracking listed as Experimental until v0.5",
        "Presets open in the Experiment Builder"),
+    _p("cnn_explainer", "CNN Explainer", "labs", "brain-circuit",
+       "See how a convolutional network turns an image into a prediction, layer by layer."),
     _p("classical_ml", "Classical ML", "labs", "chart-scatter",
        "Classical models on tabular data, tracked like neural networks.", "v0.1", 6,
        "Linear and logistic regression, decision tree, random forest, gradient boosting, "

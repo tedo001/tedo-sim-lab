@@ -5,7 +5,8 @@ Qt for Python (PySide6). Pick a dataset, a model, hyperparameters and a device; 
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
-> **Status: V0.1 in development — build phase 3 of 10.** The window and every page, the live hardware monitor and dashboard, the
+> **Status: V0.1 in development — build phase 3 of 10, plus the CNN Explainer.** The window and
+> every page, the live hardware monitor and dashboard, the CNN Explainer, the
 > dataset/model/plugin catalogue with licences, the lab database, the experiment spec and
 > the background job queue exist; nothing trains yet (build phase 4). Pages that are not
 > built say which phase or release delivers them. See [CLAUDE.md](CLAUDE.md) for the
@@ -72,3 +73,12 @@ Bundled assets:
 - Inter and JetBrains Mono fonts — SIL Open Font License 1.1
   (`app/resources/fonts/OFL-*.txt`)
 - Lucide icons — ISC (`app/resources/icons/LICENSE-lucide.txt`)
+
+Ported code:
+
+- The CNN Explainer page is a port of [CNN Explainer](https://github.com/poloclub/cnn-explainer)
+  by Zijie J. Wang et al., Polo Club of Data Science, Georgia Tech — MIT
+  (`labs/computer_vision/explainer/LICENSE-cnn-explainer.txt`). Its Tiny ImageNet example images
+  and pretrained weights are not included: they derive from ImageNet.
+- Built-in digit samples come from the UCI Optical Recognition of Handwritten Digits data set
+  (CC BY 4.0), read from the copy that ships with scikit-learn.

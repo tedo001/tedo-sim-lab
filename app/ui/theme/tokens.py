@@ -37,6 +37,12 @@ COLORS: dict[str, str] = {
     "grey": "#8A929C",
     # Data series (dataviz reference palette, dark steps; validated on the surface above).
     "series_1": "#3987E5",
+    # Diverging scale for activations and weights: negative ← neutral zero → positive. The poles
+    # are the reference palette's dark red and blue at equal lightness (OKLab L 0.67); the arms are
+    # interpolated in OKLab, so lightness rises steadily with magnitude on both sides.
+    "heat_neg": "#E66767",
+    "heat_zero": "#383835",
+    "heat_pos": "#5598E7",
 }
 
 #: Pill tones → the status colour they are drawn in.
