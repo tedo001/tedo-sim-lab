@@ -4,10 +4,18 @@ on:
   push:
   pull_request:
 
+# A newer push to the same branch replaces the runs of the older one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
+    # A hung test fails the job (with the stacks pytest's faulthandler_timeout printed) instead
+    # of holding a runner for six hours.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +52,7 @@ jobs:
         run: ruff check .
 
       - name: Tests
-        run: pytest
+        run: pytest --durations=15
 
       - name: Smoke test
         run: python -m app.main --smoke-test
