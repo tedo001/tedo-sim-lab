@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Workspace data: datasets, checkpoints, runs, databases and logs never go in git.
+models/*
+datasets/*
+experiments/*
+notebooks/*
+results/*
+reports/*
+database/*
+!models/.gitkeep
+!datasets/.gitkeep
+!experiments/.gitkeep
+!notebooks/.gitkeep
+!results/.gitkeep
+!reports/.gitkeep
+!database/.gitkeep
+mlruns/
+logs/
+
+# Local settings (never credentials, but personal)
+configs/settings.yaml
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

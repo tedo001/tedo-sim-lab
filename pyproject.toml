@@ -1,0 +1,85 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tedo-ai-lab"
+version = "0.1.0"
+description = "TEDO AI Research Lab: a desktop workbench for ML and computer-vision research"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "tedo001", email = "durgamani.d.e.c.e.50@gmail.com" }]
+# Core: everything the app needs to start and to run CNN and classical-ML
+# experiments on a CPU-only machine. Install CPU-only PyTorch first on machines
+# without CUDA (see README).
+dependencies = [
+    "PyQt6>=6.6",
+    "pyqtgraph>=0.13.7",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "PyYAML>=6.0",
+    "pydantic>=2.6",
+    "psutil>=5.9",
+    "nvidia-ml-py>=12.535",          # provides `import pynvml`; harmless without a GPU
+    "keyring>=24",
+    "GitPython>=3.1.40",
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "opencv-python-headless>=4.9",   # headless: the GUI wheel bundles a Qt that clashes with PyQt6
+    "scikit-learn>=1.4",
+    "xgboost>=2.0",
+    "mlflow>=2.12",
+    "matplotlib>=3.8",
+    "nltk>=3.8",
+    "pycocotools>=2.0.7",
+]
+
+[project.optional-dependencies]
+# Ultralytics is AGPL-3.0: the lab asks for an explicit acknowledgement before using it.
+cv = ["ultralytics>=8.2", "onnx>=1.15", "onnxruntime>=1.17"]
+ocr = ["paddleocr>=2.7", "paddlepaddle>=2.6", "easyocr>=1.7", "pytesseract>=0.3.10"]
+nlp = ["transformers>=4.40", "huggingface_hub>=0.23"]
+integrations = [
+    "kaggle>=1.6",
+    "roboflow>=1.1",
+    "huggingface_hub>=0.23",
+    "jupyterlab>=4.1",
+    "jupyter_client>=8.6",
+    "ipykernel>=6.29",
+    "nbformat>=5.10",
+    "shap>=0.45",
+]
+dev = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.16,<0.17"]
+
+[project.scripts]
+tedo-lab = "app.main:main"
+
+[tool.setuptools.packages.find]
+include = ["app*", "core*", "labs*", "plugins*"]
+
+[tool.setuptools.package-data]
+app = ["resources/fonts/*", "resources/icons/*", "ui/theme/*.qss"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+qt_api = "pyqt6"
+markers = [
+    "slow: takes more than a few seconds (real training runs)",
+    "network: downloads data; skipped when offline",
+    "gpu: needs a CUDA or MPS device",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = ["models", "datasets", "experiments", "notebooks", "results", "reports",
+                  "database", "mlruns", "logs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "core", "labs", "plugins"]

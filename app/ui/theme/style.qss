@@ -1,0 +1,126 @@
+/* TEDO AI Research Lab — the one style sheet.
+   Dollar-brace placeholders are filled from app/ui/theme/tokens.py; pill tone
+   rules are generated in app/ui/theme/__init__.py. */
+
+QWidget {
+    font-family: "${font}", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: ${font_px}px;
+    color: ${text};
+}
+QMainWindow, QWidget#Page, QScrollArea#PageScroll, QWidget#PageBody { background: ${bg}; }
+QScrollArea { border: none; background: transparent; }
+
+/* ── top bar ───────────────────────────────────────────────────────── */
+QFrame#TopBar { background: ${header}; border-bottom: 1px solid ${border_soft}; }
+QLabel#Wordmark { font-size: 13px; font-weight: 700; letter-spacing: 3px; color: ${text}; }
+QLabel#WordmarkSub { font-size: 11px; letter-spacing: 1.5px; color: ${text_faint}; }
+QLabel#VersionTag {
+    font-family: "${mono}"; font-size: 10px; color: ${text_dim};
+    border: 1px solid ${border}; border-radius: 3px; padding: 1px 6px;
+}
+QLineEdit#GlobalSearch {
+    background: ${surface}; border: 1px solid ${border}; border-radius: ${radius}px;
+    padding: 5px 10px; color: ${text}; selection-background-color: ${accent};
+}
+QLineEdit#GlobalSearch:focus { border-color: ${accent}; }
+QToolButton#TopBarButton { border: none; border-radius: ${radius}px; padding: 6px; }
+QToolButton#TopBarButton:hover { background: ${raised}; }
+
+/* ── sidebar ───────────────────────────────────────────────────────── */
+QFrame#Sidebar { background: ${sidebar}; border-right: 1px solid ${border_soft}; }
+QWidget#SidebarBody { background: ${sidebar}; }
+QLabel#NavSection {
+    font-size: 10px; font-weight: 600; letter-spacing: 1.2px; color: ${text_faint};
+    padding: 12px 12px 4px 12px;
+}
+QPushButton#NavItem {
+    border: none; border-left: 2px solid transparent; border-radius: 0;
+    background: transparent; text-align: left; padding: 0;
+}
+QPushButton#NavItem:hover { background: ${raised}; }
+QPushButton#NavItem[active="true"] { background: ${selected}; border-left-color: ${accent}; }
+QLabel#NavText { color: ${text_dim}; background: transparent; }
+QLabel#NavText[active="true"] { color: ${text}; font-weight: 500; }
+QLabel#NavTag { font-family: "${mono}"; font-size: 10px; color: ${text_faint}; background: transparent; }
+
+/* ── pages ─────────────────────────────────────────────────────────── */
+QLabel#PageTitle { font-size: ${page_title_px}px; font-weight: 600; color: ${text}; }
+QLabel#PageCaption { font-family: "${mono}"; font-size: 11px; color: ${text_faint}; }
+
+QFrame#Card { background: ${surface}; border: 1px solid ${border}; border-radius: ${radius}px; }
+QFrame#CardHead { border: none; border-bottom: 1px solid ${border_soft}; background: transparent; }
+QLabel#CardTitle { font-size: ${card_title_px}px; font-weight: 600; color: ${text}; background: transparent; }
+QLabel#CardCaption { font-size: 11px; color: ${text_faint}; background: transparent; }
+QLabel#Body { color: ${text_dim}; background: transparent; }
+QLabel#BodyStrong { color: ${text}; background: transparent; }
+QLabel#Bullet { color: ${text_dim}; background: transparent; }
+QLabel#Mono { font-family: "${mono}"; font-size: ${mono_px}px; color: ${text_dim}; background: transparent; }
+
+QLabel#KvKey { color: ${text_faint}; background: transparent; }
+QLabel#KvValue { color: ${text}; background: transparent; }
+QLabel#KvValueMono { font-family: "${mono}"; font-size: ${mono_px}px; color: ${text}; background: transparent; }
+
+QLabel#Pill {
+    border-radius: 3px; padding: 1px 7px; font-size: 11px; font-weight: 500;
+}
+
+/* ── tables and lists ──────────────────────────────────────────────── */
+QTableWidget#DataTable, QListWidget#DocList {
+    background: ${surface}; border: none; gridline-color: transparent;
+    selection-background-color: ${selected}; selection-color: ${text}; outline: 0;
+}
+QTableWidget#DataTable::item { border-bottom: 1px solid ${border_soft}; padding: 4px 8px; }
+QTableWidget#DataTable QHeaderView::section {
+    background: ${surface}; color: ${text_faint}; font-size: 11px; font-weight: 500;
+    border: none; border-bottom: 1px solid ${border}; padding: 6px 8px;
+}
+QListWidget#DocList::item { padding: 6px 10px; color: ${text_dim}; border-left: 2px solid transparent; }
+QListWidget#DocList::item:selected { background: ${selected}; color: ${text}; border-left-color: ${accent}; }
+QListWidget#DocList::item:hover { background: ${raised}; }
+
+QTextBrowser#DocView {
+    background: ${surface}; border: none; color: ${text}; padding: 8px 16px;
+    selection-background-color: ${accent};
+}
+
+/* ── controls ──────────────────────────────────────────────────────── */
+QPushButton {
+    background: ${raised}; border: 1px solid ${border}; border-radius: ${radius}px;
+    padding: 5px 12px; color: ${text};
+}
+QPushButton:hover { border-color: ${text_faint}; }
+QPushButton:disabled { color: ${text_faint}; border-color: ${border_soft}; background: ${surface}; }
+QPushButton#Primary { background: ${accent}; border-color: ${accent}; color: #FFFFFF; font-weight: 500; }
+QPushButton#Primary:hover { background: ${accent_hover}; border-color: ${accent_hover}; }
+QPushButton#Primary:pressed { background: ${accent_pressed}; }
+QPushButton#Link { background: transparent; border: none; color: ${accent_hover}; padding: 2px 4px; }
+QPushButton#Link:hover { text-decoration: underline; }
+
+QLineEdit, QPlainTextEdit, QTextEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+    background: ${raised}; border: 1px solid ${border}; border-radius: ${radius}px;
+    padding: 4px 8px; selection-background-color: ${accent};
+}
+QLineEdit:focus, QPlainTextEdit:focus, QComboBox:focus, QSpinBox:focus { border-color: ${accent}; }
+
+QToolTip {
+    background: ${raised}; color: ${text}; border: 1px solid ${border}; padding: 4px 6px;
+}
+QMenu { background: ${surface}; border: 1px solid ${border}; padding: 4px; }
+QMenu::item { padding: 5px 16px; border-radius: 3px; }
+QMenu::item:selected { background: ${selected}; }
+QAbstractItemView#Completer {
+    background: ${surface}; border: 1px solid ${border}; selection-background-color: ${selected};
+    padding: 2px;
+}
+
+QStatusBar { background: ${header}; border-top: 1px solid ${border_soft}; }
+QStatusBar QLabel { font-family: "${mono}"; font-size: 11px; color: ${text_faint}; padding: 0 8px; }
+QStatusBar::item { border: none; }
+
+QScrollBar:vertical { background: transparent; width: 8px; margin: 0; }
+QScrollBar::handle:vertical { background: ${border}; border-radius: 4px; min-height: 24px; }
+QScrollBar::handle:vertical:hover { background: ${text_faint}; }
+QScrollBar:horizontal { background: transparent; height: 8px; margin: 0; }
+QScrollBar::handle:horizontal { background: ${border}; border-radius: 4px; min-width: 24px; }
+QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
