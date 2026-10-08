@@ -35,6 +35,23 @@ def test_vision_cards_are_stable_with_class_names(cards) -> None:
     assert datasets.adapter("cifar10").classes[0] == "airplane"
 
 
+def test_cifar100_reads_its_class_names_from_the_download(cards, monkeypatch) -> None:
+    import pickle
+
+    paths, datasets = cards
+    monkeypatch.setenv("TEDO_LAB_WORKSPACE", str(paths.workspace))
+    adapter = datasets.adapter("cifar100")
+    assert datasets.status("cifar100") == "not_downloaded" and adapter.classes[:2] == ("0", "1")
+    folder = paths.datasets / "cifar100" / "cifar-100-python"
+    folder.mkdir(parents=True)
+    for name in ("train", "test"):
+        (folder / name).write_bytes(b"")
+    names = [f"class {i}" for i in range(100)]
+    (folder / "meta").write_bytes(pickle.dumps({"fine_label_names": names, "coarse_label_names": []}))
+    assert datasets.status("cifar100") == "ready" and adapter.classes[99] == "class 99"
+    assert adapter.url.endswith("cifar-100-python.tar.gz")
+
+
 def test_status_follows_the_files(cards) -> None:
     paths, datasets = cards
     adapter = datasets.adapter("mnist")

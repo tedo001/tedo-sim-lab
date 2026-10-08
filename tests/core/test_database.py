@@ -23,13 +23,13 @@ def store(workspace: AppPaths) -> LabStore:
 
 
 def test_migrations_create_every_table(store: LabStore) -> None:
-    assert store.db.version == len(discover_migrations()) == 1
+    assert store.db.version == len(discover_migrations()) == 2
     assert store.db.tables() == TABLES
 
 
 def test_migrating_again_changes_nothing(workspace: AppPaths, store: LabStore) -> None:
     again = LabStore.open(workspace)
-    assert again.db.version == 1
+    assert again.db.version == len(discover_migrations(MIGRATIONS_DIR))
     again.close()
 
 

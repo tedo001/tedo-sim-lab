@@ -5,7 +5,7 @@ Qt for Python (PySide6). Pick a dataset, a model, hyperparameters and a device; 
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
-> **Status: V0.1 in development — build phase 6 of 10.** The window and every page, the live
+> **Status: V0.1 in development — build phase 7 of 10.** The window and every page, the live
 > hardware monitor and dashboard, the dataset/model/plugin catalogue with licences, the lab
 > database, and two kinds of experiment end to end:
 >
@@ -16,12 +16,33 @@ from its saved folder.
 >   CSV file, with preprocessing, feature selection, cross-validation and grid or random search;
 >   results with ROC and precision-recall curves, permutation importance, SHAP values (when `shap`
 >   is installed), predicted-vs-actual and cluster/projection plots.
+> - **Data and models**: the Dataset Hub (23 datasets with their licences, sources and access
+>   requirements; downloads only where the terms allow), an Ontology Explorer (the ImageNet-1k classes
+>   in WordNet, names only, never ImageNet images), a COCO annotation inspector for files you already
+>   have, the Model Zoo (27 permissively licensed models, their weights' own terms, and what the
+>   licence policy keeps out) and a Model Registry (versions of models trained here, mirrored into
+>   MLflow's registry).
 >
 > Describe either in the Experiment Builder (or start from a lab preset), follow it on the Training
 > page, evaluate and reproduce it, and find every run in MLflow. Pages that are not built say which
 > phase or release delivers them. See [CLAUDE.md](CLAUDE.md) for the architecture and build status.
 
-## Install
+## Quick start: one file
+
+Install Python 3.11 or newer (https://www.python.org/downloads/), get the code, then run one file:
+
+```bash
+git clone https://github.com/tedo001/tedo-sim-lab.git
+cd tedo-sim-lab
+python run.py            # Windows: double-click run.bat
+```
+
+The first start makes a private environment in `.venv/`, installs PyTorch (the CUDA build when it
+finds an NVIDIA GPU, otherwise the CPU build; a few GB) and the lab, then opens the app. Later starts
+open it straight away and reinstall only when `pyproject.toml` changes. Arguments go to the app
+(`python run.py --workspace D:/lab`); `--setup-only`, `--reinstall` and `--cpu` are the launcher's own.
+
+## Install by hand
 
 Python 3.11 or newer.
 
@@ -47,7 +68,8 @@ On Linux, Qt also needs: `libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-
 ## Run
 
 ```bash
-python -m app.main                       # or: tedo-lab
+python run.py                            # the launcher (installs on first use)
+python -m app.main                       # or: tedo-lab, inside your own environment
 python -m app.main --workspace D:/lab    # keep datasets, runs and logs elsewhere
 ```
 

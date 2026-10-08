@@ -1,0 +1,23 @@
+# Lexical resources. WordNet backs the Dataset Hub's Ontology Explorer.
+cards:
+  - id: wordnet
+    name: WordNet 3.0
+    description: A lexical database of English; nouns are grouped into synsets linked from general to
+      specific. ImageNet's classes are WordNet noun synsets.
+    tasks: []
+    modality: text
+    source_url: https://wordnet.princeton.edu/
+    license:
+      category: open-source
+      name: WordNet 3.0 License
+      url: https://wordnet.princeton.edu/license-and-commercial-use
+      notes: Permission to use, copy, modify and distribute for any purpose without fee, provided the
+        Princeton copyright notice, statements and disclaimer appear on all copies.
+    size: ~10 MB
+    splits: {}
+    auto_download_allowed: true
+    adapter: labs.ontology.wordnet:WordNetAdapter
+    maturity: stable
+    citation: G. A. Miller. WordNet - A Lexical Database for English. Communications of the ACM, 1995.
+      Princeton University, "About WordNet", 2010.
+    tags: [ontology, lexical, nltk]

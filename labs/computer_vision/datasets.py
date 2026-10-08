@@ -18,6 +18,7 @@ from typing import Any, ClassVar, Literal
 import numpy as np
 
 from core.common.cancel import CancelToken, ProgressFn
+from core.common.paths import AppPaths
 from core.dataset_registry.adapter import DatasetStats, ImageClassificationAdapter, LocalState
 
 from ..common.download import download_file
@@ -139,9 +140,31 @@ class Cifar10Adapter(VisionAdapter):
 
     def _download(self, root: Path, progress: ProgressFn, cancel: CancelToken) -> None:
         folder = self.data_dir(root)
-        archive = download_file([self.url], folder / "cifar-10-python.tar.gz", md5=self.md5,
+        archive = download_file([self.url], folder / self.url.rsplit("/", 1)[-1], md5=self.md5,
                                 progress=_scaled(progress, 0, 1), cancel=cancel)
-        progress(-1.0, "Unpacking CIFAR-10…")
+        progress(-1.0, f"Unpacking {self.card.name}…")
         with tarfile.open(archive, "r:gz") as tar:
             tar.extractall(folder, filter="data")
         progress(1.0, f"{self.card.name} is ready")
+
+
+class Cifar100Adapter(Cifar10Adapter):
+    """CIFAR-100 with its 100 fine labels (names read from the downloaded ``meta`` file)."""
+
+    torchvision_name = "CIFAR100"
+    mean, std = (0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)
+    url = "https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz"
+    md5 = "eb9058c3a382ffc7106e4002c42a8d85"
+    required = ("cifar-100-python/train", "cifar-100-python/test", "cifar-100-python/meta")
+
+    @property
+    def classes(self) -> tuple[str, ...]:  # type: ignore[override]
+        meta = self.data_dir(AppPaths.resolve().datasets) / "cifar-100-python" / "meta"
+        if not self.card.class_names and meta.is_file():
+            import pickle
+
+            # The archive was checked against the authors' MD5 sum before unpacking.
+            with meta.open("rb") as file:
+                names = pickle.load(file, encoding="latin1")["fine_label_names"]  # noqa: S301
+            return tuple(names)
+        return super().classes

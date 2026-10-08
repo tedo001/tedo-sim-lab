@@ -79,6 +79,8 @@ cards:
     num_classes: 100
     splits: {train: 50000, test: 10000}
     auto_download_allowed: true
+    adapter: labs.computer_vision.datasets:Cifar100Adapter
+    maturity: stable
     citation: A. Krizhevsky. Learning Multiple Layers of Features from Tiny Images, 2009.
     tags: [colour, objects, fine-grained]
 
@@ -121,3 +123,216 @@ cards:
     auto_download_allowed: false
     citation: T.-Y. Lin et al. Microsoft COCO - Common Objects in Context. ECCV, 2014.
     tags: [detection, segmentation, captions]
+
+  # Catalogue entries (no loader in v0.1): licences and access as the sources state them.
+  - id: pascal_voc2012
+    name: PASCAL VOC 2012
+    description: 20-class benchmark of Flickr photos annotated for classification, detection and segmentation.
+    tasks: [image_classification, object_detection, semantic_segmentation, instance_segmentation]
+    modality: image
+    source_url: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/
+    license:
+      category: unspecified
+      name: No licence published (annotations); Flickr terms of use (images)
+      url: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/
+      notes: The organisers say only that the data includes images from Flickr and that use of these images
+        must respect the corresponding terms of use. No licence is stated for the annotations.
+    size: ~2 GB (train/val archive)
+    num_classes: 20
+    splits: {}
+    citation: M. Everingham, L. Van Gool, C. K. I. Williams, J. Winn, A. Zisserman. The PASCAL Visual Object
+      Classes (VOC) Challenge. IJCV, 2010.
+    tags: [detection, segmentation, flickr]
+
+  - id: open_images_v7
+    name: Open Images V7
+    description: About 9 M Flickr images with image-level labels, boxes, instance masks, relationships and
+      point labels.
+    tasks: [image_classification, object_detection, instance_segmentation]
+    modality: image
+    source_url: https://storage.googleapis.com/openimages/web/index.html
+    license:
+      category: open-source
+      name: CC BY 4.0 (annotations); images listed as CC BY 2.0
+      url: https://storage.googleapis.com/openimages/web/factsfigures_v7.html
+      notes: The annotations are licensed by Google LLC under CC BY 4.0. The images are listed as CC BY 2.0,
+        but Google makes no representations about each image's licence; the metadata has a per-image
+        licence column.
+    size: ~561 GB (images of the box and mask subset), annotations extra
+    num_classes: 600
+    splits: {train: 1743042, validation: 41620, test: 125436}
+    citation: A. Kuznetsova et al. The Open Images Dataset V4. IJCV, 2020.
+    tags: [detection, segmentation, large-scale, flickr]
+
+  - id: cityscapes
+    name: Cityscapes
+    description: Street scenes from 50 cities with dense pixel-level semantic and instance annotations.
+    tasks: [semantic_segmentation, instance_segmentation]
+    modality: image
+    source_url: https://www.cityscapes-dataset.com/
+    license:
+      category: gated
+      name: Cityscapes Terms and Conditions
+      url: https://www.cityscapes-dataset.com/license/
+      notes: Free for non-commercial purposes such as academic research, teaching, scientific publications
+        or personal experimentation. No redistribution of the dataset or modified versions, no commercial use.
+    size: ~11 GB images + 241 MB fine annotations
+    num_classes: 30
+    splits: {train: 2975, val: 500, test: 1525}
+    access_requirements: A cityscapes-dataset.com account (activated by hand, can take days) and acceptance
+      of the Terms and Conditions
+    citation: M. Cordts et al. The Cityscapes Dataset for Semantic Urban Scene Understanding. CVPR, 2016.
+    tags: [segmentation, driving]
+
+  - id: kitti_object
+    name: KITTI (object detection)
+    description: Driving benchmark with camera images, LiDAR and labels for 2D/3D detection, tracking, stereo
+      and flow.
+    tasks: [object_detection, tracking]
+    modality: image
+    source_url: https://www.cvlibs.net/datasets/kitti/
+    license:
+      category: gated
+      name: CC BY-NC-SA 3.0
+      url: https://www.cvlibs.net/datasets/kitti/
+      spdx: CC-BY-NC-SA-3.0
+      notes: All datasets and benchmarks are published under Creative Commons Attribution-NonCommercial-
+        ShareAlike 3.0; the privacy notice adds that the data is for academic use only.
+    size: ~12 GB (left colour images of the object set)
+    splits: {train: 7481, test: 7518}
+    access_requirements: A cvlibs.net account (name, institution, institutional e-mail and purpose of use)
+    citation: A. Geiger, P. Lenz, R. Urtasun. Are we ready for Autonomous Driving? The KITTI Vision Benchmark
+      Suite. CVPR, 2012.
+    tags: [detection, driving, lidar]
+
+  - id: ade20k
+    name: ADE20K (full)
+    description: More than 27 K scene images annotated with objects (3,688 categories), parts and parts of parts.
+    tasks: [semantic_segmentation, instance_segmentation]
+    modality: image
+    source_url: https://ade20k.csail.mit.edu/
+    license:
+      category: gated
+      name: ADE20K Terms of Use
+      url: https://ade20k.csail.mit.edu/terms/
+      notes: MIT CSAIL does not own the images; the database may be used only for non-commercial research and
+        educational purposes. Annotations and software are BSD-3-Clause.
+    size: see the source
+    num_classes: 3688
+    splits: {train: 25574, test: 2000}
+    access_requirements: Registration at ade20k.csail.mit.edu and acceptance of the Terms of Use
+    citation: B. Zhou et al. Semantic Understanding of Scenes through the ADE20K Dataset. IJCV, 2019.
+    tags: [segmentation, scenes]
+
+  - id: ade20k_sceneparsing
+    name: ADE20K Scene Parsing (ADEChallengeData2016)
+    description: The 150-category scene-parsing subset of ADE20K used by most segmentation papers.
+    tasks: [semantic_segmentation]
+    modality: image
+    source_url: http://sceneparsing.csail.mit.edu/
+    license:
+      category: non-commercial
+      name: BSD-3-Clause (benchmark); ADE20K Terms of Use (images)
+      url: http://sceneparsing.csail.mit.edu/
+      notes: The benchmark page says BSD 3-Clause, but the images are ADE20K images, which MIT does not own and
+        whose terms limit them to non-commercial research and education.
+    size: ~922 MB train/val + ~203 MB test
+    num_classes: 150
+    splits: {train: 20210, val: 2000}
+    citation: B. Zhou et al. Scene Parsing through ADE20K Dataset. CVPR, 2017.
+    tags: [segmentation, scenes, benchmark]
+
+  - id: places365
+    name: Places365-Standard
+    description: About 1.8 M training images of 365 scene categories, from the 10 M-image Places database.
+    tasks: [image_classification]
+    modality: image
+    source_url: http://places2.csail.mit.edu/
+    license:
+      category: gated
+      name: Places terms (academic research and education)
+      url: http://places2.csail.mit.edu/download.html
+      notes: Provided for academic research and education; the copyright of every image belongs to its owner.
+        The older Places terms forbid commercial use, reproduction or distribution of the images.
+    size: ~29 GB (256×256 train, val and test)
+    num_classes: 365
+    splits: {val: 36500, test: 328500}
+    access_requirements: A request form on the Places site (the team is preparing Places version 2)
+    citation: B. Zhou, A. Lapedriza, A. Khosla, A. Oliva, A. Torralba. Places - A 10 Million Image Database for
+      Scene Recognition. IEEE TPAMI, 2017.
+    tags: [scenes, large-scale]
+
+  - id: lvis_v1
+    name: LVIS v1.0
+    description: Long-tailed instance segmentation of 1,203 categories on COCO 2017 images.
+    tasks: [instance_segmentation, object_detection]
+    modality: image
+    source_url: https://www.lvisdataset.org/
+    license:
+      category: open-source
+      name: CC BY 4.0 (annotations); COCO images under the Flickr terms of use
+      url: https://www.lvisdataset.org/dataset
+      notes: The annotations are CC BY 4.0. The images are COCO's; the COCO Consortium does not own them, and
+        their use must abide by the Flickr terms of use. Check the source page before relying on this.
+    size: COCO 2017 images (~19 GB) + annotations (~0.4 GB)
+    num_classes: 1203
+    splits: {}
+    citation: A. Gupta, P. Dollár, R. Girshick. LVIS - A Dataset for Large Vocabulary Instance Segmentation.
+      CVPR, 2019.
+    tags: [segmentation, long-tail, coco]
+
+  - id: celeba
+    name: CelebA
+    description: 202,599 celebrity face images of 10,177 identities with 5 landmarks and 40 binary attributes.
+    tasks: [image_classification]
+    modality: image
+    source_url: https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html
+    license:
+      category: research-only
+      name: CelebA agreement (non-commercial research only)
+      url: https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html
+      notes: Available for non-commercial research purposes only; the images are not MMLAB's property; no
+        commercial use and no copying, publishing or distributing beyond one site. The images show real,
+        identifiable people.
+    size: ~1.4 GB (aligned and cropped)
+    splits: {}
+    citation: Z. Liu, P. Luo, X. Wang, X. Tang. Deep Learning Face Attributes in the Wild. ICCV, 2015.
+    tags: [faces, attributes, people]
+
+  - id: oxford_iiit_pet
+    name: Oxford-IIIT Pet
+    description: 37 cat and dog breeds, about 200 images each, with breed labels, head boxes and pixel trimaps.
+    tasks: [image_classification, object_detection, semantic_segmentation]
+    modality: image
+    source_url: https://www.robots.ox.ac.uk/~vgg/data/pets/
+    license:
+      category: open-source
+      name: CC BY-SA 4.0
+      url: https://www.robots.ox.ac.uk/~vgg/data/pets/
+      spdx: CC-BY-SA-4.0
+      notes: Available for commercial and research purposes under CC BY-SA 4.0; the copyright stays with the
+        original owners of the images.
+    size: ~800 MB
+    num_classes: 37
+    splits: {}
+    citation: O. M. Parkhi, A. Vedaldi, A. Zisserman, C. V. Jawahar. Cats and Dogs. CVPR, 2012.
+    tags: [animals, fine-grained, segmentation]
+
+  - id: caltech256
+    name: Caltech-256
+    description: 30,607 images of 256 object categories plus a clutter class.
+    tasks: [image_classification]
+    modality: image
+    source_url: https://data.caltech.edu/records/nyy15-4j048
+    license:
+      category: open-source
+      name: CC BY 4.0
+      url: https://data.caltech.edu/records/nyy15-4j048
+      spdx: CC-BY-4.0
+      notes: The CaltechDATA record (DOI 10.22002/D1.20087) is CC BY 4.0; credit the creators.
+    size: ~1.2 GB
+    num_classes: 257
+    splits: {}
+    citation: G. Griffin, A. Holub, P. Perona. Caltech-256 Object Category Dataset. Caltech Technical Report
+      CNS-TR-2007-001, 2007.
+    tags: [objects]

@@ -97,6 +97,12 @@ QPushButton#Primary:hover { background: ${accent_hover}; border-color: ${accent_
 QPushButton#Primary:pressed { background: ${accent_pressed}; }
 QPushButton#Primary:disabled { background: ${surface}; border-color: ${border_soft}; color: ${text_faint};
     font-weight: 400; }
+
+/* Segmented control: a flat tab bar (Segmented widget). */
+QPushButton#Segment { border-radius: 0; color: ${text_dim}; background: ${surface}; padding: 5px 14px; }
+QPushButton#Segment[edge="first"] { border-top-left-radius: ${radius}px; border-bottom-left-radius: ${radius}px; }
+QPushButton#Segment[edge="last"] { border-top-right-radius: ${radius}px; border-bottom-right-radius: ${radius}px; }
+QPushButton#Segment:checked { background: ${selected}; color: ${text}; border-color: ${accent}; }
 QPlainTextEdit#Code { font-family: "${mono}"; font-size: ${mono_px}px; }
 QPushButton#Link { background: transparent; border: none; color: ${accent_hover}; padding: 2px 4px; }
 QPushButton#Link:hover { text-decoration: underline; }

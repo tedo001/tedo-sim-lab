@@ -222,6 +222,32 @@ class LabStore:
                  json.dumps(dict(metrics or {})), utc_now()))
         return model_id, version
 
+    def models(self, *, name: str | None = None) -> list[sqlite3.Row]:
+        """Registered model versions, newest first (optionally one name)."""
+        if name is not None:
+            return self.db.query("SELECT * FROM models WHERE name = ? ORDER BY version DESC", (name,))
+        return self.db.query("SELECT * FROM models ORDER BY created_at DESC, version DESC")
+
+    def model(self, model_id: str) -> sqlite3.Row | None:
+        return self.db.query_one("SELECT * FROM models WHERE id = ?", (model_id,))
+
+    def update_model(self, model_id: str, *, stage: str | None = None, notes: str | None = None,
+                     mlflow_version: str | None = None) -> None:
+        """Change a version's stage ('none', 'staging', 'production', 'archived'), notes or MLflow
+        version; at most one version of a name is in production."""
+        with self.db.transaction() as connection:
+            if stage == "production":
+                name = connection.execute("SELECT name FROM models WHERE id = ?", (model_id,)).fetchone()[0]
+                connection.execute("UPDATE models SET stage = 'archived' WHERE name = ? AND "
+                                   "stage = 'production' AND id != ?", (name, model_id))
+            for column, value in (("stage", stage), ("notes", notes), ("mlflow_version", mlflow_version)):
+                if value is not None:
+                    connection.execute(f"UPDATE models SET {column} = ? WHERE id = ?", (value, model_id))
+
+    def delete_model(self, model_id: str) -> None:
+        """Forget a registered version (its checkpoint stays in the run folder)."""
+        self.db.execute("DELETE FROM models WHERE id = ?", (model_id,))
+
     def link_notebook(self, notebook_path: Path, *, experiment_id: str | None = None,
                       run_id: str | None = None) -> None:
         if not (experiment_id or run_id):

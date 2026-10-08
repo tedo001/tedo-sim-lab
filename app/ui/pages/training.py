@@ -49,6 +49,7 @@ class TrainingPage(Page):
         self.body.addStretch(1)
 
         ctx.experiments.run_changed.connect(self._run_changed)
+        ctx.experiments.show_requested.connect(self.select)
         ctx.experiments.run_epoch.connect(lambda *_: self.refresh())
         self.refresh()
 

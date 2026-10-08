@@ -88,8 +88,8 @@ class ComputerVisionPage(Page):
             self.dataset_panels[dataset.id] = panel
             grid.addWidget(tile, index, 0)
         card.add(grid)
-        card.add(label("ImageNet and COCO are listed in the Dataset Hub (build phase 7); the lab never "
-                       "downloads them for you.", "CardCaption", wrap=True))
+        card.add(label("ImageNet, COCO and the other large datasets are listed in the Dataset Hub with "
+                       "their terms; the lab never downloads them for you.", "CardCaption", wrap=True))
         return card
 
     def _tasks_card(self) -> Card:

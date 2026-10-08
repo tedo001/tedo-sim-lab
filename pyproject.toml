@@ -62,6 +62,7 @@ include = ["app*", "core*", "labs*", "plugins*"]
 
 [tool.setuptools.package-data]
 app = ["resources/fonts/*", "resources/icons/*", "ui/theme/*.qss"]
+labs = ["ontology/data/*", "computer_vision/explainer/*.txt"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -75,6 +76,8 @@ filterwarnings = [
     "ignore:The ``noload`` loader strategy is deprecated:DeprecationWarning",
     # SHAP's own matplotlib colour maps (optional dependency).
     "ignore:The set_:PendingDeprecationWarning",
+    # pycocotools' Cython mask decoder under NumPy 2 (harmless).
+    "ignore:__array__ implementation doesn't accept a copy keyword:DeprecationWarning",
 ]
 markers = [
     "slow: takes more than a few seconds (real training runs)",

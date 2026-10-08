@@ -1,4 +1,4 @@
-# Language and audio models, listed for later releases.
+# Language and audio models, listed for later releases (catalogue entries).
 cards:
   - id: whisper
     name: Whisper
@@ -15,3 +15,57 @@ cards:
     maturity: planned
     planned_for: v0.2
     tags: [speech, multilingual]
+
+  - id: wav2vec2_base_960h
+    name: wav2vec 2.0 base (960 h)
+    description: Self-supervised speech model fine-tuned on 960 hours of LibriSpeech for English speech
+      recognition (facebook/wav2vec2-base-960h).
+    architecture: CNN feature encoder + 12-layer Transformer + CTC head
+    framework: huggingface
+    tasks: [speech_recognition]
+    source_url: https://huggingface.co/facebook/wav2vec2-base-960h
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://huggingface.co/facebook/wav2vec2-base-960h
+      notes: The model card states Apache-2.0; the original fairseq checkpoint is MIT. Both are permissive.
+    requires: ["transformers>=4.42"]
+    maturity: planned
+    planned_for: v0.2
+    tags: [speech, english]
+
+  - id: distilbert_base_uncased
+    name: DistilBERT base (uncased)
+    description: A distilled 6-layer BERT, smaller and faster with most of BERT-base's accuracy.
+    architecture: Transformer encoder, 6 layers, 768 hidden
+    framework: huggingface
+    tasks: [text_classification]
+    source_url: https://huggingface.co/distilbert/distilbert-base-uncased
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://huggingface.co/distilbert/distilbert-base-uncased/blob/main/LICENSE
+    requires: ["transformers>=4.42"]
+    maturity: planned
+    planned_for: v0.3
+    tags: [nlp, small]
+
+  - id: bert_base_uncased
+    name: BERT base (uncased)
+    description: Google's English BERT-base, pretrained with masked language modelling, for fine-tuning.
+    architecture: Transformer encoder, 12 layers, 768 hidden
+    framework: huggingface
+    tasks: [text_classification]
+    source_url: https://huggingface.co/google-bert/bert-base-uncased
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://github.com/google-research/bert/blob/master/LICENSE
+      notes: Google released the models under the same licence as the code (Apache-2.0).
+    requires: ["transformers>=4.42"]
+    maturity: planned
+    planned_for: v0.3
+    tags: [nlp]

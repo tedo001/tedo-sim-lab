@@ -1,0 +1,14 @@
+# Tools and models the lab deliberately does not use, and why (owner policy: permissive
+# licences only, MIT or Apache-2.0, with BSD/ISC/PSF as equivalents; never copyleft).
+# Shown in the Model Zoo so nobody adds them back by accident.
+excluded:
+  - name: Ultralytics YOLO (YOLOv5, YOLOv8, YOLO11)
+    licence: AGPL-3.0
+    url: https://github.com/ultralytics/ultralytics/blob/main/LICENSE
+    reason: Copyleft (AGPL-3.0); RT-DETR from Hugging Face Transformers (Apache-2.0) is listed for
+      object detection instead.
+  - name: PyQt6
+    licence: GPL-3.0
+    url: https://www.riverbankcomputing.com/software/pyqt/
+    reason: Copyleft (GPL-3.0); the app uses PySide6 (LGPL-3.0, the documented exception) as a
+      separate, replaceable library.

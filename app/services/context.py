@@ -21,6 +21,7 @@ from .experiments import ExperimentService
 from .hardware import HardwareService
 from .jobs import JobQueue, worker_command
 from .mlflow_ui import MlflowUi
+from .model_registry import ModelRegistryService
 
 __all__ = ["AppContext", "build_context"]
 
@@ -41,6 +42,7 @@ class AppContext:
     experiments: ExperimentService
     downloads: DownloadService
     mlflow_ui: MlflowUi
+    models: ModelRegistryService
     #: Switch the main window to another page; set by :class:`app.main_window.MainWindow`.
     navigate: Callable[[str], None] = field(default=_nowhere)
 
@@ -74,5 +76,6 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
     hardware = HardwareService(python=python, code_root=paths.code_root, probe=probe_hardware)
     experiments = ExperimentService(paths, store, jobs, catalog)
     downloads = DownloadService(catalog.datasets, jobs)
+    models = ModelRegistryService(paths, config, store, experiments, jobs)
     return AppContext(paths, config, credentials, catalog, store, jobs, hardware, experiments, downloads,
-                      MlflowUi(paths, config))
+                      MlflowUi(paths, config), models)

@@ -120,6 +120,11 @@ class Card(QFrame):
     def add_head_widget(self, widget: QWidget) -> None:
         self._head_actions.addWidget(widget)
 
+    def set_title(self, text: str) -> None:
+        """Change the title; a card made without one gains its head row here."""
+        self.title.setText(text)
+        self.head.setVisible(bool(text))
+
     def sizeHint(self) -> QSize:
         """Tall enough for wrapped text at the current width: the vertical policy is Maximum, so
         a hint computed for a wider card would clip lines when the card is narrow."""

@@ -30,8 +30,8 @@ RunStatus = Literal["completed", "early_stopped", "cancelled", "failed"]
 
 
 class Tracker:
-    """Where a run's params, metrics and artifacts go. This base records nothing;
-    the SQLite + MLflow + run-folder tracker arrives in build phase 5."""
+    """Where a run's params, metrics and artifacts go. This base records nothing; the worker
+    hands runners an MLflow tracker when MLflow is on (:mod:`core.experiment_engine.recording`)."""
 
     def log_params(self, params: Mapping[str, object]) -> None: ...
     def log_metrics(self, metrics: Mapping[str, float], *, step: int,

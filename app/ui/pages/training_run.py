@@ -93,14 +93,19 @@ class RunDetail(QWidget):
         self.again_button = QPushButton(icon("sliders-horizontal"), "Edit as new")
         self.again_button.setToolTip("Open this experiment in the Experiment Builder")
         self.again_button.clicked.connect(self._edit)
+        self.register_button = QPushButton(icon("package-plus"), "Register model")
+        self.register_button.setToolTip("Add this run's checkpoint to the Model Registry as a new version")
+        self.register_button.clicked.connect(self._register)
         self.explain_button = QPushButton(icon("brain-circuit"), "Open in CNN Explainer")
         self.explain_button.clicked.connect(lambda: self.view and ctx.experiments.explain(self.view.id,
                                                                                         ctx.navigate))
-        for button in (self.cancel_button, self.resume_button, self.reproduce_button, self.folder_button,
-                       self.again_button, self.explain_button):
+        for button in (self.cancel_button, self.resume_button, self.reproduce_button, self.register_button,
+                       self.folder_button, self.again_button, self.explain_button):
             buttons.addWidget(button)
         buttons.addStretch(1)
         self.summary.add(buttons)
+        self.registered = label("", "CardCaption", wrap=True)
+        self.summary.add(self.registered)
         layout.addWidget(self.summary)
 
         self.curves = curves = Card("Curves", "per epoch")
@@ -143,6 +148,7 @@ class RunDetail(QWidget):
             self.view = None
             return
         self.view = self.ctx.experiments.view(run_id)
+        self.registered.setText("")
         self.log.setPlainText("\n".join(self.ctx.experiments.log_lines(run_id)))
         self.log.verticalScrollBar().setValue(self.log.verticalScrollBar().maximum())
         self._refresh()
@@ -167,6 +173,8 @@ class RunDetail(QWidget):
         self.lineage.setText(self._lineage(view))
         self.lineage.setVisible(bool(self.lineage.text()))
         self.reproduce_button.setVisible(view.finished_ok)
+        registrable = view.finished_ok and self.ctx.models.checkpoint_of(view.id) is not None
+        self.register_button.setVisible(registrable)
         self.error.setText(view.error or "")
         self.error.setVisible(bool(view.error))
         self.cancel_button.setVisible(view.active)
@@ -244,6 +252,11 @@ class RunDetail(QWidget):
                 lines.append(f"{key}: {mine[key]:.4f} now, {theirs[key]:.4f} originally "
                              f"(difference {mine[key] - theirs[key]:+.4f})")
         return "\n".join(lines)
+
+    def _register(self) -> None:
+        if self.view is not None and self.view.finished_ok:
+            model = self.ctx.models.register(self.view.id)
+            self.registered.setText(f"Registered as {model.label}; see the Model Registry.")
 
     def _reproduce(self) -> None:
         if self.view is not None and self.view.finished_ok:

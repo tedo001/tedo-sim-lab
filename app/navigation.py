@@ -83,20 +83,12 @@ NAV: tuple[PageSpec, ...] = (
 
     # ── Data & models ────────────────────────────────────────────────
     _p("dataset_hub", "Dataset Hub", "data", "database",
-       "Find datasets, check their licenses, download the ones that allow it.", "v0.1", 7,
-       "Cards for ImageNet, COCO, Pascal VOC, CIFAR, MNIST, Fashion-MNIST, Open Images, "
-       "Cityscapes, KITTI, ADE20K, Places365, LVIS, CelebA, Oxford-IIIT Pet, Caltech-256",
-       "License, source, size, classes and access requirements on every card; "
-       "download only where the license permits",
-       "Ontology Explorer (WordNet, ImageNet class ↔ synset) and a COCO annotation inspector"),
+       "Find datasets, check their licences, download the ones that allow it; explore ImageNet "
+       "classes in WordNet; inspect COCO annotations."),
     _p("model_zoo", "Model Zoo", "data", "boxes",
-       "Third-party models with their license, size and hardware needs.", "v0.1", 7,
-       "Vision, OCR, NLP, audio and classical models",
-       "Only permissively licensed models (MIT, Apache-2.0, BSD); copyleft ones such as "
-       "Ultralytics YOLO (AGPL-3.0) are excluded"),
+       "Models with their licence, weights' terms, size and hardware needs; copyleft ones are kept out."),
     _p("model_registry", "Model Registry", "data", "package-check",
-       "Models trained in this lab and the runs they came from.", "v0.1", 7,
-       "Versions, metrics, checkpoint and source run for every model"),
+       "Models trained in this lab and the runs they came from."),
 
     # ── Experimentation ──────────────────────────────────────────────
     _p("experiment_builder", "Experiment Builder", "experiments", "sliders-horizontal",

@@ -135,3 +135,96 @@ cards:
     maturity: planned
     planned_for: v0.5
     tags: [ocr, text]
+
+  - id: easyocr
+    name: EasyOCR
+    description: Ready-to-use OCR for 80+ languages, text detection followed by recognition.
+    architecture: CRAFT text detector + CRNN recogniser (BiLSTM, CTC)
+    framework: pytorch
+    tasks: [ocr]
+    source_url: https://github.com/JaidedAI/EasyOCR
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://github.com/JaidedAI/EasyOCR/blob/master/LICENSE
+      notes: No separate licence is published for the weights it downloads; its detector comes from
+        clovaai/CRAFT-pytorch (MIT).
+    requires: ["easyocr>=1.7"]
+    maturity: planned
+    planned_for: v0.5
+    tags: [ocr, text, multilingual]
+
+  - id: trocr_base_printed
+    name: TrOCR base (printed)
+    description: Transformer OCR for single printed text lines (microsoft/trocr-base-printed).
+    architecture: Image Transformer encoder (BEiT) + text Transformer decoder (RoBERTa)
+    framework: huggingface
+    tasks: [ocr]
+    source_url: https://huggingface.co/microsoft/trocr-base-printed
+    license:
+      category: open-source
+      name: MIT
+      spdx: MIT
+      url: https://github.com/microsoft/unilm/blob/master/LICENSE
+      notes: The model page has no licence field; the MIT licence comes from the microsoft/unilm repository
+        that publishes TrOCR.
+    requires: ["transformers>=4.42"]
+    maturity: planned
+    planned_for: v0.5
+    tags: [ocr, transformer]
+
+  - id: detr_resnet50
+    name: DETR (ResNet-50)
+    description: End-to-end Transformer object detector trained on COCO 2017 (facebook/detr-resnet-50).
+    architecture: ResNet-50 + Transformer encoder-decoder, 100 object queries
+    framework: huggingface
+    tasks: [object_detection]
+    source_url: https://huggingface.co/facebook/detr-resnet-50
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://github.com/facebookresearch/detr/blob/main/LICENSE
+      notes: DETR and its weights are released under Apache-2.0. Trained on COCO, whose images keep their
+        own Flickr licences.
+    requires: ["transformers>=4.42", "timm>=0.9"]
+    maturity: planned
+    planned_for: v0.5
+    tags: [detection, transformer, coco]
+
+  - id: yolox
+    name: YOLOX
+    description: Anchor-free YOLO-family detector (nano to x) from Megvii; a permissive alternative to
+      Ultralytics YOLO.
+    architecture: Anchor-free YOLO, CSPDarknet backbone, decoupled head, SimOTA
+    framework: pytorch
+    tasks: [object_detection]
+    source_url: https://github.com/Megvii-BaseDetection/YOLOX
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://github.com/Megvii-BaseDetection/YOLOX/blob/main/LICENSE
+    maturity: planned
+    planned_for: v0.5
+    tags: [detection, yolo, real-time]
+
+  - id: clip_vit_b32
+    name: CLIP ViT-B/32
+    description: OpenAI's contrastive image-text model for zero-shot classification (openai/clip-vit-base-patch32).
+    architecture: ViT-B/32 image encoder + Transformer text encoder
+    framework: huggingface
+    tasks: [zero_shot_classification]
+    source_url: https://huggingface.co/openai/clip-vit-base-patch32
+    license:
+      category: open-source
+      name: MIT
+      spdx: MIT
+      url: https://github.com/openai/CLIP/blob/main/LICENSE
+      notes: OpenAI's model card puts any deployed use, commercial or not, out of scope for now, and
+        surveillance and face recognition always; that is usage guidance, not a licence term.
+    requires: ["transformers>=4.42"]
+    maturity: planned
+    planned_for: v0.4
+    tags: [multimodal, zero-shot]

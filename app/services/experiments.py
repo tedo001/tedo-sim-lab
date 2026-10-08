@@ -37,6 +37,7 @@ class ExperimentService(QObject):
     run_log = Signal(str, str)              # run id, line
     draft_changed = Signal(object)          # ExperimentSpec for the Experiment Builder
     explain_requested = Signal(str)         # run id for the CNN Explainer
+    show_requested = Signal(str)            # run id for the Training page
 
     def __init__(self, paths: AppPaths, store: LabStore, jobs: JobQueue, catalog: Catalog,
                  parent: QObject | None = None) -> None:
@@ -152,6 +153,12 @@ class ExperimentService(QObject):
         self.draft_changed.emit(spec)
         if navigate is not None:
             navigate("experiment_builder")
+
+    def show(self, run_id: str, navigate: Any = None) -> None:
+        """Open ``run_id`` on the Training page."""
+        self.show_requested.emit(run_id)
+        if navigate is not None:
+            navigate("training")
 
     def explain(self, run_id: str, navigate: Any = None) -> None:
         self.explain_target = run_id

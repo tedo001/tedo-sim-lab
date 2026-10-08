@@ -96,7 +96,7 @@ def test_download_from_the_builder(builder, ctx, qtbot, tmp_path, monkeypatch) -
 def test_computer_vision_lab(ctx, qtbot, visited) -> None:
     page = ComputerVisionPage(ctx)
     qtbot.addWidget(page)
-    assert set(page.dataset_panels) == {"mnist", "fashion_mnist", "cifar10"}
+    assert set(page.dataset_panels) == {"mnist", "fashion_mnist", "cifar10", "cifar100"}
     page.preset_buttons["mnist_tiny_vgg"].click()
     assert visited == ["experiment_builder"] and ctx.experiments.draft.model.model == "tiny_vgg"
     builder = ExperimentBuilderPage(ctx)  # created on first visit: picks up the draft

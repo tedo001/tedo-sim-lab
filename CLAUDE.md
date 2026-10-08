@@ -31,6 +31,7 @@ reason. Enforced in code and tests:
 ## Commands
 
 ```bash
+python run.py                                        # one-file launcher: makes .venv, installs, runs
 python -m app.main                                   # run the app
 python -m app.main --workspace D:/lab                # runtime data elsewhere
 QT_QPA_PLATFORM=offscreen python -m app.main --smoke-test [--screenshots DIR]
@@ -81,6 +82,12 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/ui/pages/builder/` | Experiment Builder (`form.py` ⇄ `ExperimentSpec`, switching `torch_section.py` / `sklearn_section.py` by task; `fields.py` controls and YAML boxes; `choosers.py` dataset/model + downloads) |
 | `app/ui/pages/classical_ml.py` | Classical ML lab: presets (Run / Open in builder), `csv_import.py`, tabular datasets and models |
 | `app/ui/pages/sklearn_results.py` | `SklearnResults` from `results.json`, on the Training and Evaluation pages; charts in `app/ui/widgets/plots.py` (`CurveChart`, `ScatterChart`, `BarList`) |
+| `app/ui/pages/dataset_hub.py` | Dataset Hub: `Segmented` switch between `dataset_catalog.py` (every card, filters, licence/access/citation, downloads only where allowed), `ontology_view.py` and `coco_view.py` |
+| `labs/ontology/` | `imagenet.py` (the 1000 ImageNet-1k classes: WordNet id, names, gloss from `data/imagenet1k_classes.tsv`; never images), `wordnet.py` (`WordNetAdapter` downloads WordNet into `datasets/nltk_data` on request; `WordNet.info()`: paths, hyponyms, ImageNet classes below) |
+| `labs/computer_vision/coco.py` | `CocoFile`: a local COCO annotation file's categories, per-image licences, annotations, RLE masks (pycocotools); drawn by `app/ui/widgets/annotated.py` |
+| `app/ui/pages/model_zoo.py` | Model Zoo: every model card, weights' own licences, hardware needs; `configs/excluded_tools.yaml` lists what the licence policy keeps out |
+| `app/services/model_registry.py` | `ModelRegistryService`: register a finished run's checkpoint as a numbered version (metrics, stage, notes; migration `0002`), mirrored into MLflow's registry when the run was tracked; page `model_registry.py`, "Register model" on the Training page |
+| `app/ui/pages/catalog_common.py` | `licence_pill`, `status_pill`, `FilterRow` shared by the Dataset Hub and Model Zoo |
 | `core/experiment_engine/snapshot.py` | Reproducibility snapshot (`snapshot.json`, `code.diff`): Python, platform, packages, git, dataset fingerprint; `compare()` |
 | `core/experiment_engine/recording.py` | What a worker records around a run: snapshot + `MlflowTracker` (`core/tracking/mlflow_tracker.py`) |
 | `app/ui/pages/evaluation.py` | Evaluation: scores, `ConfusionMatrixView`, per-class report, re-score best/last on test/val (`worker --evaluate`) |
@@ -176,6 +183,11 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 - **Workspace**: runtime folders (`models/ datasets/ experiments/ notebooks/ results/
   reports/ database/ mlruns/ logs/`) are git-ignored; tests use a temporary workspace.
 - **MLflow** defaults to `sqlite:///<workspace>/database/mlflow.db`, artifacts in `mlruns/`.
+- **Ontology data**: `labs/ontology/data/imagenet1k_classes.tsv` is the public class list only
+  (WordNet ids, names, glosses via timm, Apache-2.0; WordNet 3.0 licence); keep both notices next
+  to it. nltk (3.10+) reads corpora only from folders on `nltk.data.path`, so `WordNet` adds the
+  workspace's `datasets/nltk_data` to it; behind a proxy nltk refuses downloads unless the person
+  sets `NLTK_ALLOW_PROXIED_URLOPEN=1` (never set it for them).
 
 ## Product direction (from the owner)
 
@@ -225,7 +237,11 @@ Design for it now:
       imputation, one-hot, scaling, SelectKBest, CV, grid/random search, permutation importance,
       optional SHAP), 11 scikit-learn/XGBoost models, Diabetes card, CSV import, presets, builder
       scikit-learn section, results on the Training and Evaluation pages
-- [ ] Phase 7 — Dataset Hub, Ontology Explorer, COCO inspector, Model Zoo, Model Registry
+- [x] Phase 7 — Dataset Hub (23 cards, 11 new catalogue entries with licences checked at their
+      sources, CIFAR-100 loader, WordNet card), Ontology Explorer (ImageNet-1k ↔ WordNet via nltk),
+      COCO annotation inspector (local files; categories, per-image licences, boxes/polygons/RLE),
+      Model Zoo (27 cards, excluded tools listed), Model Registry (versions, stages, notes, MLflow
+      registry); `run.py` one-file launcher
 - [ ] Phase 8 — Compare, benchmarking, report export
 - [ ] Phase 9 — Plugin Store, Terminal, Notebook, Jupyter, Colab, Deep Learning builder
 - [ ] Phase 10 — hardening, README, ROADMAP
