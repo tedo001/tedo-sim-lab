@@ -18,7 +18,7 @@ from core.experiment_engine.runner import RunnerRegistry
 from core.model_registry import ModelRegistry
 from core.plugin_api import PluginRegistry
 
-__all__ = ["Catalog", "load_catalog"]
+__all__ = ["Catalog", "config_roots", "load_cards", "load_catalog"]
 
 
 @dataclass
@@ -49,13 +49,19 @@ def config_roots(paths: AppPaths) -> list[Path]:
     return roots
 
 
-def load_catalog(paths: AppPaths, credentials: CredentialStore, *,
-                 python: str | None = None) -> Catalog:
+def load_cards(paths: AppPaths) -> tuple[DatasetRegistry, ModelRegistry]:
+    """Just the dataset and model cards (what a worker process needs)."""
     datasets = DatasetRegistry(paths.datasets)
     models = ModelRegistry()
     for root in config_roots(paths):
         datasets.load_dir(root / "datasets")
         models.load_dir(root / "models")
+    return datasets, models
+
+
+def load_catalog(paths: AppPaths, credentials: CredentialStore, *,
+                 python: str | None = None) -> Catalog:
+    datasets, models = load_cards(paths)
     plugins = PluginRegistry(credentials, python=python)
     plugins.discover(paths.code_root / "plugins")
     runners = RunnerRegistry()

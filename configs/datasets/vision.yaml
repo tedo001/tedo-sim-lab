@@ -1,6 +1,6 @@
 # Image datasets. Licence facts are taken from each source; where the authors
 # publish no licence the category is "unspecified", never "open-source".
-# Loaders flip from maturity "planned" to "stable" in build phase 4.
+# MNIST, Fashion-MNIST and CIFAR-10 have loaders (build phase 4).
 cards:
   - id: mnist
     name: MNIST
@@ -19,7 +19,7 @@ cards:
     splits: {train: 60000, test: 10000}
     auto_download_allowed: true
     adapter: labs.computer_vision.datasets:MnistAdapter
-    maturity: planned
+    maturity: stable
     citation: Y. LeCun, C. Cortes, C. J. C. Burges. The MNIST database of handwritten digits.
     tags: [digits, greyscale, beginner]
 
@@ -41,7 +41,7 @@ cards:
     splits: {train: 60000, test: 10000}
     auto_download_allowed: true
     adapter: labs.computer_vision.datasets:FashionMnistAdapter
-    maturity: planned
+    maturity: stable
     citation: H. Xiao, K. Rasul, R. Vollgraf. Fashion-MNIST, arXiv:1708.07747, 2017.
     tags: [clothing, greyscale, beginner]
 
@@ -61,7 +61,7 @@ cards:
     splits: {train: 50000, test: 10000}
     auto_download_allowed: true
     adapter: labs.computer_vision.datasets:Cifar10Adapter
-    maturity: planned
+    maturity: stable
     citation: A. Krizhevsky. Learning Multiple Layers of Features from Tiny Images, 2009.
     tags: [colour, objects]
 

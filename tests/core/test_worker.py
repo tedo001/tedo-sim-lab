@@ -34,7 +34,8 @@ def make_run_dir(tmp_path: Path, spec_text: str = SPEC) -> Path:
 
 
 def worker(run_dir: Path, *args: str, stdin: str | None = "") -> subprocess.Popen[str]:
-    env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(FIXTURES), str(CODE_ROOT)]))
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(FIXTURES), str(CODE_ROOT)]),
+               TEDO_LAB_WORKSPACE=str(run_dir.parents[3]))  # tmp_path: no datasets there
     return subprocess.Popen([sys.executable, "-m", "core.experiment_engine.worker", str(run_dir),
                              *args], cwd=CODE_ROOT, env=env, text=True, stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -90,10 +91,17 @@ def test_closed_stdin_cancels_only_when_asked(tmp_path: Path) -> None:
 
 
 def test_task_with_no_runner_fails_clearly(tmp_path: Path) -> None:
-    process = worker(make_run_dir(tmp_path))  # no image-classification runner until phase 4
+    process = worker(make_run_dir(tmp_path, SPEC.replace("image_classification", "text_classification")))
     stdout, _ = process.communicate(timeout=60)
     assert process.returncode == EXIT_FAILED
-    assert "no runner handles 'image_classification'" in events_of(stdout)[-1].payload["error"]
+    assert "no runner handles 'text_classification'" in events_of(stdout)[-1].payload["error"]
+
+
+def test_missing_dataset_is_explained_before_training(tmp_path: Path) -> None:
+    process = worker(make_run_dir(tmp_path))
+    stdout, _ = process.communicate(timeout=120)
+    assert process.returncode == EXIT_FAILED
+    assert "MNIST is not downloaded yet" in events_of(stdout)[-1].payload["error"]
 
 
 def test_experimental_tasks_explain_when_they_arrive(tmp_path: Path) -> None:
@@ -125,7 +133,8 @@ def test_registry_loads_entries_and_prefers_stable_runners() -> None:
     assert registry.load_config(CODE_ROOT / "configs" / "runners.yaml") == []
     assert {runner.id for runner in registry.all()} >= {"object_detection", "segmentation", "ocr"}
     assert registry.task_maturity()["object_detection"] == "experimental"
+    assert registry.for_spec(load_spec_text(SPEC)).id == "torch_classification"
     with pytest.raises(NoRunnerError):
-        registry.for_spec(load_spec_text(SPEC))
+        registry.for_spec(load_spec_text(SPEC.replace("image_classification", "text_classification")))
     problems = registry.load_entries(["labs.nowhere:Runner", "core.common.paths:AppPaths"])
     assert len(problems) == 2 and "not an ExperimentRunner" in problems[1]

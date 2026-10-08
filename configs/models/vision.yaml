@@ -1,5 +1,5 @@
-# Image-classification models built into the lab (build phase 4 makes them
-# "stable") and external vision models listed for later releases.
+# Image-classification models built into the lab (trainable since build phase 4) and
+# external vision models listed for later releases.
 # Owner policy: third-party models must be permissively licensed (MIT, Apache-2.0, BSD);
 # copyleft ones such as Ultralytics YOLO (AGPL-3.0) are not allowed.
 cards:
@@ -17,13 +17,13 @@ cards:
     input_spec: C×H×W, H and W at least 8
     origin: builtin
     builder: labs.computer_vision.models:build_simple_cnn
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [cnn, small, cpu]
 
   - id: lenet5
     name: LeNet-5
-    description: The classic convolutional network for digit recognition.
+    description: The classic convolutional network for digit recognition, in its common modern
+      form (ReLU and max-pooling). Inputs are resized to 32×32 unless the experiment says otherwise.
     architecture: LeNet-5 (LeCun et al., 1998)
     framework: pytorch
     tasks: [image_classification]
@@ -32,8 +32,7 @@ cards:
     input_spec: C×H×W, resized to 32×32
     origin: builtin
     builder: labs.computer_vision.models:build_lenet5
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [cnn, small, cpu, classic]
 
   - id: resnet18
@@ -62,8 +61,7 @@ cards:
         size_mb: 44.7
         auto_download_allowed: true
     builder: labs.computer_vision.models:build_resnet18
-    maturity: planned
-    planned_for: v0.1
+    maturity: stable
     tags: [cnn, residual, pretrained]
 
   - id: tiny_vgg

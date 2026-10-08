@@ -203,9 +203,9 @@ def test_every_card_has_a_licence_and_source(datasets, models) -> None:
 
 
 def test_planned_models_cannot_be_built(models) -> None:
-    assert models.status("resnet18") == "planned"
-    with pytest.raises(NotImplementedError, match="v0.1"):
-        models.builder("resnet18")
+    assert models.status("rt_detr") == "planned" and models.status("resnet18") == "ready"
+    with pytest.raises(NotImplementedError, match="v0.5"):
+        models.builder("rt_detr")
     assert [c.id for c in models.search(framework=Framework.XGBOOST)] == ["xgboost"]
 
 

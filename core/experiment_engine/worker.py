@@ -1,6 +1,7 @@
 """Run one experiment in its own process.
 
     python -m core.experiment_engine.worker <run_dir> [--runner module:Class] [--cancel-on-eof]
+                                                       [--resume <checkpoint>]
 
 Reads ``<run_dir>/experiment.yaml``, picks the runner, runs it, and writes
 :class:`~core.experiment_engine.events.ProgressEvent` lines to stdout. Anything
@@ -60,7 +61,7 @@ def watch_for_cancel(stream: TextIO, token: CancelToken, *, cancel_on_eof: bool)
 
 
 def run_experiment(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelToken, *,
-                   runner_entry: str | None = None) -> RunResult:
+                   runner_entry: str | None = None, resume_from: Path | None = None) -> RunResult:
     """Load the spec, choose the runner and run it; never raises."""
     started = time.monotonic()
     run_id = run_dir.name
@@ -77,7 +78,10 @@ def run_experiment(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelTo
         problems = runner.validate(spec)
         if problems:
             raise SpecError("; ".join(problems))
-        ctx = RunContext(run_id, run_dir, resolve_device(spec.runtime.device), token)
+        if resume_from is not None and not resume_from.is_file():
+            raise SpecError(f"cannot resume: {resume_from} does not exist")
+        ctx = RunContext(run_id, run_dir, resolve_device(spec.runtime.device), token,
+                         resume_from=resume_from)
         callbacks.on_run_start(ctx)
         log.info("Running %s with %s on %s", spec.name, runner.id, ctx.device)
         result = runner.run(spec, callbacks, ctx)
@@ -96,6 +100,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--runner", default=None, help="force a runner ('module:Class')")
     parser.add_argument("--cancel-on-eof", action="store_true",
                         help="cancel when stdin closes (the app sets this)")
+    parser.add_argument("--resume", type=Path, default=None,
+                        help="checkpoint to continue from (e.g. <run_dir>/checkpoints/last.pt)")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args(argv)
 
@@ -107,7 +113,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     token = CancelToken()
     watch_for_cancel(sys.stdin, token, cancel_on_eof=args.cancel_on_eof)
 
-    result = run_experiment(run_dir, callbacks, token, runner_entry=args.runner)
+    result = run_experiment(run_dir, callbacks, token, runner_entry=args.runner,
+                            resume_from=args.resume.resolve() if args.resume else None)
     callbacks.on_run_end(result)
     return _EXIT[result.status]
 
