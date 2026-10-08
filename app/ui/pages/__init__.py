@@ -10,21 +10,27 @@ from PySide6.QtWidgets import QWidget
 
 from ...navigation import page
 from ...services.context import AppContext
+from .builder import ExperimentBuilderPage
+from .computer_vision import ComputerVisionPage
 from .documentation import DocumentationPage
 from .explainer import ExplainerPage
 from .hardware import HardwarePage
 from .home import HomePage
 from .placeholder import PlaceholderPage
 from .settings import SettingsPage
+from .training import TrainingPage
 
 __all__ = ["PAGE_FACTORIES", "build_page"]
 
 PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "home": HomePage,
     "cnn_explainer": ExplainerPage,
+    "computer_vision": ComputerVisionPage,
+    "experiment_builder": ExperimentBuilderPage,
     "documentation": DocumentationPage,
     "hardware": HardwarePage,
     "settings": SettingsPage,
+    "training": TrainingPage,
 }
 
 

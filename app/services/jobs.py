@@ -23,6 +23,7 @@ from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QThreadPool, 
 
 from core.common.cancel import CancelToken, ProgressFn
 from core.common.masking import mask_text
+from core.common.paths import WORKSPACE_ENV
 from core.experiment_engine.events import ProgressEvent, parse_line
 from core.tracking import LabStore, new_id
 
@@ -42,15 +43,17 @@ class WorkerCommand:
     env: dict[str, str] = field(default_factory=dict)
 
 
-def worker_command(run_dir: Path, *, python: str, code_root: Path,
+def worker_command(run_dir: Path, *, python: str, code_root: Path, workspace: Path | None = None,
                    extra: Sequence[str] = ()) -> WorkerCommand:
     """``python -m core.experiment_engine.worker <run_dir> --cancel-on-eof``, able to import the
-    lab's code even when ``python`` is a separate experiment environment."""
+    lab's code even when ``python`` is a separate experiment environment, and pointed at the
+    same workspace (datasets, model downloads) as the app."""
     pythonpath = os.pathsep.join(filter(None, [str(code_root), os.environ.get("PYTHONPATH", "")]))
+    env = {"PYTHONPATH": pythonpath, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"}
+    if workspace is not None:
+        env[WORKSPACE_ENV] = str(workspace)
     return WorkerCommand(python, ["-m", "core.experiment_engine.worker", str(run_dir),
-                                  "--cancel-on-eof", *extra], code_root,
-                         {"PYTHONPATH": pythonpath, "PYTHONUNBUFFERED": "1",
-                          "PYTHONIOENCODING": "utf-8"})
+                                  "--cancel-on-eof", *extra], code_root, env)
 
 
 @dataclass
@@ -61,6 +64,8 @@ class Job:
     status: JobStatus = "queued"
     run_dir: Path | None = None
     run_id: str | None = None
+    #: Extra worker arguments, e.g. ``("--resume", "<checkpoint>")``.
+    args: tuple[str, ...] = ()
     created_at: float = field(default_factory=time.time)
     error: str | None = None
     result: Any = None
@@ -103,8 +108,10 @@ class JobQueue(QObject):
         return [job for job in self.jobs() if job.status in ("queued", "running")]
 
     # Runs -------------------------------------------------------------------
-    def submit_run(self, run_dir: Path, *, title: str | None = None, run_id: str | None = None) -> str:
-        job = Job(new_id(), "run", title or run_dir.name, run_dir=run_dir, run_id=run_id)
+    def submit_run(self, run_dir: Path, *, title: str | None = None, run_id: str | None = None,
+                   args: Sequence[str] = ()) -> str:
+        job = Job(new_id(), "run", title or run_dir.name, run_dir=run_dir, run_id=run_id,
+                  args=tuple(args))
         self._register(job)
         self._pending.append(job.id)
         self._pump()
@@ -124,7 +131,7 @@ class JobQueue(QObject):
         process.setProcessEnvironment(environment)
         process.setWorkingDirectory(str(command.cwd))
         process.setProgram(command.program)
-        process.setArguments(command.arguments)
+        process.setArguments([*command.arguments, *job.args])
         self._processes[job.id] = process
         self._buffers[job.id] = {"stdout": "", "stderr": ""}
         process.readyReadStandardOutput.connect(lambda: self._read(job.id, "stdout"))

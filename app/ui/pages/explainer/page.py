@@ -30,6 +30,7 @@ from labs.computer_vision.explainer import (
     map_limits,
     preset,
     run,
+    tiny_vgg,
 )
 
 from ....services.context import AppContext
@@ -43,6 +44,7 @@ from .detail_output import OutputDetail
 from .inputs import IMAGE_FILTER, DrawPad, SampleStrip, load_image
 from .overview import INPUT, NetworkOverview, describe
 from .playground import Playground
+from .trained import EXPLAINER_WEIGHTS, preset_for, trained_meta
 
 __all__ = ["ExplainerPage"]
 
@@ -109,16 +111,19 @@ class ExplainerPage(Page):
         article.add(label(CREDIT, "CardCaption", wrap=True))
         self.body.addWidget(article)
         self.body.addStretch(1)
-        self.set_preset(PRESETS[0].id)
+        self.trained_run: str | None = None
+        self.fill_networks()
+        experiments = ctx.experiments
+        experiments.run_changed.connect(lambda _: self.fill_networks(keep=True))
+        experiments.explain_requested.connect(self.show_run)
+        if experiments.explain_target:
+            self.show_run(experiments.explain_target)
 
     # Controls ---------------------------------------------------------------
     def _controls_card(self) -> Card:
         card = Card("Model and input")
         self.network_combo = QComboBox()
-        for candidate in PRESETS:
-            self.network_combo.addItem(candidate.title, candidate.id)
-        self.network_combo.currentIndexChanged.connect(
-            lambda _: self.set_preset(self.network_combo.currentData()))
+        self.network_combo.currentIndexChanged.connect(lambda _: self._network_chosen())
         self.network_combo.setMaximumWidth(380)
         self.scale_combo = QComboBox()
         self.scale_combo.setMaximumWidth(380)
@@ -180,16 +185,73 @@ class ExplainerPage(Page):
         except KeyError:
             return ()
 
+    def fill_networks(self, *, keep: bool = False) -> None:
+        """Trained TinyVGG runs first (newest first), then the untrained presets."""
+        current = self.network_combo.currentData() if keep else None
+        self.network_combo.blockSignals(True)
+        self.network_combo.clear()
+        for view in self.ctx.experiments.explainable():
+            meta = trained_meta(view.run_dir)
+            accuracy = meta.get("metrics", {}).get("test_acc")
+            score = f" · test {accuracy:.1%}" if accuracy is not None else ""
+            self.network_combo.addItem(f"Trained · {view.name}{score}", f"run:{view.id}")
+        for candidate in PRESETS:
+            self.network_combo.addItem(f"Untrained · {candidate.title}", f"preset:{candidate.id}")
+        index = self.network_combo.findData(current) if current else 0
+        self.network_combo.setCurrentIndex(max(index, 0))
+        self.network_combo.blockSignals(False)
+        if not keep or index < 0:
+            self._network_chosen()
+
+    def show_run(self, run_id: str) -> None:
+        self.fill_networks(keep=True)
+        index = self.network_combo.findData(f"run:{run_id}")
+        if index >= 0:
+            self.network_combo.setCurrentIndex(index)
+
+    def _network_chosen(self) -> None:
+        data = self.network_combo.currentData() or f"preset:{PRESETS[0].id}"
+        kind, _, key = data.partition(":")
+        if kind == "run":
+            self.use_trained(key)
+        else:
+            self.set_preset(key)
+
+    def use_trained(self, run_id: str) -> None:
+        view = self.ctx.experiments.view(run_id)
+        meta = trained_meta(view.run_dir)
+        self.trained_run = run_id
+        self.preset = preset_for(meta)
+        architecture = tiny_vgg(in_channels=meta["in_channels"], size=meta["size"],
+                                class_names=tuple(meta["class_names"]), hidden=meta.get("hidden", 10))
+        self.net = ExplainerNet.load_npz(architecture, view.run_dir / EXPLAINER_WEIGHTS)
+        accuracy = meta.get("metrics", {}).get("test_acc")
+        self.weights_pill.setText("Trained")
+        self.weights_pill.set_tone("ok")
+        self.weights_pill.setToolTip(f"Weights from run {run_id}")
+        self.reseed_button.setEnabled(False)
+        folded = (" The training normalisation is folded into conv_1_1, so the network reads pixel values "
+                  "0 … 1 directly." if meta.get("normalization_folded") else "")
+        score = f": test accuracy {accuracy:.2%}." if accuracy is not None else "."
+        self.weights_note.setText(f"Trained in “{view.name}” (run {run_id}){score}{folded}")
+        self._load_samples()
+
     def set_preset(self, preset_id: str) -> None:
+        self.trained_run = None
         self.preset = preset(preset_id)
+        self._build_net()
+        self._load_samples()
+
+    def _load_samples(self) -> None:
         self.sample_list = self.preset.samples()
         self.samples.set_samples(self.sample_list)
         self.draw_panel.setVisible(self.preset.channels == 1)
         self.selection = (0, 0)
-        self._build_net()
         self.use_sample(0)
 
     def reseed(self) -> None:
+        if self.trained_run is not None:
+            return
         self.seed += 1
         self._build_net()
         self.recompute()
@@ -198,11 +260,13 @@ class ExplainerPage(Page):
         architecture = self.preset.architecture(self.class_names(self.preset))
         self.net = ExplainerNet.untrained(architecture, seed=self.seed)
         self.weights_pill.setText("Untrained")
+        self.weights_pill.set_tone("warn")
         self.weights_pill.setToolTip("Random weights: what TinyVGG looks like before training")
+        self.reseed_button.setEnabled(True)
         self.weights_note.setText(
             f"Random weights (seed {self.seed}): the arithmetic is real, but the class scores mean "
-            "nothing until the network is trained. Trained TinyVGG models will appear here once "
-            "Training arrives (build phase 4).")
+            "nothing until the network is trained. Train TinyVGG from the Computer Vision lab's "
+            "“MNIST · TinyVGG” preset and it appears here as a trained network.")
 
     def use_sample(self, index: int) -> None:
         sample = self.sample_list[index]
@@ -245,7 +309,8 @@ class ExplainerPage(Page):
         names = self.net.architecture.class_names
         top = self.trace.prediction
         self.prediction.setText(f"top score: {names[top]} · {self.trace.probabilities[top]:.2f}")
-        self.prediction.setToolTip("Untrained weights: this is not a real prediction yet")
+        self.prediction.setToolTip("" if self.net.trained else
+                                   "Untrained weights: this is not a real prediction yet")
         self.select(*self.selection)
 
     # Detail -----------------------------------------------------------------

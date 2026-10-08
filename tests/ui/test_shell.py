@@ -56,7 +56,7 @@ def test_ambiguous_search_stays_put(window, qtbot) -> None:
 
 
 def test_placeholders_are_honest(window) -> None:
-    for page_id in ("training", "audio", "simulation_lab"):
+    for page_id in ("plugin_store", "audio", "simulation_lab"):
         window.navigate(page_id)
         widget = window.stack.currentWidget()
         assert isinstance(widget, PlaceholderPage)
@@ -65,7 +65,7 @@ def test_placeholders_are_honest(window) -> None:
 
 
 def test_status_text() -> None:
-    assert status_text(page("training")) == "Planned for v0.1 · build phase 4"
+    assert status_text(page("plugin_store")) == "Planned for v0.1 · build phase 9"
     assert status_text(page("audio")) == "Planned for v0.2"
     assert status_text(page("quantum_ml")) == "Planned · scope not decided"
     assert status_text(page("home")) == "Available"

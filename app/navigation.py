@@ -54,11 +54,7 @@ NAV: tuple[PageSpec, ...] = (
 
     # ── Research labs ────────────────────────────────────────────────
     _p("computer_vision", "Computer Vision", "labs", "scan-eye",
-       "Pick a vision task and start from a preset experiment.", "v0.1", 4,
-       "Image classification on MNIST, Fashion-MNIST and CIFAR-10 with SimpleCNN, "
-       "LeNet-5 and ResNet18",
-       "Detection, segmentation, OCR, pose and tracking listed as Experimental until v0.5",
-       "Presets open in the Experiment Builder"),
+       "Pick a vision task and start from a preset experiment."),
     _p("cnn_explainer", "CNN Explainer", "labs", "brain-circuit",
        "See how a convolutional network turns an image into a prediction, layer by layer."),
     _p("classical_ml", "Classical ML", "labs", "chart-scatter",
@@ -109,15 +105,9 @@ NAV: tuple[PageSpec, ...] = (
 
     # ── Experimentation ──────────────────────────────────────────────
     _p("experiment_builder", "Experiment Builder", "experiments", "sliders-horizontal",
-       "Describe an experiment as a reproducible experiment.yaml and queue it.", "v0.1", 4,
-       "Task → dataset → model → hyperparameters → device, in numbered steps",
-       "Create writes experiment.yaml; Run queues it in the background",
-       "The spec is validated before anything runs"),
+       "Describe an experiment as a reproducible experiment.yaml and queue it."),
     _p("training", "Training", "experiments", "activity",
-       "Queued and running jobs, live.", "v0.1", 4,
-       "Live log, epoch progress, ETA, GPU and VRAM",
-       "Loss, accuracy, precision, recall and F1 curves",
-       "Checkpointing, early stopping, resume and cancel"),
+       "Queued, running and finished runs, live."),
     _p("evaluation", "Evaluation", "experiments", "target",
        "Evaluate a checkpoint on a held-out split.", "v0.1", 5,
        "Metrics, confusion matrix and per-class report"),

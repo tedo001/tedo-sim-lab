@@ -30,7 +30,7 @@ def page(ctx, qtbot):
 def test_page_explains_an_untrained_mnist_network(page) -> None:
     architecture = page.net.architecture
     assert architecture.class_names == tuple("0123456789")  # from the MNIST dataset card
-    assert page.weights_pill.text() == "Untrained" and "build phase 4" in page.weights_note.text()
+    assert page.weights_pill.text() == "Untrained" and "MNIST · TinyVGG" in page.weights_note.text()
     assert len(page.overview.columns) == 12  # input, 10 map layers, output
     assert page.prediction.text().startswith("top score: ")
     assert isinstance(page.detail, ConvDetail) and page.detail_card.title.text() == "Convolution"

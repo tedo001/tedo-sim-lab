@@ -71,7 +71,14 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/ui/widgets/charts.py` | `TimeSeriesChart` (small-multiple live chart, hover), `MeterBar` (title-row gauges) |
 | `app/ui/pages/resources.py` | `ResourceStats` / `ResourceCharts` shared by Home and the Hardware Monitor |
 | `labs/computer_vision/explainer/` | CNN Explainer engine (numpy, no torch): `Architecture`/`tiny_vgg`, `ExplainerNet` (state_dict-named weights, `.npz`), `run()` → `Trace`, `conv_step`/`pool_step`/`softmax_terms`/`linear_contributions`, `map_limits`, `ConvGeometry`, samples |
-| `labs/computer_vision/models.py` | PyTorch builders (`build_tiny_vgg`, `to_torch`: same layer names, so a `state_dict` loads into `ExplainerNet`) |
+| `labs/computer_vision/models.py` | PyTorch builders: SimpleCNN, LeNet-5, ResNet-18, TinyVGG (`to_torch` keeps layer names, so a `state_dict` loads into `ExplainerNet`) |
+| `labs/computer_vision/datasets.py` | MNIST, Fashion-MNIST, CIFAR-10 adapters (torchvision layout under `datasets/<id>/`, own downloader in `labs/common/download.py`) |
+| `labs/computer_vision/classification.py` | `TorchClassificationRunner` (+ `training/`: data splits and transforms, loop, metrics, checkpoints); `export.py` hands TinyVGG to the explainer |
+| `labs/computer_vision/presets.py` | Preset experiments shown in the Computer Vision lab |
+| `app/services/experiments.py` | `ExperimentService`: launch (experiment row + run folder + queue), record worker events in `LabStore`, cancel, resume, builder drafts; `runs.py`: `RunView`, `LiveState` (ETA) |
+| `app/services/downloads.py` | `DownloadService`: one background download per dataset, licence acknowledgement |
+| `app/ui/pages/builder/` | Experiment Builder (`form.py` ⇄ `ExperimentSpec`, `choosers.py` dataset/model + downloads) |
+| `app/ui/pages/training.py` | Training page (`training_run.py`: progress, ETA, `EpochChart` curves, results, log, cancel/resume) |
 | `app/ui/pages/explainer/` | CNN Explainer page: `overview` (all maps, links), `detail_*` (conv, ReLU, pool, input, softmax), `playground`, `inputs` (samples, open image, draw pad), `article` |
 | `core/hardware/` | `info.probe_hardware()` (run as `python -m core.hardware.info`), `sampler`, `devices` |
 | `core/common/` | `AppPaths`, `AppConfig`, logging + masking, `CredentialStore`, licensing, vocab, cards, cancel |
@@ -111,7 +118,13 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   stdin, `CancelToken`), then kill after a grace period. Runner discovery is by
   `configs/runners.yaml` strings, so `core` never imports `labs`.
 - **Experiment Python**: workers run under `config.python_executable` (empty = the app's own
-  interpreter) with the code root on `PYTHONPATH`; plugin installs go there too.
+  interpreter) with the code root on `PYTHONPATH` and `TEDO_LAB_WORKSPACE` set to the workspace
+  (the app process sets it too, so runner checks and workers see the same datasets); plugin
+  installs go there too. PyTorch downloads (pretrained weights) go to `<workspace>/models/torch-hub`.
+- **Runs**: a run folder is `experiments/<name>-<experiment id>/<run id>/` with `experiment.yaml`,
+  `checkpoints/{last,best}.pt` (`last.pt` every epoch = the resume point), `metrics.jsonl`,
+  `run_info.json`, `test_confusion.json`, `run.log` and, for TinyVGG, `explainer.npz/json`. The app
+  records events in `LabStore` (metrics per epoch); MLflow tracking arrives in phase 5.
 - **Database**: one SQLite file per workspace (`database/lab.db`), WAL mode, one connection
   per thread. Schema changes are new numbered files in `core/tracking/migrations/`; never edit
   an applied one. Paths inside the workspace are stored relative (projects can move).
@@ -178,11 +191,14 @@ Design for it now:
       worker protocol, Qt JobQueue
 - [x] Phase 3 — hardware probe (subprocess) + live sampler, Hardware Monitor, Home dashboard,
       title-row meters; also: licence policy (PySide6, no AGPL), collapsible sidebar, split view
-- [ ] Phase 4 — Experiment Builder, Computer Vision lab, Torch classification runner, Training page
+- [x] Phase 4 — dataset loaders (MNIST, Fashion-MNIST, CIFAR-10) with licence-checked downloads,
+      SimpleCNN / LeNet-5 / ResNet-18 / TinyVGG builders, TorchClassificationRunner (splits,
+      augmentation, schedules, AMP, checkpoints, early stopping, cancel, resume, test metrics),
+      ExperimentService, Experiment Builder, Computer Vision lab with presets, Training page;
+      trained TinyVGG runs open in the CNN Explainer
 - [x] Phase 4b (built early) — CNN Explainer (port of poloclub/cnn-explainer via tedo001, MIT):
       layer overview, convolution / ReLU / pooling / softmax views, hyperparameter playground,
-      article, samples / open image / draw a digit; TinyVGG untrained until Phase 4 trains it
-      (Phase 4: export trained TinyVGG weights as `.npz` and list them in the explainer)
+      article, samples / open image / draw a digit; lists trained TinyVGG runs first
 - [ ] Phase 5 — MLflow tracking, reproducibility snapshot, reproduce run, Evaluation
 - [ ] Phase 6 — Classical ML / XGBoost lab
 - [ ] Phase 7 — Dataset Hub, Ontology Explorer, COCO inspector, Model Zoo, Model Registry

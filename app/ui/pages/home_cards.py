@@ -49,8 +49,8 @@ class ActiveJobCard(Card):
         self.pill = Pill("Idle", "planned")
         self.add_head_widget(self.pill)
         self.title = label("No job is running.", "BodyStrong", wrap=True)
-        self.detail = label("Experiments run here once the Experiment Builder arrives "
-                            "(build phase 4).", "CardCaption", wrap=True)
+        self.detail = label("Start one from the Experiment Builder or a Computer Vision preset.",
+                            "CardCaption", wrap=True)
         self.metrics = label("", "Mono", wrap=True)
         for widget in (self.title, self.detail, self.metrics):
             self.add(widget)
@@ -97,7 +97,7 @@ class RecentExperimentsCard(Card):
         super().__init__("Recent experiments", padded=False, parent=parent)
         self.store = ctx.store
         self.table = DataTable(("Experiment", "Task", "Created"), stretch_column=0)
-        self.empty = label("No experiments yet. The Experiment Builder arrives in build phase 4.",
+        self.empty = label("No experiments yet. Describe one in the Experiment Builder.",
                            "CardCaption", wrap=True)
         self.empty.setContentsMargins(14, 10, 14, 12)
         self.add(self.table)

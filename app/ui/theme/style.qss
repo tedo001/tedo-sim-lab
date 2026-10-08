@@ -95,6 +95,9 @@ QPushButton:disabled { color: ${text_faint}; border-color: ${border_soft}; backg
 QPushButton#Primary { background: ${accent}; border-color: ${accent}; color: #FFFFFF; font-weight: 500; }
 QPushButton#Primary:hover { background: ${accent_hover}; border-color: ${accent_hover}; }
 QPushButton#Primary:pressed { background: ${accent_pressed}; }
+QPushButton#Primary:disabled { background: ${surface}; border-color: ${border_soft}; color: ${text_faint};
+    font-weight: 400; }
+QPlainTextEdit#Code { font-family: "${mono}"; font-size: ${mono_px}px; }
 QPushButton#Link { background: transparent; border: none; color: ${accent_hover}; padding: 2px 4px; }
 QPushButton#Link:hover { text-decoration: underline; }
 

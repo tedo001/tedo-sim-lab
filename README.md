@@ -5,12 +5,13 @@ Qt for Python (PySide6). Pick a dataset, a model, hyperparameters and a device; 
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
-> **Status: V0.1 in development — build phase 3 of 10, plus the CNN Explainer.** The window and
-> every page, the live hardware monitor and dashboard, the CNN Explainer, the
-> dataset/model/plugin catalogue with licences, the lab database, the experiment spec and
-> the background job queue exist; nothing trains yet (build phase 4). Pages that are not
-> built say which phase or release delivers them. See [CLAUDE.md](CLAUDE.md) for the
-> architecture and build status.
+> **Status: V0.1 in development — build phase 4 of 10.** The window and every page, the live
+> hardware monitor and dashboard, the dataset/model/plugin catalogue with licences, the lab
+> database, and image classification end to end: download MNIST, Fashion-MNIST or CIFAR-10,
+> describe an experiment in the Experiment Builder (or start from a Computer Vision preset),
+> train SimpleCNN, LeNet-5, ResNet-18 or TinyVGG in the background, follow it on the Training
+> page, and open a trained TinyVGG in the CNN Explainer. Pages that are not built say which
+> phase or release delivers them. See [CLAUDE.md](CLAUDE.md) for the architecture and build status.
 
 ## Install
 

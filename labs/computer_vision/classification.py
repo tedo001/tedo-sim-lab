@@ -94,11 +94,11 @@ class TorchClassificationRunner(ExperimentRunner):
         if problems:
             return problems
         if not is_installed("torch") or not is_installed("torchvision"):
-            return ["PyTorch and torchvision are needed in the experiment Python environment"]
+            problems.append("PyTorch and torchvision are needed in the experiment Python environment")
         try:
             paths, adapter, _card, _builder = self._parts(spec)
         except (LookupError, TypeError, ValueError, NotImplementedError) as exc:
-            return [str(exc).strip("'\"")]
+            return [*problems, str(exc).strip("'\"")]
         if adapter.local_status(paths.datasets) != "present":
             problems.append(f"{adapter.card.name} is not downloaded yet: download it from the "
                             "Experiment Builder or the Computer Vision lab")

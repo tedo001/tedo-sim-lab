@@ -118,6 +118,26 @@ class LabStore:
         self._update_run(run_id, status=status, ended_at=utc_now(), error=error,
                          duration_s=duration_s)
 
+    def set_run_device(self, run_id: str, device: str) -> None:
+        self._update_run(run_id, device=device)
+
+    def requeue_run(self, run_id: str) -> None:
+        """A finished run goes back in the queue (resume): no end time, no error."""
+        cursor = self.db.execute("UPDATE runs SET status = 'queued', ended_at = NULL, error = NULL, "
+                                 "duration_s = NULL WHERE id = ?", (run_id,))
+        if cursor.rowcount == 0:
+            raise KeyError(f"no run {run_id!r}")
+
+    _RUN_VIEW = ("SELECT r.*, e.name AS experiment_name, e.task, e.spec_yaml FROM runs r "
+                 "JOIN experiments e ON e.id = r.experiment_id")
+
+    def runs_with_experiments(self, *, limit: int = 200) -> list[sqlite3.Row]:
+        """Runs, newest first, with their experiment's name, task and spec."""
+        return self.db.query(f"{self._RUN_VIEW} ORDER BY r.created_at DESC LIMIT ?", (limit,))
+
+    def run_with_experiment(self, run_id: str) -> sqlite3.Row | None:
+        return self.db.query_one(f"{self._RUN_VIEW} WHERE r.id = ?", (run_id,))
+
     def set_mlflow_run(self, run_id: str, mlflow_run_id: str) -> None:
         self._update_run(run_id, mlflow_run_id=mlflow_run_id)
 
