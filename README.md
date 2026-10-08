@@ -5,7 +5,7 @@ Qt for Python (PySide6). Pick a dataset, a model, hyperparameters and a device; 
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
-> **Status: V0.1 in development — build phase 2 of 10.** The window and every page, the
+> **Status: V0.1 in development — build phase 3 of 10.** The window and every page, the live hardware monitor and dashboard, the
 > dataset/model/plugin catalogue with licences, the lab database, the experiment spec and
 > the background job queue exist; nothing trains yet (build phase 4). Pages that are not
 > built say which phase or release delivers them. See [CLAUDE.md](CLAUDE.md) for the

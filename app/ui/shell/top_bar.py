@@ -14,7 +14,7 @@ from ... import __version__
 from ...navigation import NAV
 from ..icons import icon
 from ..theme.tokens import COLORS, SIZES
-from ..widgets import label
+from ..widgets import MeterBar, label
 
 __all__ = ["TopBar"]
 
@@ -54,7 +54,8 @@ class TopBar(QFrame):
         self.search = QLineEdit()
         self.search.setObjectName("GlobalSearch")
         self.search.setPlaceholderText("Go to page…   Ctrl+K")
-        self.search.setFixedWidth(360)
+        self.search.setMinimumWidth(200)
+        self.search.setMaximumWidth(360)
         self.search.setClearButtonEnabled(True)
         self.search.setFocusPolicy(Qt.FocusPolicy.ClickFocus)  # Ctrl+K or a click, not on startup
         self.search.addAction(QAction(icon("search", COLORS["text_faint"], 14), "", self.search),
@@ -67,8 +68,16 @@ class TopBar(QFrame):
         completer.activated.connect(self._go)
         self.search.setCompleter(completer)
         self.search.returnPressed.connect(lambda: self._go(self.search.text()))
-        row.addWidget(self.search)
+        row.addWidget(self.search, 1)
         row.addStretch(1)
+        self.meters = {key: MeterBar(title) for key, title in
+                       (("cpu", "CPU"), ("ram", "RAM"), ("gpu", "GPU"), ("vram", "VRAM"))}
+        meters = QHBoxLayout()
+        meters.setSpacing(14)
+        for meter in self.meters.values():
+            meters.addWidget(meter)
+        row.addLayout(meters)
+        row.addSpacing(6)
 
         self.split_button = _tool_button("columns-2", "Split view (Ctrl+\\)")
         self.split_button.setCheckable(True)
@@ -91,6 +100,26 @@ class TopBar(QFrame):
     def show_split_open(self, open_: bool) -> None:
         self.split_button.setChecked(open_)
         self.split_button.setToolTip("Close split view (Ctrl+\\)" if open_ else "Split view (Ctrl+\\)")
+
+    def show_sample(self, sample) -> None:
+        """Update the CPU / RAM / GPU / VRAM meters from a ResourceSample."""
+        self.meters["cpu"].set_value(sample.cpu_pct / 100, f"{sample.cpu_pct:.0f}%",
+                                     f"CPU {sample.cpu_pct:.0f}%")
+        self.meters["ram"].set_value(sample.ram_pct / 100, f"{sample.ram_pct:.0f}%",
+                                     f"Memory {sample.ram_used_gb:.1f} of {sample.ram_total_gb:.1f} GB")
+        gpu = sample.gpu
+        if gpu is None:
+            for key in ("gpu", "vram"):
+                self.meters[key].set_value(None, "—", "No NVIDIA GPU detected")
+            return
+        util = gpu.util_pct
+        self.meters["gpu"].set_value(None if util is None else util / 100,
+                                     "—" if util is None else f"{util:.0f}%", gpu.name)
+        pct = gpu.vram_pct
+        self.meters["vram"].set_value(None if pct is None else pct / 100,
+                                      "—" if pct is None else f"{pct:.0f}%",
+                                      f"GPU memory {gpu.vram_used_gb or 0:.1f} of "
+                                      f"{gpu.vram_total_gb or 0:.1f} GB")
 
     def focus_search(self) -> None:
         self.search.setFocus(Qt.FocusReason.ShortcutFocusReason)

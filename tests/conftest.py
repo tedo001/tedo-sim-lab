@@ -49,7 +49,8 @@ def keyring_backend() -> MemoryKeyring:
 def ctx(qapp, workspace, keyring_backend):
     """A full application context on a temporary workspace (catalogue, database, job queue)."""
     from app.services.context import build_context
-    context = build_context(workspace, AppConfig(), CredentialStore(env={}, backend=keyring_backend))
+    context = build_context(workspace, AppConfig(), CredentialStore(env={}, backend=keyring_backend),
+                            probe_hardware=False)
     yield context
     context.close()
 

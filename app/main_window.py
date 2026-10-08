@@ -89,6 +89,8 @@ class MainWindow(QMainWindow):
             shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
             shortcut.activated.connect(slot)
 
+        ctx.hardware.sampled.connect(self.top_bar.show_sample)
+        ctx.hardware.start()
         self.navigate(NAV[0].id)
         self._restore_layout()
 

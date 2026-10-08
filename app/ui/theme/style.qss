@@ -141,3 +141,11 @@ QComboBox QAbstractItemView {
     background: ${surface}; border: 1px solid ${border}; outline: 0;
     selection-background-color: ${selected}; selection-color: ${text};
 }
+
+/* ── stat tiles ─────────────────────────────────────────────────────── */
+QFrame#StatStrip { background: ${surface}; border: 1px solid ${border}; border-radius: ${radius}px; }
+QFrame#StatTile { background: transparent; border: none; }
+QFrame#StatTile[first="false"] { border-left: 1px solid ${border_soft}; }
+QLabel#StatLabel { font-size: 11px; color: ${text_dim}; background: transparent; }
+QLabel#StatValue { font-size: 22px; font-weight: 600; color: ${text}; background: transparent; }
+QLabel#StatNote { font-family: "${mono}"; font-size: 10px; color: ${text_faint}; background: transparent; }

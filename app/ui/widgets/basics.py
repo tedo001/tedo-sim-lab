@@ -128,6 +128,18 @@ class KeyValues(QWidget):
             value = ElidedLabel(value, "KvValueMono" if self._mono else "KvValue")
         self._grid.addWidget(value, row, 1)
 
+    def set_value(self, key: str, value: str) -> None:
+        """Replace the text shown for ``key`` (adds the row if it is new)."""
+        for row in range(self._grid.rowCount()):
+            key_item = self._grid.itemAtPosition(row, 0)
+            value_item = self._grid.itemAtPosition(row, 1)
+            if key_item and key_item.widget().text() == key and value_item:
+                widget = value_item.widget()
+                if isinstance(widget, ElidedLabel):
+                    widget.set_full_text(value)
+                    return
+        self.add_row(key, value)
+
     def value_text(self, key: str) -> str | None:
         """The text shown for ``key`` (tests and accessibility)."""
         for row in range(self._grid.rowCount()):

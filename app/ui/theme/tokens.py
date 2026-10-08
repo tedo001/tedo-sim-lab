@@ -35,6 +35,8 @@ COLORS: dict[str, str] = {
     "info": "#5B8CDB",
     "violet": "#9584D4",
     "grey": "#8A929C",
+    # Data series (dataviz reference palette, dark steps; validated on the surface above).
+    "series_1": "#3987E5",
 }
 
 #: Pill tones → the status colour they are drawn in.

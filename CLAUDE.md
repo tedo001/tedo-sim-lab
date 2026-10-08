@@ -67,6 +67,10 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/resources/` | Bundled fonts (Inter, JetBrains Mono — OFL) and Lucide icons (ISC) |
 | `app/services/context.py` | `AppContext` (paths, config, credentials, catalogue, store, jobs, navigate); `build_context()` |
 | `app/services/jobs.py` | `JobQueue`: runs via `QProcess` worker (FIFO, `max_concurrent_runs`), tasks via `QThreadPool` |
+| `app/services/hardware.py` | `HardwareService`: probe in its own process, 1 s psutil/NVML sampler, 2-min history |
+| `app/ui/widgets/charts.py` | `TimeSeriesChart` (small-multiple live chart, hover), `MeterBar` (title-row gauges) |
+| `app/ui/pages/resources.py` | `ResourceStats` / `ResourceCharts` shared by Home and the Hardware Monitor |
+| `core/hardware/` | `info.probe_hardware()` (run as `python -m core.hardware.info`), `sampler`, `devices` |
 | `core/common/` | `AppPaths`, `AppConfig`, logging + masking, `CredentialStore`, licensing, vocab, cards, cancel |
 | `core/catalog.py` | `load_catalog()`: dataset, model, plugin and runner registries in one object |
 | `core/dataset_registry/` | `DatasetCard`, `DatasetRegistry` (live status), `DatasetAdapter` contract |
@@ -121,6 +125,12 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   would look like importable packages.
 - **Text faces**: Inter for words people wrote, JetBrains Mono for anything a machine
   wrote (paths, URIs, versions, hashes, metrics, logs).
+- **No CUDA in the UI process**: never call `torch.cuda.*` from the app process (it pins a CUDA
+  context and ~300 MB of VRAM). Hardware facts come from the probe subprocess; live GPU use
+  from NVML only.
+- **Charts** follow the dataviz rules: one series per chart (small multiples), one axis, 2 px
+  lines, recessive grid, values in text colours, gaps for missing data, hover crosshair.
+  Series colour `series_1` is validated against the dark surface.
 - **Narrow panes**: pages must work at half width (split view). Key/value rows are single
   line and elide (full text in tooltip); tables stretch a text column, never a pill column.
 - **Look**: dark, restrained, flat. Colours only from `tokens.py`; one accent (muted
@@ -159,8 +169,11 @@ Design for it now:
 - [x] Phase 2 — catalogue (10 dataset, 18 model cards, 8 plugins, 5 experimental runners),
       licence policy, SQLite schema + migrations + LabStore, strict spec with canonical YAML,
       worker protocol, Qt JobQueue
-- [ ] Phase 3 — hardware monitor and dashboard
+- [x] Phase 3 — hardware probe (subprocess) + live sampler, Hardware Monitor, Home dashboard,
+      title-row meters; also: licence policy (PySide6, no AGPL), collapsible sidebar, split view
 - [ ] Phase 4 — Experiment Builder, Computer Vision lab, Torch classification runner, Training page
+- [ ] Phase 4b — CNN Explainer (native port of tedo001/cnn-explainer, MIT): layer overview,
+      convolution / ReLU / pooling / softmax views, hyperparameter playground, on the lab's own models
 - [ ] Phase 5 — MLflow tracking, reproducibility snapshot, reproduce run, Evaluation
 - [ ] Phase 6 — Classical ML / XGBoost lab
 - [ ] Phase 7 — Dataset Hub, Ontology Explorer, COCO inspector, Model Zoo, Model Registry

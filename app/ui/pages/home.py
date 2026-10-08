@@ -1,8 +1,5 @@
-"""Home for build phase 1: the workspace and which pages are live.
-
-The dashboard (resources, active run, queue, recent experiments) replaces the
-build-status card in build phase 3.
-"""
+"""Home: the dashboard. Live resources, the active job, recent work, the catalogue,
+MLflow, the workspace, and what this build can do so far."""
 
 from __future__ import annotations
 
@@ -10,15 +7,15 @@ import platform
 
 from PySide6 import __version__ as PYSIDE_VERSION
 from PySide6.QtCore import Qt, qVersion
-from PySide6.QtWidgets import QHBoxLayout, QPushButton, QVBoxLayout, QWidget
-
-from core.common import mlflow_tracking_uri
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from ... import __version__
 from ...navigation import NAV, SECTIONS
 from ...services.context import AppContext
-from ..widgets import Card, DataTable, KeyValues, Page, Pill, label
+from ..widgets import Card, DataTable, KeyValues, Page, Pill, StatTile, label
+from .home_cards import ActiveJobCard, CatalogueCard, JobHistoryCard, MlflowCard, RecentExperimentsCard
 from .placeholder import status_text
+from .resources import ResourceCharts, ResourceStats
 
 __all__ = ["HomePage"]
 
@@ -31,49 +28,60 @@ def _tone(planned_for: str | None) -> str:
     return "info" if planned_for == "v0.1" else "planned"
 
 
+def _row(*widgets: tuple[QWidget, int]) -> QHBoxLayout:
+    row = QHBoxLayout()
+    row.setSpacing(12)
+    for widget, stretch in widgets:
+        row.addWidget(widget, stretch, Qt.AlignmentFlag.AlignTop)
+    return row
+
+
 class HomePage(Page):
     def __init__(self, ctx: AppContext, parent: QWidget | None = None) -> None:
-        built = sum(spec.built for spec in NAV)
-        super().__init__("Home", f"v{__version__} · {built} of {len(NAV)} pages live · "
-                                 f"workspace {ctx.paths.workspace}", parent)
+        super().__init__("Home", f"v{__version__} · workspace {ctx.paths.workspace}", parent)
         self.ctx = ctx
-        row = QHBoxLayout()
-        row.setSpacing(12)
-        row.addWidget(self._status_card(), 3, Qt.AlignmentFlag.AlignTop)
-        side = QVBoxLayout()
-        side.setSpacing(12)
-        side.addWidget(self._workspace_card())
+        self.jobs_tile = StatTile("Jobs")
+        self.experiments_tile = StatTile("Experiments")
+        self.stats = ResourceStats(ctx.hardware, extra={"jobs": self.jobs_tile,
+                                                        "experiments": self.experiments_tile})
+        self.body.addWidget(self.stats)
+
+        resources = Card("Resources", "last two minutes")
+        resources.add(ResourceCharts(ctx.hardware, columns=2))
+        self.active_job = ActiveJobCard(ctx)
+        self.body.addLayout(_row((resources, 2), (self.active_job, 1)))
+
+        self.experiments = RecentExperimentsCard(ctx)
+        self.history = JobHistoryCard(ctx)
+        self.body.addLayout(_row((self.experiments, 1), (self.history, 1)))
+
+        self.body.addLayout(_row((CatalogueCard(ctx), 1), (MlflowCard(ctx), 1),
+                                 (self._workspace_card(), 1)))
         if ctx.catalog.errors:
-            side.addWidget(self._problems_card(ctx.catalog.errors))
-        side.addStretch(1)
-        row.addLayout(side, 2)
-        self.body.addLayout(row)
+            self.body.addWidget(self._problems_card(ctx.catalog.errors))
+        self.body.addWidget(self._status_card())
         self.body.addStretch(1)
 
-    def _status_card(self) -> Card:
-        card = Card("Build status", "what works in this build", padded=False)
-        self.status_table = DataTable(("Page", "Section", "Status"), stretch_column=1)
-        for spec in NAV:
-            self.status_table.add_row((spec.title, _SECTION_NAMES[spec.section],
-                                       Pill(status_text(spec), _tone(spec.planned_for))))
-        card.add(self.status_table)
-        return card
+        for signal in (ctx.jobs.job_queued, ctx.jobs.job_started, ctx.jobs.job_finished):
+            signal.connect(lambda *_: self.refresh_counts())
+        self.refresh_counts()
+
+    def refresh_counts(self) -> None:
+        active = self.ctx.jobs.active()
+        running = sum(job.status == "running" for job in active)
+        self.jobs_tile.set(str(running), f"running · {len(active) - running} queued")
+        counts = self.ctx.store.counts()
+        self.experiments_tile.set(str(counts["experiments"]), f"{counts['runs']} runs")
+        self.experiments.refresh()
 
     def _workspace_card(self) -> Card:
-        paths, config = self.ctx.paths, self.ctx.config
+        paths = self.ctx.paths
         card = Card("Workspace")
-        counts = self.ctx.store.counts()
-        catalog = self.ctx.catalog.counts()
         self.workspace_values = KeyValues((
             ("Workspace", paths.workspace),
             ("Lab database", paths.lab_db),
-            ("Schema", f"version {self.ctx.store.db.version} · {counts['experiments']} experiments · "
-                       f"{counts['runs']} runs"),
-            ("Catalogue", f"{catalog['datasets']} datasets · {catalog['models']} models · "
-                          f"{catalog['plugins']} plugins · {catalog['runners']} runners"),
-            ("MLflow", mlflow_tracking_uri(config, paths)),
+            ("Schema", f"version {self.ctx.store.db.version}"),
             ("Logs", paths.logs / "app.log"),
-            ("Settings", paths.settings_file),
             ("Python", platform.python_version()),
             ("Qt / PySide6", f"{qVersion()} / {PYSIDE_VERSION}"),
         ))
@@ -85,6 +93,16 @@ class HomePage(Page):
             buttons.addWidget(button)
         buttons.addStretch(1)
         card.add(buttons)
+        return card
+
+    def _status_card(self) -> Card:
+        built = sum(spec.built for spec in NAV)
+        card = Card("Build status", f"{built} of {len(NAV)} pages live", padded=False)
+        self.status_table = DataTable(("Page", "Section", "Status"), stretch_column=1)
+        for spec in NAV:
+            self.status_table.add_row((spec.title, _SECTION_NAMES[spec.section],
+                                       Pill(status_text(spec), _tone(spec.planned_for))))
+        card.add(self.status_table)
         return card
 
     def _problems_card(self, problems: list[str]) -> Card:

@@ -49,7 +49,8 @@ def _p(id: str, title: str, section: str, icon: str, summary: str, planned_for: 
 
 
 NAV: tuple[PageSpec, ...] = (
-    _p("home", "Home", "home", "house", "This workspace and what the build can do so far."),
+    _p("home", "Home", "home", "house",
+       "Live resources, the active job, recent work and the state of this workspace."),
 
     # ── Research labs ────────────────────────────────────────────────
     _p("computer_vision", "Computer Vision", "labs", "scan-eye",
@@ -152,9 +153,7 @@ NAV: tuple[PageSpec, ...] = (
        "keyring or environment variables",
        "Every plugin shows its license, capabilities, and whether it is installed and connected"),
     _p("hardware", "Hardware Monitor", "tools", "cpu",
-       "CPU, memory and GPU.", "v0.1", 3,
-       "CPU, RAM, GPU, VRAM, CUDA and MPS detection",
-       "Live utilisation charts"),
+       "CPU, memory and GPU: what this machine has and how busy it is."),
     _p("documentation", "Documentation", "tools", "book-open-text",
        "The lab's own documentation."),
 
