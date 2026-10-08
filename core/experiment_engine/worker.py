@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 import threading
 import time
@@ -62,6 +63,27 @@ def watch_for_cancel(stream: TextIO, token: CancelToken, *, cancel_on_eof: bool)
     thread = threading.Thread(target=watch, name="cancel-watcher", daemon=True)
     thread.start()
     return thread
+
+
+def detach_stdin() -> TextIO:
+    """Hand the worker's stdin (the "cancel" channel) to a private file and point standard input at
+    the null device. On Windows a thread blocked reading a pipe makes every child process that
+    would inherit that pipe hang at start (``git`` for the snapshot, tools libraries launch), so
+    children must never get it. Returns the stream the cancel watcher should read."""
+    try:
+        private = os.dup(sys.stdin.fileno())  # not inheritable (PEP 446)
+    except (OSError, ValueError, AttributeError):
+        return sys.stdin
+    null = os.open(os.devnull, os.O_RDONLY)
+    os.dup2(null, 0)
+    os.close(null)
+    if os.name == "nt":  # make sure child processes see the null device as their stdin
+        import ctypes
+        import msvcrt
+
+        ctypes.windll.kernel32.SetStdHandle(-10, msvcrt.get_osfhandle(0))  # STD_INPUT_HANDLE
+    sys.stdin = open(os.devnull, encoding="utf-8")  # lives as long as the process
+    return open(private, encoding="utf-8", errors="replace")
 
 
 def run_experiment(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelToken, *,
@@ -168,7 +190,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     run_dir = args.run_dir.resolve()
     callbacks = JsonLinesCallbacks(events_out, run_dir.name)
     token = CancelToken()
-    watch_for_cancel(sys.stdin, token, cancel_on_eof=args.cancel_on_eof)
+    watch_for_cancel(detach_stdin(), token, cancel_on_eof=args.cancel_on_eof)
 
     if args.evaluate is not None:
         result = run_evaluation(run_dir, callbacks, token, checkpoint=args.evaluate.resolve(),

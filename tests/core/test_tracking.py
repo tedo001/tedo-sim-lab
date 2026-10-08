@@ -96,4 +96,8 @@ def test_a_run_is_mirrored_to_mlflow(tmp_path, monkeypatch) -> None:
     assert sorted({m.step for m in client.get_metric_history(mlflow_run, "loss")}) == [1, 2]
     artifacts = {item.path for item in client.list_artifacts(mlflow_run, "spec")}
     assert {"spec/experiment.yaml", "spec/snapshot.json"} <= artifacts
-    assert Path(run.info.artifact_uri.removeprefix("file://")).is_relative_to(paths.mlruns)
+    from urllib.parse import urlparse
+    from urllib.request import url2pathname
+
+    artifacts = Path(url2pathname(urlparse(run.info.artifact_uri).path))  # file:///C:/… on Windows
+    assert artifacts.resolve().is_relative_to(paths.mlruns.resolve())

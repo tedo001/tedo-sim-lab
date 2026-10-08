@@ -36,7 +36,8 @@ def _version(package: str) -> str | None:
 def git_state(code_root: Path) -> dict[str, Any]:
     """Commit, branch and uncommitted changes of the code, or why they are unknown."""
     def git(*args: str) -> str:
-        return subprocess.run(["git", *args], cwd=code_root, capture_output=True, text=True, timeout=20,
+        return subprocess.run(["git", *args], cwd=code_root, capture_output=True, stdin=subprocess.DEVNULL,
+                              text=True, timeout=20,
                               check=True).stdout
 
     try:
