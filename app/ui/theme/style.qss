@@ -57,6 +57,7 @@ QLabel#Body { color: ${text_dim}; background: transparent; }
 QLabel#BodyStrong { color: ${text}; background: transparent; }
 QLabel#Bullet { color: ${text_dim}; background: transparent; }
 QLabel#Mono { font-family: "${mono}"; font-size: ${mono_px}px; color: ${text_dim}; background: transparent; }
+QLabel#Problem { color: ${fail}; background: transparent; }
 
 QLabel#KvKey { color: ${text_faint}; background: transparent; }
 QLabel#KvValue { color: ${text}; background: transparent; }

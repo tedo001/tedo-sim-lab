@@ -87,6 +87,22 @@ cards:
     maturity: stable
     tags: [cnn, small, cpu, explainer]
 
+  - id: layer_stack
+    name: Layer stack (Deep Learning builder)
+    description: A network you design layer by layer on the Deep Learning page (convolution,
+      batch norm, ReLU, pooling, dropout, linear); the last Linear layer to the classes is added
+      for you. Without a design it trains the starter stack.
+    architecture: Your layers, then Flatten (if needed) → Linear(classes)
+    framework: pytorch
+    tasks: [image_classification]
+    source_url: https://github.com/tedo001/tedo-sim-lab
+    license: *this_project
+    input_spec: C×H×W; the stack's shapes are checked against it before training
+    origin: builtin
+    builder: labs.deep_learning.model:build_layer_stack
+    maturity: stable
+    tags: [cnn, custom, builder, cpu]
+
   - id: rt_detr
     name: RT-DETR
     description: Real-time detection transformer from Baidu.

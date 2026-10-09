@@ -16,6 +16,7 @@ from .classical_ml import ClassicalMlPage
 from .compare import ComparePage
 from .computer_vision import ComputerVisionPage
 from .dataset_hub import DatasetHubPage
+from .deep_learning import DeepLearningPage
 from .documentation import DocumentationPage
 from .evaluation import EvaluationPage
 from .explainer import ExplainerPage
@@ -38,6 +39,7 @@ PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "compare": ComparePage,
     "computer_vision": ComputerVisionPage,
     "dataset_hub": DatasetHubPage,
+    "deep_learning": DeepLearningPage,
     "experiment_builder": ExperimentBuilderPage,
     "evaluation": EvaluationPage,
     "mlflow": MlflowPage,
