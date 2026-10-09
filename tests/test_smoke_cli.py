@@ -25,7 +25,7 @@ def test_smoke_test_visits_every_page(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
     assert f"SMOKE OK - {len(NAV)} pages" in result.stdout
     assert len(list(shots.glob("*.png"))) == len(NAV) + 1  # + the split-view layout
-    assert not list(tmp_path.glob("tedo-smoke-*")), "temporary workspace was not removed"
+    assert not list(tmp_path.glob("tedo-smoke-*")), f"temporary workspace was not removed:\n{result.stderr}"
 
 
 def test_bad_settings_stop_startup_with_a_message(tmp_path: Path) -> None:

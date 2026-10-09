@@ -24,11 +24,14 @@ _UI = {"stopped": ("Stopped", "planned"), "starting": ("Starting…", "info"), "
        "failed": ("Failed to start", "fail")}
 
 
-def read_mlflow_runs(tracking_uri: str, limit: int = 100) -> list[dict[str, Any]]:
+def read_mlflow_runs(tracking_uri: str, limit: int = 100,
+                     cancel: CancelToken | None = None) -> list[dict[str, Any]]:
     """The newest runs in every MLflow experiment (runs in a background task)."""
     os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
     from mlflow.tracking import MlflowClient
 
+    if cancel is not None:  # importing MLflow takes seconds: the app may be closing by now, and
+        cancel.raise_if_cancelled()  # must not find mlflow.db opened again after it let go of it
     client = MlflowClient(tracking_uri)
     experiments = {e.experiment_id: e.name for e in client.search_experiments()}
     if not experiments:
@@ -108,7 +111,7 @@ class MlflowPage(Page):
         self.message.setText("Reading MLflow…")
 
         def work(cancel: CancelToken, progress: ProgressFn) -> list[dict[str, Any]]:
-            return read_mlflow_runs(uri)
+            return read_mlflow_runs(uri, cancel=cancel)
 
         self._job = self.ctx.jobs.submit_task(work, title="Read MLflow runs", quiet=True)
 

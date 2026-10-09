@@ -94,13 +94,39 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(report.summary())
         if report.ok and args.workspace is None:  # keep the workspace (and its log) on failure
             setup_logging(None, console=True)       # release the log file (Windows locks it)
-            shutil.rmtree(paths.workspace, ignore_errors=True)
+            for problem in remove_tree(paths.workspace):
+                print(f"could not remove {problem}", file=sys.stderr)
         return 0 if report.ok else 1
 
     window.show()
     code = app.exec()
     ctx.close()
     return code
+
+
+def remove_tree(folder: Path, attempts: int = 6) -> list[str]:
+    """Delete ``folder``; returns what could not be removed. Windows keeps a file locked for a
+    moment after the last handle closes (and until unreferenced objects are collected), so it
+    retries briefly."""
+    import gc
+    import time
+
+    problems: list[str] = []
+
+    def note(_function, path, error) -> None:
+        problems.append(f"{path}: {error[1] if isinstance(error, tuple) else error}")
+
+    for _ in range(attempts):
+        problems.clear()
+        gc.collect()
+        if sys.version_info >= (3, 12):
+            shutil.rmtree(folder, onexc=note)
+        else:
+            shutil.rmtree(folder, onerror=note)
+        if not folder.exists():
+            return []
+        time.sleep(0.5)
+    return problems
 
 
 if __name__ == "__main__":
