@@ -107,6 +107,13 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `core/tracking/` | SQLite: `Database` + `migrations/NNNN_*.sql`, `LabStore` (relative paths) |
 | `configs/` | Shipped cards (`datasets/`, `models/`) and `runners.yaml` (runner entries) |
 | `plugins/<name>/` | `plugin.yaml` manifest + `plugin.py` entry (a `ManifestPlugin` subclass) |
+| `labs/deep_learning/` | `layers.py`: a layer stack as data (`plan()` → shapes and parameters per layer, automatic flatten and final Linear, `LayerError` naming the layer; `pytorch_code()`); `model.py`: `build_layer_stack` (model card `layer_stack`, layers in `model.params.layers`) |
+| `app/ui/pages/deep_learning.py` | Deep Learning builder: dataset → input, `LayerEditor` + `StackDiagram` (`deep_learning_parts.py`), shapes table, code, Open in builder / Train now |
+| `plugins/sources.py` | `SourcePlugin`: `search` → `RemoteItem`s (`labs/common/remote.py`: licence, size, `restriction`), `download` into `datasets|models/<source>/<id>/` with `source.json`; Kaggle, Hugging Face and Roboflow use their REST APIs (no client libraries); restricted (gated, private, unexported) items are refused |
+| `app/services/plugins.py` | `PluginService`: install / test / search / download as tasks (`finished` signal), credentials to the OS keyring; page `plugin_store.py` (+ `plugin_browse.py`) |
+| `app/services/terminal.py` | `ShellSession`: one shell process per command (PowerShell on Windows, `$SHELL`/bash elsewhere, or `terminal_shell`), built-in `cd`, history, stop; stdin closed; page `terminal.py` |
+| `app/services/jupyter.py` | `Notebooks` (list, create from a run with relative paths, link via `notebook_links`, `notebook_markdown` viewer) and `JupyterLab` (a `LocalWebUi`, like `MlflowUi`: 127.0.0.1, fresh masked token); page `jupyter_page.py` |
+| `plugins/colab/notebook.py` | `build_notebook` (clone at the commit, `experiment.yaml`, licence-checked dataset cell, worker → `events.jsonl`, zip) and `read_results`; `app/services/colab.py` `ColabService` exports into `notebooks/colab/` and imports a zip through `ExperimentService.import_run` (replays the events); page `colab_page.py` |
 
 ### Adding a page
 
@@ -152,6 +159,12 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   standard input at the null device (`detach_stdin`). On Windows a child process that inherits a
   pipe another thread is reading hangs at start; never undo this, and give `subprocess` calls
   `stdin=DEVNULL` anyway.
+- **Remote sources**: plugins that fetch from a service use its REST API through
+  `labs/common/remote.get_json` / `download.download_file` (errors masked, credentials only in
+  headers, Roboflow's key only in the query it requires); every item shows its licence before a
+  download, which needs the person's confirmation; `RemoteItem.restriction` (gated, private, needs
+  terms accepted) means the lab shows the page and never downloads. Plugin actions run in the app
+  process, so they use only the standard library and the lab's own dependencies.
 - **Quiet jobs**: housekeeping tasks (`submit_task(..., quiet=True)`) are not recorded, not
   "active", and never ask before quitting. Never delete a `QProcess` inside its own signal:
   keep it alive until the event loop is back (see `JobQueue._release`, `MlflowUi._release`).
@@ -253,5 +266,9 @@ Design for it now:
 - [x] Phase 8 — Benchmarking (worker `--benchmark`, latency/throughput/peak GPU memory by batch
       size, runs and untrained models), Compare Experiments (8 runs, measures table, overlaid curves),
       reports as CSV/JSON/Markdown/PDF (comparison and single run); Windows worker hang fixed
-- [ ] Phase 9 — Plugin Store, Terminal, Notebook, Jupyter, Colab, Deep Learning builder
+- [x] Phase 9 — Deep Learning builder (layer stack, live shapes, diagram, PyTorch code, trains as
+      `layer_stack`), Plugin Store (status, licences, install, keyring credentials, Kaggle / Hugging
+      Face / Roboflow search and licence-checked downloads over their REST APIs), Terminal, Jupyter
+      (notebooks from runs, links, viewer, Jupyter Lab with a token), Google Colab (notebook export,
+      results import by event replay); Windows: the app releases its workspace on close
 - [ ] Phase 10 — hardening, README, ROADMAP

@@ -7,7 +7,7 @@ from __future__ import annotations
 import hashlib
 import shutil
 import urllib.request
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from core.common.cancel import CancelToken, ProgressFn
@@ -31,8 +31,8 @@ def md5_of(path: Path) -> str:
 
 
 def _fetch(url: str, partial: Path, progress: ProgressFn, cancel: CancelToken, label: str,
-           timeout: float) -> None:
-    request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+           timeout: float, headers: Mapping[str, str] | None = None) -> None:
+    request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, **(headers or {})})
     with urllib.request.urlopen(request, timeout=timeout) as response, partial.open("wb") as out:
         total = int(response.headers.get("Content-Length") or 0)
         done = 0
@@ -49,9 +49,10 @@ def _fetch(url: str, partial: Path, progress: ProgressFn, cancel: CancelToken, l
 
 
 def download_file(urls: Sequence[str], destination: Path, *, md5: str | None = None,
-                  progress: ProgressFn, cancel: CancelToken, timeout: float = 60.0) -> Path:
+                  progress: ProgressFn, cancel: CancelToken, timeout: float = 60.0,
+                  headers: Mapping[str, str] | None = None) -> Path:
     """Fetch the first mirror that works into ``destination``. Skips the download when the file
-    is already there and matches ``md5``."""
+    is already there and matches ``md5``. ``headers`` go with every request (authorisation)."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.is_file() and (md5 is None or md5_of(destination) == md5):
         return destination
@@ -59,7 +60,7 @@ def download_file(urls: Sequence[str], destination: Path, *, md5: str | None = N
     errors: list[str] = []
     for url in urls:
         try:
-            _fetch(url, partial, progress, cancel, destination.name, timeout)
+            _fetch(url, partial, progress, cancel, destination.name, timeout, headers)
             if md5 is not None and md5_of(partial) != md5:
                 raise DownloadError(f"{destination.name} from {url} does not match its published checksum")
             shutil.move(str(partial), destination)

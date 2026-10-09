@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import shutil
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -206,8 +206,10 @@ class ExperimentService(QObject):
 
     def _job_event(self, job_id: str, event: ProgressEvent) -> None:
         run_id = self._run_for(job_id)
-        if run_id is None:
-            return
+        if run_id is not None:
+            self._record(run_id, event)
+
+    def _record(self, run_id: str, event: ProgressEvent) -> None:
         payload, live = event.payload, self._live.setdefault(run_id, LiveState())
         if event.type == "run_start":
             self.store.set_run_details(run_id, device=payload.get("device"),
@@ -235,6 +237,27 @@ class ExperimentService(QObject):
         elif event.type == "log":
             self._log(run_id, str(payload.get("line", "")))
 
+    def import_run(self, spec: ExperimentSpec, events: list[ProgressEvent],
+                   fill: Callable[[Path], None]) -> str:
+        """Record a run that happened elsewhere (Colab) from its folder's files and the worker's
+        event stream, exactly as if it had run here; returns the new run id. ``fill(run_dir)``
+        puts the files in place."""
+        runner = self.catalog.runners.for_spec(spec)
+        experiment_id = self.store.create_experiment(spec.name, spec.task.value, dump_spec_text(spec),
+                                                     spec_hash(spec), spec.tags)
+        run_id = new_id()
+        run_dir = self.paths.experiments / f"{slug(spec.name)}-{experiment_id[:6]}" / run_id
+        run_dir.mkdir(parents=True)
+        fill(run_dir)
+        dump_spec(spec, run_dir / "experiment.yaml")
+        self.store.create_run(experiment_id, run_dir, runner.id, run_id=run_id)
+        self.store.start_run(run_id)
+        for event in events:
+            if event.type != "artifact":  # artifact paths point into the other machine
+                self._record(run_id, event)
+        self._close_run(run_id, "failed", None)  # run_end, when present, decides the status
+        return run_id
+
     def _log(self, run_id: str, line: str) -> None:
         try:
             run_dir = self.store.run_dir(run_id)
@@ -249,6 +272,9 @@ class ExperimentService(QObject):
         if run_id is None:
             return
         self._job_of_run.pop(run_id, None)
+        self._close_run(run_id, status, self.jobs.job(job_id).error)
+
+    def _close_run(self, run_id: str, status: str, job_error: str | None) -> None:
         end = self._end.pop(run_id, {})
         final = str(end.get("status") or status)
         if final not in FINISHED:
@@ -258,7 +284,7 @@ class ExperimentService(QObject):
         if metrics:
             step = int(metrics.get("epochs_completed", 0))
             self.store.log_metrics(run_id, metrics, step=step, epoch=step or None)
-        error = self.jobs.job(job_id).error or end.get("error")
+        error = job_error or end.get("error")
         self.store.finish_run(run_id, final, error=error, duration_s=end.get("duration_s"))
         self._live.pop(run_id, None)
         self.run_changed.emit(run_id)

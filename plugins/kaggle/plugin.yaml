@@ -3,19 +3,20 @@ name: kaggle
 title: Kaggle
 version: 0.1.0
 author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
-description: "Search and download Kaggle datasets with your Kaggle API token."
+description: "Search and download Kaggle datasets with your Kaggle username and API key."
 license:
-  category: open-source
-  name: Apache-2.0 (Kaggle API client)
-  spdx: Apache-2.0
-  url: https://github.com/Kaggle/kaggle-api/blob/main/LICENSE.txt
-  notes: Each Kaggle dataset has its own licence, shown on its Kaggle page and checked before download.
+  category: unspecified
+  name: This project's code (Kaggle's public REST API; Kaggle's terms of use apply)
+  url: https://www.kaggle.com/terms
+  notes: No Kaggle client library is used. Each dataset has its own licence, shown before download
+    and saved in source.json next to the files. Competitions, which need their rules accepted on
+    Kaggle, are not downloaded.
 capabilities: [dataset_source]
 entry: plugins.kaggle.plugin:KagglePlugin
-requires: ["kaggle>=1.6"]
+requires: []
 credentials:
   - {key: KAGGLE_USERNAME, label: Kaggle username, secret: false}
   - {key: KAGGLE_KEY, label: Kaggle API key}
-maturity: planned
-planned_for: v0.1 · build phase 9
+origin: builtin
+maturity: stable
 homepage: https://www.kaggle.com/docs/api

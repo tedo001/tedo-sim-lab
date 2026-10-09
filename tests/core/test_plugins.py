@@ -47,15 +47,23 @@ def test_manifests_carry_licence_author_and_capabilities(registry: PluginRegistr
 
 
 def test_unbuilt_plugins_say_planned_and_refuse_to_run(registry: PluginRegistry) -> None:
-    kaggle = registry.get("kaggle")
-    assert kaggle.status == "planned"
-    actions = kaggle.actions()
+    ocr = registry.get("paddleocr")
+    assert ocr.status == "planned"
+    actions = ocr.actions()
     assert actions and not any(action.enabled for action in actions)
-    assert all("build phase 9" in action.disabled_reason for action in actions)
-    with pytest.raises(NotImplementedError, match="build phase 9"):
-        kaggle.run("search_datasets")
+    assert all("v0.5" in action.disabled_reason for action in actions)
+    with pytest.raises(NotImplementedError, match="v0.5"):
+        ocr.run("recognise")
     with pytest.raises(PluginError, match="no action"):
-        kaggle.run("delete_everything")
+        ocr.run("delete_everything")
+
+
+def test_sources_need_their_credentials_before_acting(registry: PluginRegistry) -> None:
+    kaggle = registry.get("kaggle")
+    assert kaggle.status == "not_connected"
+    assert all(not action.enabled and "KAGGLE_KEY" in action.disabled_reason for action in kaggle.actions())
+    with pytest.raises(NotImplementedError, match="Not connected"):
+        kaggle.run("search", query="mnist")
 
 
 def test_connection_reports_missing_credentials(registry: PluginRegistry) -> None:

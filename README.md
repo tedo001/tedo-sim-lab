@@ -5,7 +5,7 @@ Qt for Python (PySide6). Pick a dataset, a model, hyperparameters and a device; 
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
-> **Status: V0.1 in development — build phase 8 of 10.** The window and every page, the live
+> **Status: V0.1 in development — build phase 9 of 10.** The window and every page, the live
 > hardware monitor and dashboard, the dataset/model/plugin catalogue with licences, the lab
 > database, and two kinds of experiment end to end:
 >
@@ -25,6 +25,12 @@ from its saved folder.
 > - **Measuring and reporting**: Benchmarking (latency and throughput by batch size and device, in the
 >   worker process), Compare Experiments (up to eight runs side by side with overlaid curves) and
 >   reports exported as CSV, JSON, Markdown or PDF.
+> - **Designing and tools**: the Deep Learning builder (a network layer by layer with live shapes,
+>   parameter count, diagram and the PyTorch code, trained like any other model), the Plugin Store
+>   (connect Kaggle, Hugging Face and Roboflow with credentials in the OS keyring; search and download
+>   with each item's licence shown first; gated and private items are never downloaded), a Terminal in
+>   the workspace, Jupyter notebooks started from runs (and Jupyter Lab on request), and Google Colab
+>   (an experiment as a Colab notebook; its results zip imports back as a run).
 >
 > Describe either in the Experiment Builder (or start from a lab preset), follow it on the Training
 > page, evaluate and reproduce it, and find every run in MLflow. Pages that are not built say which
@@ -86,8 +92,12 @@ the *workspace*: the repository folder by default, or `--workspace` /
 
 Integrations read credentials from environment variables or the OS keyring — never
 from files. Recognised variables: `KAGGLE_USERNAME`, `KAGGLE_KEY`, `ROBOFLOW_API_KEY`,
-`HF_TOKEN`, `GITHUB_TOKEN`. Settings shows which are set and where from, never the
-values; logs mask them.
+`HF_TOKEN`, `GITHUB_TOKEN`. Store or remove them in the OS keyring from the Plugin Store
+(Account); Settings shows which are set and where from, never the values; logs mask them.
+
+The Kaggle, Hugging Face and Roboflow plugins talk to each service's public REST API with the
+lab's own code (no client libraries). A download lands in `datasets/<source>/` or
+`models/<source>/` with a `source.json` recording where it came from and its licence.
 
 ## Test
 

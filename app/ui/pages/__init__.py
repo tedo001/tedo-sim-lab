@@ -13,6 +13,7 @@ from ...services.context import AppContext
 from .benchmarking import BenchmarkingPage
 from .builder import ExperimentBuilderPage
 from .classical_ml import ClassicalMlPage
+from .colab_page import ColabPage
 from .compare import ComparePage
 from .computer_vision import ComputerVisionPage
 from .dataset_hub import DatasetHubPage
@@ -22,11 +23,14 @@ from .evaluation import EvaluationPage
 from .explainer import ExplainerPage
 from .hardware import HardwarePage
 from .home import HomePage
+from .jupyter_page import JupyterPage
 from .mlflow_page import MlflowPage
 from .model_registry import ModelRegistryPage
 from .model_zoo import ModelZooPage
 from .placeholder import PlaceholderPage
+from .plugin_store import PluginStorePage
 from .settings import SettingsPage
+from .terminal import TerminalPage
 from .training import TrainingPage
 
 __all__ = ["PAGE_FACTORIES", "build_page"]
@@ -39,6 +43,10 @@ PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "compare": ComparePage,
     "computer_vision": ComputerVisionPage,
     "dataset_hub": DatasetHubPage,
+    "colab": ColabPage,
+    "jupyter": JupyterPage,
+    "terminal": TerminalPage,
+    "plugin_store": PluginStorePage,
     "deep_learning": DeepLearningPage,
     "experiment_builder": ExperimentBuilderPage,
     "evaluation": EvaluationPage,

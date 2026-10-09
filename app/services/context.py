@@ -18,12 +18,15 @@ from core.tracking import LabStore
 from core.tracking.mlflow_tracker import release_mlflow_stores
 
 from .benchmarks import BenchmarkService
+from .colab import ColabService
 from .downloads import DownloadService
 from .experiments import ExperimentService
 from .hardware import HardwareService
 from .jobs import JobQueue, worker_command
+from .jupyter import JupyterLab, Notebooks
 from .mlflow_ui import MlflowUi
 from .model_registry import ModelRegistryService
+from .plugins import PluginService
 
 __all__ = ["AppContext", "build_context"]
 
@@ -46,6 +49,10 @@ class AppContext:
     mlflow_ui: MlflowUi
     models: ModelRegistryService
     benchmarks: BenchmarkService
+    colab: ColabService
+    plugins: PluginService
+    jupyter: JupyterLab
+    notebooks: Notebooks
     #: Switch the main window to another page; set by :class:`app.main_window.MainWindow`.
     navigate: Callable[[str], None] = field(default=_nowhere)
 
@@ -53,6 +60,7 @@ class AppContext:
         """Stop background work and close the database (app exit)."""
         self.hardware.stop()
         self.mlflow_ui.stop()
+        self.jupyter.stop()
         self.jobs.shutdown()
         self.store.close()
         release_mlflow_stores()
@@ -82,4 +90,7 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
     downloads = DownloadService(catalog.datasets, jobs)
     models = ModelRegistryService(paths, config, store, experiments, jobs)
     return AppContext(paths, config, credentials, catalog, store, jobs, hardware, experiments, downloads,
-                      MlflowUi(paths, config), models, BenchmarkService(paths, jobs))
+                      MlflowUi(paths, config), models, BenchmarkService(paths, jobs),
+                      ColabService(paths, experiments, jobs),
+                      PluginService(paths, catalog, credentials, jobs), JupyterLab(paths, config),
+                      Notebooks(paths, store))

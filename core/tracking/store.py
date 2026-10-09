@@ -256,6 +256,11 @@ class LabStore:
                         "VALUES (?, ?, ?, ?)", (self.stored_path(notebook_path), experiment_id,
                                                 run_id, utc_now()))
 
+    def notebook_links(self) -> list[sqlite3.Row]:
+        """Every notebook ↔ run link (paths as stored: relative to the workspace)."""
+        return self.db.query("SELECT notebook_path, experiment_id, run_id FROM notebook_links "
+                             "ORDER BY created_at")
+
     # Jobs ------------------------------------------------------------------
     def add_job(self, job_id: str, kind: Literal["run", "task"], title: str, *,
                 run_id: str | None = None) -> None:

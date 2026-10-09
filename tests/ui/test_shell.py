@@ -5,7 +5,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractButton
 
-from app.navigation import NAV, page
+from app.navigation import NAV, PageSpec, page
 from app.ui.pages.placeholder import PlaceholderPage, status_text
 
 
@@ -56,7 +56,7 @@ def test_ambiguous_search_stays_put(window, qtbot) -> None:
 
 
 def test_placeholders_are_honest(window) -> None:
-    for page_id in ("plugin_store", "audio", "simulation_lab"):
+    for page_id in ("nlp_llm", "audio", "simulation_lab"):
         window.navigate(page_id)
         widget = window.stack.currentWidget()
         assert isinstance(widget, PlaceholderPage)
@@ -65,7 +65,8 @@ def test_placeholders_are_honest(window) -> None:
 
 
 def test_status_text() -> None:
-    assert status_text(page("plugin_store")) == "Planned for v0.1 · build phase 9"
+    in_build = PageSpec("x", "X", "tools", "puzzle", "", "v0.1", 9)
+    assert status_text(in_build) == "Planned for v0.1 · build phase 9"
     assert status_text(page("audio")) == "Planned for v0.2"
     assert status_text(page("quantum_ml")) == "Planned · scope not decided"
     assert status_text(page("home")) == "Available"

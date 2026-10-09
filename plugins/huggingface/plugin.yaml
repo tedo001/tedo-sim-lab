@@ -5,16 +5,17 @@ version: 0.1.0
 author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
 description: "Models and datasets from the Hugging Face Hub. Gated repositories need your token and accepted terms."
 license:
-  category: open-source
-  name: Apache-2.0 (huggingface_hub)
-  spdx: Apache-2.0
-  url: https://github.com/huggingface/huggingface_hub/blob/main/LICENSE
-  notes: Every model and dataset on the Hub has its own licence; gated ones require accepting terms on the Hub first.
+  category: unspecified
+  name: This project's code (the Hugging Face Hub's REST API; the Hub's terms of service apply)
+  url: https://huggingface.co/terms-of-service
+  notes: No Hugging Face client library is used. Every model and dataset has its own licence,
+    shown before download and saved in source.json next to the files. Gated and private
+    repositories are not downloaded by the lab.
 capabilities: [dataset_source, model_source]
 entry: plugins.huggingface.plugin:HuggingFacePlugin
-requires: ["huggingface_hub>=0.23"]
+requires: []
 credentials:
   - {key: HF_TOKEN, label: Hugging Face token, required: false}
-maturity: planned
-planned_for: v0.1 · build phase 9
+origin: builtin
+maturity: stable
 homepage: https://huggingface.co/docs/huggingface_hub

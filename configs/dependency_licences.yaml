@@ -55,8 +55,6 @@ packages:
 
   # Optional: [nlp] and [integrations]
   huggingface_hub: {spdx: Apache-2.0}
-  kaggle: {spdx: Apache-2.0}
-  roboflow: {spdx: Apache-2.0}
   jupyterlab: {spdx: BSD-3-Clause}
   jupyter_client: {spdx: BSD-3-Clause}
   ipykernel: {spdx: BSD-3-Clause}

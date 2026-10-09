@@ -5,14 +5,14 @@ version: 0.1.0
 author: tedo001 <durgamani.d.e.c.e.50@gmail.com>
 description: "Export an experiment as a Colab notebook and import its results back."
 license:
-  category: open-source
-  name: BSD-3-Clause (nbformat)
-  spdx: BSD-3-Clause
-  url: https://github.com/jupyter/nbformat/blob/main/LICENSE
-  notes: The lab only writes a notebook file. Running it on Colab is governed by Google's Colab terms of service and usage limits.
+  category: unspecified
+  name: This project's code (Google Colab's terms of service apply to running the notebook)
+  url: https://research.google.com/colaboratory/tos_v5.html
+  notes: The lab writes the notebook file itself (nbformat 4 JSON) and reads back the zip its
+    last cell downloads. Running it on Colab is governed by Google's terms and usage limits.
 capabilities: [notebook, exporter]
 entry: plugins.colab.plugin:ColabPlugin
-requires: ["nbformat>=5.10"]
-maturity: planned
-planned_for: v0.1 · build phase 9
+requires: []
+origin: builtin
+maturity: stable
 homepage: https://colab.research.google.com/

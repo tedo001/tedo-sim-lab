@@ -21,7 +21,7 @@ LICENCE_TONES = {
 }
 #: Install status → (words, tone).
 STATUS_WORDS = {
-    "ready": ("Ready", "ok"), "not_downloaded": ("Not downloaded", "warn"),
+    "ready": ("Ready", "ok"), "available": ("Available", "ok"), "not_downloaded": ("Not downloaded", "warn"),
     "not_installed": ("Not installed", "warn"), "not_connected": ("Not connected", "planned"),
     "experimental": ("Experimental", "experimental"), "planned": ("Planned", "planned"),
     "catalog_only": ("Catalogue only", "planned"),

@@ -43,8 +43,6 @@ cv = ["onnx>=1.15", "onnxruntime>=1.17", "transformers>=4.42"]
 ocr = ["paddleocr>=2.7", "paddlepaddle>=2.6", "easyocr>=1.7", "pytesseract>=0.3.10"]
 nlp = ["transformers>=4.40", "huggingface_hub>=0.23"]
 integrations = [
-    "kaggle>=1.6",
-    "roboflow>=1.1",
     "huggingface_hub>=0.23",
     "jupyterlab>=4.1",
     "jupyter_client>=8.6",

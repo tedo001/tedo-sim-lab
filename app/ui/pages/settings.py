@@ -1,8 +1,7 @@
 """Settings: where things are, what is configured, and which credentials are set.
 
-Read-only in build phase 1. Credential values are never displayed — only
-where each one comes from. Storing credentials from the app arrives with the
-Plugin Store (build phase 9); until then, set environment variables.
+Read-only. Credential values are never displayed — only where each one comes from; they are
+stored or removed in the Plugin Store (OS keyring) or set as environment variables.
 """
 
 from __future__ import annotations
@@ -54,15 +53,20 @@ class SettingsPage(Page):
         credentials = Card("Credentials", "values are never shown", padded=False)
         self.credential_table = DataTable(("Credential", "Variable", "Source"), mono_columns=(1,),
                                           stretch_column=0)
-        for key, title in KNOWN_CREDENTIALS.items():
-            text, tone = _SOURCE[ctx.credentials.source(key)]
-            self.credential_table.add_row((title, key, Pill(text, tone)))
+        self.ctx = ctx
+        self.refresh_credentials()
+        ctx.plugins.changed.connect(lambda _name: self.refresh_credentials())
         credentials.add(self.credential_table)
         keyring = ("The OS keyring is available." if ctx.credentials.keyring_available
                    else "No OS keyring was found; use environment variables.")
-        note = label(f"{keyring} Connecting accounts from the Plugin Store arrives in build "
-                     "phase 9.", "CardCaption", wrap=True)
+        note = label(f"{keyring} Connect accounts in the Plugin Store.", "CardCaption", wrap=True)
         note.setContentsMargins(14, 8, 14, 12)
         credentials.add(note)
         self.body.addWidget(credentials)
         self.body.addStretch(1)
+
+    def refresh_credentials(self) -> None:
+        self.credential_table.clear_rows()
+        for key, title in KNOWN_CREDENTIALS.items():
+            text, tone = _SOURCE[self.ctx.credentials.source(key)]
+            self.credential_table.add_row((title, key, Pill(text, tone)))
