@@ -33,10 +33,11 @@ def test_notebook_runs_and_its_results_import(ctx, qtbot, tmp_path) -> None:
     assert "core.experiment_engine.worker" in train and "\\\n" not in train
     assert "git clone" in clone and "tedo-sim-lab" in clone and "google.colab" in download
     assert write_spec.startswith("%%writefile ") and "iris" in write_spec
-    remote = tmp_path / "colab"
+    remote = (tmp_path / "colab").as_posix()  # pasted into Python source: no backslashes
+    remote_path = tmp_path / "colab"
     folder = write_spec.splitlines()[0].split()[1].rsplit("/", 1)[0].replace("/content/lab", str(remote))
     os.makedirs(folder)
-    (remote / "experiments").mkdir(exist_ok=True)
+    (remote_path / "experiments").mkdir(exist_ok=True)
     with open(f"{folder}/experiment.yaml", "w", encoding="utf-8") as file:
         file.write(write_spec.split("\n", 1)[1])
     env = {**os.environ, "PYTHONPATH": str(CODE_ROOT), "TEDO_LAB_MLFLOW": "0"}
