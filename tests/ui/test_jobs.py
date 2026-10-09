@@ -166,3 +166,19 @@ def test_worker_command_targets_any_interpreter(python: str) -> None:
     assert command.arguments[:3] == ["-m", "core.experiment_engine.worker", str(Path("/w/run"))]
     assert "--cancel-on-eof" in command.arguments
     assert command.env["PYTHONPATH"].split(os.pathsep)[0] == str(CODE_ROOT)
+
+
+def test_nothing_is_recorded_after_shutdown(ctx, qtbot) -> None:
+    """A task that finishes while the app closes reports back after the database is closed:
+    the queue must neither write to it nor wake pages that would read it."""
+    import threading
+
+    gate = threading.Event()
+    ctx.jobs.submit_task(lambda _token, _progress: gate.wait(5), title="slow")
+    seen = []
+    ctx.jobs.job_finished.connect(lambda *args: seen.append(args))
+    threading.Timer(0.2, gate.set).start()
+    ctx.jobs.shutdown()
+    ctx.store.close()
+    qtbot.wait(200)  # the task's queued "succeeded" signal is delivered here
+    assert seen == []

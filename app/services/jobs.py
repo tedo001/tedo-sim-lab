@@ -97,6 +97,7 @@ class JobQueue(QObject):
         self._buffers: dict[str, dict[str, str]] = {}
         self._last_run_end: dict[str, ProgressEvent] = {}
         self._tasks: dict[str, tuple[TaskRunnable, CancelToken]] = {}
+        self._closed = False
         self._pool = QThreadPool(self)
         self._pool.setMaxThreadCount(4)
 
@@ -265,6 +266,10 @@ class JobQueue(QObject):
         for _runnable, token in self._tasks.values():
             token.cancel()
         self._pool.waitForDone(timeout_ms)
+        # Anything that still reports back (a task's queued signal, a late process exit) arrives
+        # after the database is closed: from here on the queue records and announces nothing.
+        self._closed = True
+        self.blockSignals(True)
 
     # Bookkeeping --------------------------------------------------------------
     def _register(self, job: Job) -> None:
@@ -275,7 +280,7 @@ class JobQueue(QObject):
 
     def _set_status(self, job: Job, status: JobStatus) -> None:
         job.status = status
-        if self._store is not None and not job.quiet:
+        if self._store is not None and not job.quiet and not self._closed:
             self._store.set_job_status(job.id, status, error=mask_text(job.error) if job.error else None)
 
     def _finish(self, job: Job, status: JobStatus) -> None:

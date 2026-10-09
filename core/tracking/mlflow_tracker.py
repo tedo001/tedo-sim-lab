@@ -16,10 +16,37 @@ from typing import Any
 
 from core.experiment_engine.runner import Tracker
 
-__all__ = ["CompositeTracker", "MlflowTracker", "flatten"]
+__all__ = ["CompositeTracker", "MlflowTracker", "flatten", "release_mlflow_stores"]
 
 log = logging.getLogger("tedo.tracking")
 _MAX_PARAM = 500  # MLflow's limit on a parameter value
+
+
+def release_mlflow_stores() -> None:
+    """Close the SQLite connections MLflow keeps open in this process (it caches one engine per
+    database for the life of the process), so a workspace can be closed, moved or deleted; on
+    Windows an open file cannot be removed. Does nothing when MLflow was never imported."""
+    import sys
+
+    if "mlflow" not in sys.modules:
+        return
+    for module_name in ("mlflow.store.tracking.sqlalchemy_store",
+                        "mlflow.store.model_registry.sqlalchemy_store"):
+        store = getattr(sys.modules.get(module_name), "SqlAlchemyStore", None)
+        engines = getattr(store, "_engine_map", None)
+        if not isinstance(engines, dict):
+            continue
+        for engine in list(engines.values()):
+            try:
+                engine.dispose()
+            except Exception as exc:  # releasing is best effort; never fail closing the app
+                log.debug("Could not dispose an MLflow engine: %s", exc)
+        engines.clear()
+    utils = sys.modules.get("mlflow.tracking._tracking_service.utils")
+    for name in dir(utils) if utils else ():
+        cache_clear = getattr(getattr(utils, name), "cache_clear", None)
+        if callable(cache_clear):
+            cache_clear()
 
 
 def flatten(data: Mapping[str, Any], prefix: str = "") -> dict[str, str]:

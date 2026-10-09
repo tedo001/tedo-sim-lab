@@ -15,6 +15,7 @@ from core.catalog import Catalog, load_catalog
 from core.common import AppConfig, AppPaths, CredentialStore, experiment_python
 from core.common.paths import WORKSPACE_ENV
 from core.tracking import LabStore
+from core.tracking.mlflow_tracker import release_mlflow_stores
 
 from .benchmarks import BenchmarkService
 from .downloads import DownloadService
@@ -54,6 +55,7 @@ class AppContext:
         self.mlflow_ui.stop()
         self.jobs.shutdown()
         self.store.close()
+        release_mlflow_stores()
 
 
 def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialStore | None = None,
