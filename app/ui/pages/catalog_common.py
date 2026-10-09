@@ -69,6 +69,16 @@ class FilterRow(QWidget):
                 and self.first.currentData() in (None, first)
                 and self.licence.currentData() in (None, category))
 
+    def reset(self) -> None:
+        """Show everything (quietly: the caller refreshes once)."""
+        for widget in (self.search, self.first, self.licence):
+            widget.blockSignals(True)
+        self.search.clear()
+        self.first.setCurrentIndex(0)
+        self.licence.setCurrentIndex(0)
+        for widget in (self.search, self.first, self.licence):
+            widget.blockSignals(False)
+
     def connect(self, slot) -> None:  # noqa: ANN001 (any callable)
         self.search.textChanged.connect(lambda _: slot())
         self.first.currentIndexChanged.connect(lambda _: slot())

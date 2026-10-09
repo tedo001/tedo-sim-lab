@@ -49,6 +49,27 @@ def test_search_goes_to_a_page(window, qtbot) -> None:
     assert window.top_bar.search.text() == ""
 
 
+def test_search_finds_datasets_models_and_runs(window, qtbot) -> None:
+    import pytest
+    pytest.importorskip("sklearn")
+    from labs.classical_ml.presets import CLASSICAL_PRESETS
+    from tests.ui.test_experiment_service import wait_for
+
+    search = window.top_bar.search
+    search.setText("Dataset · CIFAR-100")
+    qtbot.keyClick(search, Qt.Key.Key_Return)
+    catalogue = window.page_widget("dataset_hub").views["catalogue"]
+    assert window.current_page_id() == "dataset_hub" and catalogue.selected == "cifar100"
+    search.setText("Model · LeNet-5")
+    qtbot.keyClick(search, Qt.Key.Key_Return)
+    assert window.current_page_id() == "model_zoo" and window.page_widget("model_zoo").selected == "lenet5"
+    run_id = window.ctx.experiments.launch(CLASSICAL_PRESETS[0].make())
+    wait_for(qtbot, window.ctx, run_id, ("completed", "failed"), timeout=120_000)
+    search.setText(run_id[:8])  # the run list follows new runs
+    qtbot.keyClick(search, Qt.Key.Key_Return)
+    assert window.current_page_id() == "training"
+
+
 def test_ambiguous_search_stays_put(window, qtbot) -> None:
     window.top_bar.search.setText("model")  # Model Zoo and Model Registry
     qtbot.keyClick(window.top_bar.search, Qt.Key.Key_Return)

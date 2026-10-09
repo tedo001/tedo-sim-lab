@@ -26,6 +26,7 @@ from .services.context import AppContext
 from .services.ui_state import UiState
 from .ui.pages import build_page
 from .ui.shell import Sidebar, SplitPane, TopBar
+from .ui.shell.search_index import search_entries
 
 __all__ = ["MainWindow", "WINDOW_TITLE"]
 
@@ -53,6 +54,7 @@ class MainWindow(QMainWindow):
         column.setSpacing(0)
         self.top_bar = TopBar()
         self.top_bar.page_requested.connect(self.navigate)
+        self.top_bar.entry_requested.connect(self.open_entry)
         self.top_bar.sidebar_toggle_requested.connect(self.toggle_sidebar)
         self.top_bar.split_toggle_requested.connect(self.toggle_split)
         column.addWidget(self.top_bar)
@@ -90,6 +92,9 @@ class MainWindow(QMainWindow):
             shortcut.activated.connect(slot)
 
         ctx.hardware.sampled.connect(self.top_bar.show_sample)
+        self.refresh_search()
+        ctx.experiments.run_changed.connect(lambda _: self.refresh_search())
+        ctx.downloads.imported.connect(lambda *_: self.refresh_search())
         ctx.hardware.start()
         self.navigate(NAV[0].id)
         self._restore_layout()
@@ -111,6 +116,23 @@ class MainWindow(QMainWindow):
         if page_id != self._current:
             self._current = page_id
             self.page_changed.emit(page_id)
+
+    def refresh_search(self) -> None:
+        self.top_bar.set_entries(search_entries(self.ctx))
+
+    def open_entry(self, key: str) -> None:
+        """Open a search entry: a page, a dataset card, a model card or a run."""
+        kind, _, ident = key.partition(":")
+        if kind == "page":
+            self.navigate(ident)
+        elif kind == "dataset":
+            self.navigate("dataset_hub")
+            self.page_widget("dataset_hub").show_view("catalogue").select(ident)
+        elif kind == "model":
+            self.navigate("model_zoo")
+            self.page_widget("model_zoo").select(ident)
+        elif kind == "run":
+            self.ctx.experiments.show(ident, self.navigate)
 
     def current_page_id(self) -> str:
         return self._current

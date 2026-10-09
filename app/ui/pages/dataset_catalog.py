@@ -98,6 +98,7 @@ class DatasetCatalog(QWidget):
         self._show()
 
     def select(self, card_id: str) -> None:
+        self.filters.reset()
         self.selected = card_id
         self.refresh()
 

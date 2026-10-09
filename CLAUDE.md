@@ -2,8 +2,8 @@
 
 A Qt (PySide6) desktop workbench for ML and computer-vision research. An experiment is a
 file (`experiment.yaml`); it runs in the background, is tracked in SQLite and MLflow,
-and leaves a run folder it can be reproduced from. V0.1 is being built in phases
-(see **Build status** at the end).
+and leaves a run folder it can be reproduced from. V0.1 was built in ten phases (see **Build
+status** at the end); what comes next is in `ROADMAP.md`.
 
 ## Licence rule (from the owner — always follow)
 
@@ -61,6 +61,7 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/navigation.py` | `NAV`: every page in sidebar order. Drives sidebar, search, placeholders, smoke test |
 | `app/main_window.py` | Top bar + sidebar + splitter (main page stack, optional split pane); Ctrl+B / Ctrl+\\ |
 | `app/ui/shell/` | `TopBar`, `Sidebar` (collapses to an icon rail), `SplitPane` (second page, own instances) |
+| `app/ui/shell/search_index.py` | Ctrl+K entries: pages, dataset and model cards, recent runs (`page:`/`dataset:`/`model:`/`run:` keys, opened by `MainWindow.open_entry`) |
 | `app/services/ui_state.py` | `UiState`: remembered layout via `QSettings` (per person, never in a project) |
 | `app/ui/pages/` | One module per built page; `PAGE_FACTORIES` maps id → page class |
 | `app/ui/widgets/` | Kit: `Page`, `PageHead`, `Card`, `Pill`, `KeyValues`, `ElidedLabel`/`PathLabel`, `DataTable`, `MarkdownView` |
@@ -271,4 +272,7 @@ Design for it now:
       Face / Roboflow search and licence-checked downloads over their REST APIs), Terminal, Jupyter
       (notebooks from runs, links, viewer, Jupyter Lab with a token), Google Colab (notebook export,
       results import by event replay); Windows: the app releases its workspace on close
-- [ ] Phase 10 — hardening, README, ROADMAP
+- [x] Phase 10 — Ctrl+K search over pages, datasets, models and runs; Windows hardening (the
+      app releases its workspace on close, late task results never touch a closed database);
+      README with screenshots (`docs/images/`), `ROADMAP.md`, `docs/guide.md` (a tour of every
+      page); Markdown views draw images fitted to the page

@@ -1,4 +1,5 @@
-"""The title row: sidebar toggle, wordmark, Ctrl+K page search, split view and settings.
+"""The title row: sidebar toggle, wordmark, Ctrl+K search (pages, datasets, models, runs),
+split view and settings.
 
 Search covers pages in this build; datasets, models and runs join it once
 their registries exist (build phases 2 and 7).
@@ -31,6 +32,8 @@ def _tool_button(name: str, tooltip: str) -> QToolButton:
 
 class TopBar(QFrame):
     page_requested = Signal(str)
+    #: A search entry's key ("dataset:mnist", "run:<id>", ...); pages come as page_requested.
+    entry_requested = Signal(str)
     sidebar_toggle_requested = Signal()
     split_toggle_requested = Signal()
 
@@ -38,7 +41,7 @@ class TopBar(QFrame):
         super().__init__(parent)
         self.setObjectName("TopBar")
         self.setFixedHeight(SIZES["topbar_height"])
-        self._titles = {spec.title: spec.id for spec in NAV}
+        self._entries: dict[str, str] = {spec.title: f"page:{spec.id}" for spec in NAV}
 
         row = QHBoxLayout(self)
         row.setContentsMargins(10, 0, 12, 0)
@@ -53,14 +56,17 @@ class TopBar(QFrame):
 
         self.search = QLineEdit()
         self.search.setObjectName("GlobalSearch")
-        self.search.setPlaceholderText("Go to page…   Ctrl+K")
+        self.search.setPlaceholderText("Search…   Ctrl+K")
+        self.search.setToolTip("Pages, datasets, models and runs (Ctrl+K)")
         self.search.setMinimumWidth(200)
         self.search.setMaximumWidth(360)
         self.search.setClearButtonEnabled(True)
         self.search.setFocusPolicy(Qt.FocusPolicy.ClickFocus)  # Ctrl+K or a click, not on startup
         self.search.addAction(QAction(icon("search", COLORS["text_faint"], 14), "", self.search),
                               QLineEdit.ActionPosition.LeadingPosition)
-        completer = QCompleter(QStringListModel(sorted(self._titles)), self.search)
+        self._model = QStringListModel(sorted(self._entries))
+        completer = QCompleter(self._model, self.search)
+        completer.setMaxVisibleItems(12)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         completer.setFilterMode(Qt.MatchFlag.MatchContains)
         completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
@@ -125,15 +131,24 @@ class TopBar(QFrame):
         self.search.setFocus(Qt.FocusReason.ShortcutFocusReason)
         self.search.selectAll()
 
+    def set_entries(self, entries: list[tuple[str, str]]) -> None:
+        """Everything the search finds, as (label, key); see ``search_index.py``."""
+        self._entries = dict(entries)
+        self._model.setStringList(sorted(self._entries, key=str.lower))
+
     def _go(self, text: str) -> None:
-        """Open the page whose title is ``text`` (or the only one containing it)."""
+        """Open the entry whose label is ``text`` (or the only one containing it)."""
         wanted = text.strip().lower()
         if not wanted:
             return
-        exact = [page_id for title, page_id in self._titles.items() if title.lower() == wanted]
-        partial = [page_id for title, page_id in self._titles.items() if wanted in title.lower()]
+        exact = [key for title, key in self._entries.items() if title.lower() == wanted]
+        partial = [key for title, key in self._entries.items() if wanted in title.lower()]
         matches = exact or partial
         if len(matches) == 1:
-            self.page_requested.emit(matches[0])
+            kind, _, ident = matches[0].partition(":")
+            if kind == "page":
+                self.page_requested.emit(ident)
+            else:
+                self.entry_requested.emit(matches[0])
             self.search.clear()
             self.search.clearFocus()

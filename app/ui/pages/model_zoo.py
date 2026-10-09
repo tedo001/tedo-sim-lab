@@ -113,6 +113,11 @@ class ModelZooPage(Page):
             self.table.blockSignals(False)
         self._show()
 
+    def select(self, card_id: str) -> None:
+        self.filters.reset()
+        self.selected = card_id
+        self.refresh()
+
     def _selection_changed(self) -> None:
         rows = self.table.selectionModel().selectedRows()
         if rows:

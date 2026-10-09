@@ -5,36 +5,30 @@ Qt for Python (PySide6). Pick a dataset, a model, hyperparameters and a device; 
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
-> **Status: V0.1 in development — build phase 9 of 10.** The window and every page, the live
-> hardware monitor and dashboard, the dataset/model/plugin catalogue with licences, the lab
-> database, and two kinds of experiment end to end:
->
-> - **Image classification**: download MNIST, Fashion-MNIST or CIFAR-10, train SimpleCNN,
->   LeNet-5, ResNet-18 or TinyVGG in the background, open a trained TinyVGG in the CNN Explainer.
-> - **Classical ML**: logistic and linear regression, decision tree, random forest, gradient
->   boosting, XGBoost, SVM, k-NN, naive Bayes, k-means and PCA on scikit-learn's tables or your own
->   CSV file, with preprocessing, feature selection, cross-validation and grid or random search;
->   results with ROC and precision-recall curves, permutation importance, SHAP values (when `shap`
->   is installed), predicted-vs-actual and cluster/projection plots.
-> - **Data and models**: the Dataset Hub (23 datasets with their licences, sources and access
->   requirements; downloads only where the terms allow), an Ontology Explorer (the ImageNet-1k classes
->   in WordNet, names only, never ImageNet images), a COCO annotation inspector for files you already
->   have, the Model Zoo (27 permissively licensed models, their weights' own terms, and what the
->   licence policy keeps out) and a Model Registry (versions of models trained here, mirrored into
->   MLflow's registry).
-> - **Measuring and reporting**: Benchmarking (latency and throughput by batch size and device, in the
->   worker process), Compare Experiments (up to eight runs side by side with overlaid curves) and
->   reports exported as CSV, JSON, Markdown or PDF.
-> - **Designing and tools**: the Deep Learning builder (a network layer by layer with live shapes,
->   parameter count, diagram and the PyTorch code, trained like any other model), the Plugin Store
->   (connect Kaggle, Hugging Face and Roboflow with credentials in the OS keyring; search and download
->   with each item's licence shown first; gated and private items are never downloaded), a Terminal in
->   the workspace, Jupyter notebooks started from runs (and Jupyter Lab on request), and Google Colab
->   (an experiment as a Colab notebook; its results zip imports back as a run).
->
-> Describe either in the Experiment Builder (or start from a lab preset), follow it on the Training
-> page, evaluate and reproduce it, and find every run in MLflow. Pages that are not built say which
-> phase or release delivers them. See [CLAUDE.md](CLAUDE.md) for the architecture and build status.
+**V0.1.** Every lab page below works end to end; pages for later releases (NLP, audio, multimodal,
+quantum, simulation) say which release brings them. See [ROADMAP.md](ROADMAP.md) for what comes next,
+[docs/guide.md](docs/guide.md) for a tour of every page, and [CLAUDE.md](CLAUDE.md) for the
+architecture and the project's rules.
+
+![Home](docs/images/home.png)
+
+## What it does
+
+| Area | Pages | What you get |
+| --- | --- | --- |
+| Research labs | Computer Vision, CNN Explainer, Classical ML, Deep Learning | Presets for MNIST, Fashion-MNIST, CIFAR-10/100 with SimpleCNN, LeNet-5, ResNet-18 and TinyVGG; a layer-by-layer explainer of a trained TinyVGG; eleven scikit-learn/XGBoost models on built-in tables or your CSV (CV, search, ROC/PR, permutation importance, SHAP); a layer-stack network designer with live shapes and generated PyTorch code |
+| Data & models | Dataset Hub, Model Zoo, Model Registry | 23 datasets and 28 models with licences checked at their sources and downloads only where the terms allow; the ImageNet-1k classes in WordNet (names only); a COCO annotation inspector; versions of your trained models, mirrored into MLflow's registry |
+| Experimentation | Experiment Builder, Training, Evaluation, Benchmarking, Compare, MLflow | An experiment is an `experiment.yaml`; it runs in a background worker (cancel, resume, early stopping, AMP, checkpoints), is tracked in SQLite and MLflow, snapshotted for reproduction, re-scored on any split, timed by batch size, compared eight at a time and exported as CSV, JSON, Markdown or PDF |
+| Tools | Terminal, Jupyter Notebook, Google Colab, Plugin Store, Hardware Monitor, Documentation | A shell in the workspace; notebooks started from runs and Jupyter Lab on request; Colab notebooks whose results import back as runs; Kaggle, Hugging Face and Roboflow with keyring credentials and licence-first downloads; live CPU/RAM/GPU use |
+
+| | |
+| --- | --- |
+| ![Classical ML](docs/images/classical-ml.png) | ![Training](docs/images/training.png) |
+| ![Deep Learning](docs/images/deep-learning.png) | ![CNN Explainer](docs/images/cnn-explainer.png) |
+| ![Plugin Store](docs/images/plugin-store.png) | ![Split view](docs/images/split-view.png) |
+
+Everything long runs outside the window: training, evaluation and benchmarks in a worker process,
+downloads and searches on background threads. The UI never waits.
 
 ## Quick start: one file
 
@@ -71,8 +65,8 @@ pip install -e ".[dev]"
 ```
 
 Optional extras: `[cv]` (ONNX, ONNX Runtime, Transformers for RT-DETR), `[ocr]` (PaddleOCR, EasyOCR,
-Tesseract), `[nlp]` (Transformers, Hugging Face Hub), `[integrations]` (Kaggle,
-Roboflow, Jupyter, SHAP). The app starts without any of them.
+Tesseract), `[nlp]` (Transformers, Hugging Face Hub), `[integrations]` (Jupyter Lab, nbformat,
+SHAP). The app starts without any of them; the Jupyter page installs Jupyter Lab when you ask.
 
 On Linux, Qt also needs: `libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3`.
 

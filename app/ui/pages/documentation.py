@@ -65,4 +65,4 @@ class DocumentationPage(Page):
             text = path.read_text(encoding="utf-8")
         except OSError as exc:
             text = f"Could not read {path.name}: {exc.strerror}"
-        self.view.set_markdown(text)
+        self.view.set_markdown(text, base=path.parent)
