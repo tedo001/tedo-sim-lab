@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from core.common import distribution_version, mlflow_tracking_uri
 from core.common.cancel import CancelToken, ProgressFn
+from core.tracking.mlflow_tracker import release_mlflow_stores
 
 from ...services.context import AppContext
 from ..icons import icon
@@ -32,11 +33,16 @@ def read_mlflow_runs(tracking_uri: str, limit: int = 100,
 
     if cancel is not None:  # importing MLflow takes seconds: the app may be closing by now, and
         cancel.raise_if_cancelled()  # must not find mlflow.db opened again after it let go of it
-    client = MlflowClient(tracking_uri)
-    experiments = {e.experiment_id: e.name for e in client.search_experiments()}
-    if not experiments:
-        return []
-    runs = client.search_runs(list(experiments), max_results=limit, order_by=["attributes.start_time DESC"])
+    try:
+        client = MlflowClient(tracking_uri)
+        experiments = {e.experiment_id: e.name for e in client.search_experiments()}
+        runs = client.search_runs(list(experiments), max_results=limit,
+                                  order_by=["attributes.start_time DESC"]) if experiments else []
+    finally:
+        # Opening a new store (creating MLflow's tables) can outlast the app's wait for its tasks:
+        # a read that finishes after the app let go of mlflow.db lets go of it too.
+        if cancel is not None and cancel.cancelled:
+            release_mlflow_stores()
     return [{"experiment": experiments.get(run.info.experiment_id, "?"), "run": run.info.run_id,
              "lab_run": run.data.tags.get("tedo.run_id", ""), "status": run.info.status,
              "started": run.info.start_time, "test_acc": run.data.metrics.get("test_acc"),

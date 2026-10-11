@@ -110,7 +110,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     return code
 
 
-def remove_tree(folder: Path, attempts: int = 6) -> list[str]:
+def remove_tree(folder: Path, attempts: int = 20) -> list[str]:
     """Delete ``folder``; returns what could not be removed. Windows keeps a file locked for a
     moment after the last handle closes (and until unreferenced objects are collected), so it
     retries briefly."""

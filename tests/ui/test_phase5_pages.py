@@ -6,7 +6,7 @@ import pytest
 
 from app.services.mlflow_ui import MlflowUi, free_port
 from app.ui.pages.evaluation import EvaluationPage
-from app.ui.pages.mlflow_page import MlflowPage
+from app.ui.pages.mlflow_page import MlflowPage, read_mlflow_runs
 from core.common import AppConfig
 from tests.fixtures.fake_vision import write_fake_mnist
 
@@ -77,6 +77,22 @@ def test_mlflow_page_lists_runs(ctx, qtbot) -> None:
     assert page.table.rowCount() == 1 and page.table.item(0, 4).text() == "0.9800"
     page.show_runs([], "boom")
     assert "Could not read MLflow: boom" in page.message.text()
+
+
+def test_a_read_that_ends_after_closing_lets_go_of_mlflow_db(tmp_path) -> None:
+    """The app may close while a read is opening the store: the read then releases it itself."""
+    from mlflow.store.tracking.sqlalchemy_store import SqlAlchemyStore
+
+    class ClosedDuringRead:  # passes the early check, then the app closes
+        cancelled = True
+
+        def raise_if_cancelled(self) -> None:
+            pass
+
+    uri = f"sqlite:///{(tmp_path / 'mlflow.db').as_posix()}"
+    assert read_mlflow_runs(uri, cancel=ClosedDuringRead()) == []
+    assert not SqlAlchemyStore._engine_map
+    (tmp_path / "mlflow.db").unlink()  # nothing holds it open (Windows refuses otherwise)
 
 
 def test_mlflow_ui_reports_a_failed_start(ctx, qtbot, tmp_path) -> None:
