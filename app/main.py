@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import sys
 import tempfile
@@ -94,6 +95,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = run_smoke(window, app, uncaught=uncaught, screenshot_dir=args.screenshots)
         ctx.close()
         print(report.summary())
+        target = os.environ.get("TEDO_SMOKE_REPORT")  # a windowed .exe has no console to print to
+        if target:
+            Path(target).write_text(f"{report.summary()}\nworkspace: {paths.workspace}\n", encoding="utf-8")
         if report.ok and args.workspace is None:  # keep the workspace (and its log) on failure
             setup_logging(None, console=True)       # release the log file (Windows locks it)
             for problem in remove_tree(paths.workspace):

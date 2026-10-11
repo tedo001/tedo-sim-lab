@@ -44,8 +44,16 @@ jobs:
       - name: The built app opens every page
         shell: pwsh
         run: |
+          $env:TEDO_SMOKE_REPORT = "$env:RUNNER_TEMP\smoke-report.txt"
+          $env:TEMP = $env:TMP = "$env:RUNNER_TEMP\smoke"
+          New-Item -ItemType Directory -Force $env:TEMP | Out-Null
           $p = Start-Process dist\TEDO-AI-Lab\TEDO-AI-Lab.exe -ArgumentList "--smoke-test" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "smoke test failed with exit code $($p.ExitCode)" }
+          if (Test-Path $env:TEDO_SMOKE_REPORT) { Get-Content $env:TEDO_SMOKE_REPORT }
+          if ($p.ExitCode -ne 0) {
+            Get-ChildItem "$env:TEMP\tedo-smoke-*\logs\app.log" -ErrorAction SilentlyContinue |
+              ForEach-Object { "--- $_"; Get-Content $_ -Tail 120 }
+            throw "smoke test failed with exit code $($p.ExitCode)"
+          }
           "{0:N0} MB" -f ((Get-ChildItem dist\TEDO-AI-Lab -Recurse | Measure-Object Length -Sum).Sum / 1MB)
 
       - name: Inno Setup
