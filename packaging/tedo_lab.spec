@@ -20,7 +20,7 @@ import os
 import sys
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_all, collect_submodules, copy_metadata
+from PyInstaller.utils.hooks import collect_all, copy_metadata
 
 ROOT = Path(os.getcwd()).resolve()
 APP = "TEDO-AI-Lab"
@@ -28,9 +28,16 @@ ICON = ROOT / "packaging" / "tedo-lab.ico"
 
 # The lab's own packages: pages, plugins and runners are reached through strings
 # (NAV, plugin.yaml, runners.yaml), so they are listed rather than discovered.
+# Found by walking the source files, not by importing them: collect_submodules imports in a
+# helper process, which cannot see the repository when it is not pip-installed (as on CI) and
+# then silently returns nothing.
 hidden = []
 for package in ("app", "core", "labs", "plugins"):
-    hidden += [package] + collect_submodules(package, filter=lambda name: ".tests" not in name)
+    for path in sorted((ROOT / package).rglob("*.py")):
+        parts = path.relative_to(ROOT).with_suffix("").parts
+        if "__pycache__" in parts:
+            continue
+        hidden.append(".".join(parts[:-1] if parts[-1] == "__init__" else parts))
 hidden += ["sqlalchemy.dialects.sqlite", "keyring.backends", "keyring.backends.Windows",
            "keyring.backends.macOS", "keyring.backends.SecretService", "keyring.backends.fail"]
 

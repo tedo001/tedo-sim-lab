@@ -40,6 +40,9 @@ def run_smoke(window: MainWindow, app: QApplication, *, uncaught: list[str],
               screenshot_dir: Path | None = None) -> SmokeReport:
     """Visit every page; ``uncaught`` is the list the excepthook appends to."""
     report = SmokeReport()
+    # A card, plugin or runner that did not load is a broken build (e.g. a module missing from
+    # the installed app), even though every page still opens around it.
+    report.errors += [f"catalogue: {problem}" for problem in window.ctx.catalog.errors]
     window.show()
     app.processEvents()
     if screenshot_dir is not None:
