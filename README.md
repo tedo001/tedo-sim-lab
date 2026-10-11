@@ -33,12 +33,13 @@ downloads and searches on background threads. The UI never waits.
 
 ## Install on Windows
 
-Download `TEDO-AI-Lab-<version>-setup.exe` from the repository's Releases, or from the latest
-*Windows installer* run in Actions, and run it. No administrator rights are needed.
+Download `TEDO-AI-Lab-<version>-win64.msi` from the repository's Releases, or from the latest
+*Windows installer* run in Actions, and double-click it. No administrator rights are needed.
+The installer is built only with MIT, Apache-2.0 and PSF licensed tools (cx_Freeze).
 
 After installing, open Settings → Experiment Python → **Make the environment** once. This installs PyTorch for training (the CUDA build with an NVIDIA GPU); everything else works straight away.
 
-To build the setup yourself, see [packaging/INSTALLER.md](packaging/INSTALLER.md).
+To build the installer yourself, see [packaging/INSTALLER.md](packaging/INSTALLER.md).
 
 ## Quick start: one file
 

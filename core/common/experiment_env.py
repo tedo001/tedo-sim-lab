@@ -2,7 +2,7 @@
 benchmarks), the hardware probe and plugin installs.
 
 From a source checkout it is simply the app's own interpreter. The installed app (a
-PyInstaller bundle) cannot pip-install into itself and does not ship PyTorch, so it uses a
+cx_Freeze build) cannot pip-install into itself and does not ship PyTorch, so it uses a
 separate environment: one a person points it at in Settings, or one the lab creates on request
 in a per-user folder (never the install folder) from a Python 3.11+ found on the machine, with
 PyTorch (the CUDA build when an NVIDIA GPU is present) and ``configs/experiment-requirements.txt``.
@@ -38,7 +38,7 @@ NEEDED = (("torch", "training image models"), ("sklearn", "the Classical ML lab"
 
 
 def frozen() -> bool:
-    """True inside the installed (PyInstaller) app."""
+    """True inside the installed (cx_Freeze) app."""
     return bool(getattr(sys, "frozen", False))
 
 

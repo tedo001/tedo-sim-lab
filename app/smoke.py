@@ -8,6 +8,7 @@ errors raised later inside slots. ``--screenshots`` saves one PNG per page.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -15,6 +16,8 @@ from PySide6.QtWidgets import QApplication
 
 from .main_window import MainWindow
 from .navigation import NAV
+
+log = logging.getLogger("tedo.smoke")
 
 __all__ = ["SmokeReport", "run_smoke"]
 
@@ -56,6 +59,7 @@ def run_smoke(window: MainWindow, app: QApplication, *, uncaught: list[str],
                                    f"{window.current_page_id()!r}")
         except Exception as exc:  # report every page, not just the first failure
             report.errors.append(f"{spec.id}: {type(exc).__name__}: {exc}")
+            log.error("Page %s failed to open", spec.id, exc_info=exc)  # the traceback, in app.log
             continue
         report.visited.append(spec.id)
         if screenshot_dir is not None:

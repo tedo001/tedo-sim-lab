@@ -1,0 +1,4 @@
+# Build tools of the Windows app and its .msi (packaging/freeze.py), never imported by the lab.
+# Their licences, and those of what they pull in on Windows, are in
+# configs/dependency_licences.yaml (build_tools); tests/test_dependency_licences.py checks them.
+cx_Freeze>=8.7

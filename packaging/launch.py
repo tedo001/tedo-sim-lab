@@ -1,5 +1,5 @@
-"""Entry point of the installed app (PyInstaller runs this file): start the lab's window with
-the command line it was given (``--workspace``, ``--smoke-test`` …)."""
+"""Entry point of the installed app (cx_Freeze builds TEDO-AI-Lab.exe from this file): start the
+lab's window with the command line it was given (``--workspace``, ``--smoke-test`` …)."""
 
 import sys
 

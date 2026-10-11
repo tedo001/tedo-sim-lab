@@ -11,18 +11,21 @@ The interface uses Qt through PySide6 under the GNU Lesser General Public Licens
 (`LGPL-3.0.txt`, which incorporates `GPL-3.0.txt`).
 
 - The Qt and PySide6 libraries are separate, unmodified shared libraries inside the
-  installation folder (`_internal/PySide6/`). You may replace them with your own builds of the
+  installation folder (`lib/PySide6/`). You may replace them with your own builds of the
   same versions; the application loads whatever libraries are there.
 - Source code: <https://code.qt.io/cgit/pyside/pyside-setup.git/> and
   <https://download.qt.io/official_releases/QtForPython/> (Qt for Python), and
   <https://download.qt.io/official_releases/qt/> (Qt).
 - The installed version is shown in the app's status bar ("Qt x.y.z").
 
-## PyInstaller bootloader — GPL-2.0-or-later with the bootloader exception
+## The launcher and the Python runtime
 
-The small program that starts the bundle is PyInstaller's bootloader. Its licence includes an
-exception that allows distributing it with programs under any licence; PyInstaller itself is a
-build tool and is not distributed. <https://pyinstaller.org/en/stable/license.html>
+- `TEDO-AI-Lab.exe`, the small program that starts the app, comes from freeze-core (MIT) through
+  cx_Freeze (PSF-2.0); its notice is `frozen_application_license.txt` in the installation
+  folder. cx_Freeze and python-msilib (PSF-2.0), which make the app folder and the `.msi`, are
+  build tools and are not distributed.
+- The Python runtime and standard library: Python Software Foundation License 2.0
+  (<https://docs.python.org/3/license.html>).
 
 ## Bundled assets
 

@@ -1,4 +1,4 @@
-# What the installed app's window bundles (packaging/tedo_lab.spec): pyproject.toml's dependencies
+# What the installed app's window bundles (packaging/freeze.py): pyproject.toml's dependencies
 # without the training-only ones (torch, torchvision, xgboost, OpenCV, matplotlib), which live in the
 # experiment Python. Kept in step by tests/test_packaging.py.
 PySide6-Essentials>=6.6

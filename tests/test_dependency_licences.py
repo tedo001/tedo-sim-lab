@@ -62,3 +62,18 @@ def test_banned_packages_are_absent() -> None:
 
 def test_table_has_no_stale_entries() -> None:
     assert set(LICENCES) <= set(declared()), set(LICENCES) - set(declared())
+
+
+BUILD_TOOLS = {normalise(name): entry for name, entry in yaml.safe_load(
+    (ROOT / "configs" / "dependency_licences.yaml").read_text())["build_tools"].items()}
+
+
+def test_the_installer_is_built_with_permissive_tools_only() -> None:
+    """The Windows app and its .msi are made with MIT/Apache/PSF tools; no exceptions here."""
+    lines = (ROOT / "packaging" / "requirements-build.txt").read_text().splitlines()
+    tools = {normalise(Requirement(line).name) for line in lines if line.strip() and not line.startswith("#")}
+    assert tools and tools <= set(BUILD_TOOLS)
+    for name, entry in BUILD_TOOLS.items():
+        assert permissive(entry["spdx"]) and "exception" not in entry, name
+    for banned in ("pyinstaller", "nuitka", "py2exe"):
+        assert banned not in BUILD_TOOLS

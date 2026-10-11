@@ -1,8 +1,9 @@
 name: Windows installer
 
-# Builds dist\installer\TEDO-AI-Lab-<version>-setup.exe on Windows (PyInstaller builds for the
-# system it runs on), checks the built app opens every page, installs it silently and checks the
-# installed copy too. On a v* tag the setup file is attached to the GitHub release of that tag.
+# Builds dist\installer\TEDO-AI-Lab-<version>-win64.msi on Windows with cx_Freeze (it builds for
+# the system it runs on; every build tool is MIT/Apache/PSF), checks the built app opens every
+# page, installs the .msi silently and checks the installed copy too. On a v* tag the installer
+# is attached to the GitHub release of that tag.
 on:
   workflow_dispatch:
   push:
@@ -11,7 +12,7 @@ on:
     branches: [tedo]
     tags: ["v*"]
     paths: ["packaging/**", ".github/workflows/installer.yml", "core/common/paths.py",
-            "core/common/experiment_env.py"]
+            "core/common/experiment_env.py", "app/smoke.py"]
 
 concurrency:
   group: installer-${{ github.ref }}
@@ -33,13 +34,15 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: packaging/requirements-window.txt
+          cache-dependency-path: |
+            packaging/requirements-window.txt
+            packaging/requirements-build.txt
 
-      - name: The window's libraries and PyInstaller
-        run: pip install -r packaging\requirements-window.txt pyinstaller
+      - name: The window's libraries and cx_Freeze
+        run: pip install -r packaging\requirements-window.txt -r packaging\requirements-build.txt
 
       - name: Build TEDO-AI-Lab.exe
-        run: pyinstaller packaging\tedo_lab.spec --noconfirm --clean
+        run: python packaging\freeze.py build_exe
 
       - name: The built app opens every page
         shell: pwsh
@@ -56,32 +59,37 @@ jobs:
           }
           "{0:N0} MB" -f ((Get-ChildItem dist\TEDO-AI-Lab -Recurse | Measure-Object Length -Sum).Sum / 1MB)
 
-      - name: Inno Setup
+      - name: The installer (.msi)
         shell: pwsh
         run: |
-          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
-          $version = python -c "from app import __version__; print(__version__)"
-          & $iscc "/DAppVersion=$version" packaging\installer.iss
-          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+          python packaging\freeze.py bdist_msi --skip-build
+          if ($LASTEXITCODE -ne 0) { throw "bdist_msi failed" }
           Get-ChildItem dist\installer
 
       - name: Install silently and check the installed app
         shell: pwsh
         run: |
-          $setup = (Get-ChildItem dist\installer\*.exe)[0].FullName
+          $msi = (Get-ChildItem dist\installer\*.msi)[0].FullName
           $target = "$env:RUNNER_TEMP\tedo-lab-installed"
-          $p = Start-Process $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/DIR=`"$target`"", "/LOG=`"$env:RUNNER_TEMP\setup.log`"" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { Get-Content "$env:RUNNER_TEMP\setup.log" -Tail 40; throw "setup failed with exit code $($p.ExitCode)" }
+          $log = "$env:RUNNER_TEMP\msi.log"
+          $p = Start-Process msiexec.exe -ArgumentList "/i", "`"$msi`"", "/qn", "/norestart", "MSIINSTALLPERUSER=1", "TARGETDIR=`"$target`"", "/l*v", "`"$log`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content $log -Tail 60; throw "msiexec failed with exit code $($p.ExitCode)" }
+          $env:TEDO_SMOKE_REPORT = "$env:RUNNER_TEMP\installed-smoke.txt"
           $p = Start-Process "$target\TEDO-AI-Lab.exe" -ArgumentList "--smoke-test" -Wait -PassThru
+          if (Test-Path $env:TEDO_SMOKE_REPORT) { Get-Content $env:TEDO_SMOKE_REPORT }
           if ($p.ExitCode -ne 0) { throw "the installed app failed its smoke test ($($p.ExitCode))" }
           if (-not (Test-Path "$target\licences\THIRD-PARTY-NOTICES.md")) { throw "licence notices missing" }
+          if (-not (Test-Path "$target\lab-code\core\common\paths.py")) { throw "lab-code missing" }
           "Installed and checked: $target"
+          $p = Start-Process msiexec.exe -ArgumentList "/x", "`"$msi`"", "/qn", "/norestart" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "uninstall failed with exit code $($p.ExitCode)" }
+          if (Test-Path "$target\TEDO-AI-Lab.exe") { throw "uninstall left the app behind" }
+          "Uninstalled cleanly"
 
       - uses: actions/upload-artifact@v4
         with:
           name: TEDO-AI-Lab-setup
-          path: dist/installer/*.exe
+          path: dist/installer/*.msi
           retention-days: 30
 
       - name: Attach to the release
@@ -91,5 +99,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "${{ github.ref_name }}"
-          gh release view $tag 2>$null; if ($LASTEXITCODE -ne 0) { gh release create $tag --title "TEDO AI Research Lab $tag" --notes "Windows setup: download TEDO-AI-Lab-*-setup.exe below." }
-          gh release upload $tag (Get-ChildItem dist\installer\*.exe).FullName --clobber
+          gh release view $tag 2>$null; if ($LASTEXITCODE -ne 0) { gh release create $tag --title "TEDO AI Research Lab $tag" --notes "Windows installer: download TEDO-AI-Lab-*-win64.msi below." }
+          gh release upload $tag (Get-ChildItem dist\installer\*.msi).FullName --clobber

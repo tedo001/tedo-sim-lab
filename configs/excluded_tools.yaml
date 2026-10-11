@@ -12,3 +12,13 @@ excluded:
     url: https://www.riverbankcomputing.com/software/pyqt/
     reason: Copyleft (GPL-3.0); the app uses PySide6 (LGPL-3.0, the documented exception) as a
       separate, replaceable library.
+  - name: PyInstaller
+    licence: GPL-2.0-or-later (bootloader exception)
+    url: https://pyinstaller.org/en/stable/license.html
+    reason: Copyleft, even though its bootloader exception allows shipping it; the Windows app is
+      built with cx_Freeze (PSF-2.0) and its launcher freeze-core (MIT) instead.
+  - name: Inno Setup
+    licence: Inno Setup License (its own terms)
+    url: https://jrsoftware.org/files/is/license.txt
+    reason: Neither MIT nor Apache-2.0; the installer is a Windows Installer package (.msi) written
+      by cx_Freeze with python-msilib (PSF-2.0).

@@ -65,3 +65,15 @@ packages:
   pytest: {spdx: MIT}
   pytest-qt: {spdx: MIT}
   ruff: {spdx: MIT}
+
+# Tools that build the Windows app and its .msi installer (packaging/freeze.py,
+# packaging/requirements-build.txt) and what they install on Windows. Never imported by the lab;
+# held to the same policy, without exceptions. PyInstaller (GPL-2.0 bootloader with an exception)
+# and Inno Setup (its own licence) were replaced by these for that reason.
+build_tools:
+  cx_Freeze: {spdx: PSF-2.0, role: freezes the app; writes the .msi}
+  freeze-core: {spdx: MIT, role: the launcher (TEDO-AI-Lab.exe) shipped inside the app}
+  lief: {spdx: Apache-2.0, role: reads and edits Windows executables during the build}
+  python-msilib: {spdx: PSF-2.0, role: "msilib for Python 3.13+ (3.11 and 3.12 have it built in)"}
+  setuptools: {spdx: MIT, role: cx_Freeze's command framework}
+  packaging: {spdx: Apache-2.0 OR BSD-2-Clause, role: version parsing}

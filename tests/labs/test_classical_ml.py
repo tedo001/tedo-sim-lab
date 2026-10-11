@@ -203,3 +203,17 @@ def test_presets_are_valid_and_runnable(workspace) -> None:
         if spec.model.model == "xgboost" and not is_installed("xgboost"):
             continue
         assert runner.validate(spec) == [], preset.id
+
+
+def test_a_model_library_that_does_not_import_is_a_problem_not_a_crash(workspace, monkeypatch) -> None:
+    """The installed app decides from package metadata; a library that is described but cannot
+    be imported (the window leaves XGBoost to the experiment Python) is reported, not raised."""
+    import labs.classical_ml.runner as runner_module
+
+    def missing(**_params):
+        raise ModuleNotFoundError("No module named 'xgboost'")
+
+    monkeypatch.setattr(runner_module, "is_installed", lambda name: True)
+    monkeypatch.setattr("labs.classical_ml.models.build_xgboost", missing)
+    spec = next(p for p in CLASSICAL_PRESETS if p.make().model.model == "xgboost").make()
+    assert SklearnRunner().validate(spec) == ["xgboost cannot be loaded: No module named 'xgboost'"]

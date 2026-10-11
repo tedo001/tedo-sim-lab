@@ -24,7 +24,7 @@ Ten build phases:
 ## Next: shipping
 
 - **Windows installer.** Built (`packaging/`, see [packaging/INSTALLER.md](packaging/INSTALLER.md)).
-  - A one-folder PyInstaller build of the window, wrapped in an Inno Setup wizard.
+  - A one-folder cx_Freeze build of the window in a per-user `.msi` (MIT/Apache/PSF build tools only).
   - The app makes its own experiment Python on request.
   - Next: code signing, so Windows SmartScreen does not warn, and an in-app update check.
 - **Projects.** The Code page already opens a folder as a project. It has:

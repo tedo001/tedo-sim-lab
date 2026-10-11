@@ -107,6 +107,8 @@ class SklearnRunner(ExperimentRunner):
                 builder(task=spec.task.value, seed=spec.seed, **spec.model.params)
             except (TypeError, ValueError) as exc:
                 problems.append(f"model.params: {exc}")
+            except ImportError as exc:  # metadata says installed, but it does not import here
+                problems.append(f"{spec.model.model} cannot be loaded: {exc}")
         return problems
 
     # Run -----------------------------------------------------------------------

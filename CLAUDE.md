@@ -16,10 +16,13 @@ reason. Enforced in code and tests:
 - Third-party model cards and plugins are refused at load time unless their licence is
   permissive (`tool_licence_problem`; `origin: builtin` = this project's own code).
 - The one documented exception is **PySide6 (LGPL-3.0)**: no permissive Qt binding exists.
-  PyQt6 (GPL) is not used. Keep Qt a separate, replaceable shared library (the installer is a
-  one-folder PyInstaller build for this reason; notices in `packaging/licences/`).
-- Build tools are not dependencies: PyInstaller (its bootloader ships under the GPL bootloader
-  exception) and Inno Setup make the installer the owner asked for and are never imported.
+  PyQt6 (GPL) is not used. Keep Qt a separate, replaceable shared library (the installed app is
+  one folder for this reason; notices in `packaging/licences/`).
+- **Build tools follow the same rule, with no exceptions** (the owner refused PyInstaller's
+  GPL bootloader and Inno Setup's own licence): the app is frozen with cx_Freeze (PSF-2.0; its
+  launcher freeze-core is MIT, lief Apache-2.0) and installed from a `.msi` it writes with
+  `msilib` (PSF-2.0). `build_tools` in `configs/dependency_licences.yaml` lists them; a test checks
+  `packaging/requirements-build.txt` against it.
 
 ## Git rules (from the owner — always follow)
 
@@ -117,7 +120,7 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `plugins/sources.py` | `SourcePlugin`: `search` → `RemoteItem`s (`labs/common/remote.py`: licence, size, `restriction`), `download` into `datasets|models/<source>/<id>/` with `source.json`; Kaggle, Hugging Face and Roboflow use their REST APIs (no client libraries); restricted (gated, private, unexported) items are refused |
 | `app/services/plugins.py` | `PluginService`: install / test / search / download as tasks (`finished` signal), credentials to the OS keyring; page `plugin_store.py` (+ `plugin_browse.py`) |
 | `app/ui/pages/ide/` | Code page (IDE): `tree.py` (`ProjectTree`: files, new/rename/trash inside the project), `editors.py` (`EditorTabs`, `FindBar`; Python syntax-checked on save), `console.py` (Run output with traceback jumps, terminal, git); widgets `code_editor.py` (`CodeEditor`) and `highlighters.py`; engine `app/services/project.py` (`ProjectRunner`: experiment Python, project on `PYTHONPATH`; `RecentProjects` in `QSettings`) |
-| `packaging/` | Windows installer: `tedo_lab.spec` (one-folder PyInstaller build of the window; training libraries excluded; lab sources, cards and docs in `_internal/lab-code` = frozen `CODE_ROOT`), `installer.iss` (Inno Setup), `build_installer.bat`, `requirements-window.txt` (kept in step with `pyproject.toml`), notices in `licences/`; CI workflow `.github/workflows/installer.yml` builds, smoke-tests, installs silently and tests again |
+| `packaging/` | Windows installer: `freeze.py` (cx_Freeze: `build_exe` = one-folder app, modules as files in `lib/`, data files beside them, package metadata only for what is bundled; training libraries excluded; lab sources, cards and docs in `lab-code/` beside the exe = frozen `CODE_ROOT`; `bdist_msi` = per-user `.msi`), `build_installer.bat`, `requirements-window.txt` (kept in step with `pyproject.toml`), `requirements-build.txt`, notices in `licences/`; CI workflow `.github/workflows/installer.yml` builds, smoke-tests, installs the `.msi` silently, tests again and uninstalls |
 | `core/common/experiment_env.py` | The experiment Python: find a Python 3.11+, make the per-user environment (PyTorch CUDA/CPU + `configs/experiment-requirements.txt`, kept in step with `pyproject.toml`), `describe_python` in a subprocess; `app/services/experiment_setup.py` + Settings card `experiment_python_card.py`; `AppContext.set_experiment_python` |
 | `app/services/terminal.py` | `ShellSession`: one shell process per command (PowerShell on Windows, `$SHELL`/bash elsewhere, or `terminal_shell`), built-in `cd`, history, stop; stdin closed; page `terminal.py` |
 | `app/services/jupyter.py` | `Notebooks` (list, create from a run with relative paths, link via `notebook_links`, `notebook_markdown` viewer) and `JupyterLab` (a `LocalWebUi`, like `MlflowUi`: 127.0.0.1, fresh masked token); page `jupyter_page.py` |
@@ -221,8 +224,8 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 
 ## Product direction (from the owner)
 
-After V0.1 the lab ships as a **Windows installer** (PyInstaller + Inno Setup, the way
-`tedo001/sentra` does it) and grows **IDE-like project handling**: open a local folder as a
+After V0.1 the lab ships as a **Windows installer** (a cx_Freeze app in a `.msi`; permissive
+build tools only) and grows **IDE-like project handling**: open a local folder as a
 project and manage everything in it (files, editor, terminal, git, experiments, notebooks).
 Design for it now:
 
@@ -230,10 +233,10 @@ Design for it now:
 - Keep everything a project needs inside its folder; store paths relative to it.
 - The installed app cannot pip-install into itself: experiments and plugins use a separate
   "experiment Python" environment (`python_executable`).
-- Resources are found relative to package files (works in a PyInstaller bundle); a module that reads
-  files beside itself gets them bundled at its package path by `tedo_lab.spec` (every non-.py file
-  of `core`, `labs`, `plugins`).
-- In the installed app `CODE_ROOT` is `_internal/lab-code` (plain sources only), the workspace
+- Resources are found relative to package files (works in the frozen app); a module that reads
+  files beside itself gets them bundled at its package path in `lib/` by `freeze.py` (every
+  non-.py file of `app`, `core`, `labs`, `plugins`).
+- In the installed app `CODE_ROOT` is `lab-code/` beside the exe (plain sources only), the workspace
   defaults to `~/TEDO-AI-Lab`, and the experiment Python is the per-user environment the app makes.
 
 ## Environment notes
