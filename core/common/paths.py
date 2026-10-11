@@ -8,20 +8,30 @@ at a temporary directory instead.
 
 Resolution order for the workspace: explicit argument, then the
 ``TEDO_LAB_WORKSPACE`` environment variable, then the code root when it is a
-source checkout, otherwise ``~/TEDO-AI-Lab``.
+source checkout, otherwise ``~/TEDO-AI-Lab`` (the installed app: never its own folder).
 """
 
 from __future__ import annotations
 
 import os
+import sys
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
 __all__ = ["AppPaths", "CODE_ROOT", "WORKSPACE_DIRS", "WORKSPACE_ENV"]
 
-#: The repository root: ``core/common/paths.py`` sits two levels below it.
-CODE_ROOT = Path(__file__).resolve().parents[2]
+#: The repository root: ``core/common/paths.py`` sits two levels below it. In the installed app
+#: (a PyInstaller bundle) it is the ``lab-code`` folder the bundle ships: the lab's own sources,
+#: cards and documents and nothing compiled, so an experiment Python of any version can put it
+#: on ``PYTHONPATH`` without picking up the bundle's binaries.
+def code_root(module_file: str = __file__) -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS", "")) / "lab-code"
+    return Path(module_file).resolve().parents[2]
+
+
+CODE_ROOT = code_root()
 
 WORKSPACE_ENV = "TEDO_LAB_WORKSPACE"
 

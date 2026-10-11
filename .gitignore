@@ -5,6 +5,8 @@ __pycache__/
 build/
 dist/
 .venv/
+.venv-build/
+.venv-python*-old*/
 venv/
 .pytest_cache/
 .ruff_cache/

@@ -16,7 +16,10 @@ reason. Enforced in code and tests:
 - Third-party model cards and plugins are refused at load time unless their licence is
   permissive (`tool_licence_problem`; `origin: builtin` = this project's own code).
 - The one documented exception is **PySide6 (LGPL-3.0)**: no permissive Qt binding exists.
-  PyQt6 (GPL) is not used. Keep Qt a separate, replaceable shared library.
+  PyQt6 (GPL) is not used. Keep Qt a separate, replaceable shared library (the installer is a
+  one-folder PyInstaller build for this reason; notices in `packaging/licences/`).
+- Build tools are not dependencies: PyInstaller (its bootloader ships under the GPL bootloader
+  exception) and Inno Setup make the installer the owner asked for and are never imported.
 
 ## Git rules (from the owner — always follow)
 
@@ -36,6 +39,7 @@ python -m app.main                                   # run the app
 python -m app.main --workspace D:/lab                # runtime data elsewhere
 QT_QPA_PLATFORM=offscreen python -m app.main --smoke-test [--screenshots DIR]
 pytest                                               # full suite (offscreen Qt)
+packaging\build_installer.bat                        # Windows: the setup .exe (packaging/INSTALLER.md)
 ruff check .                                         # lint
 ```
 
@@ -113,6 +117,7 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `plugins/sources.py` | `SourcePlugin`: `search` → `RemoteItem`s (`labs/common/remote.py`: licence, size, `restriction`), `download` into `datasets|models/<source>/<id>/` with `source.json`; Kaggle, Hugging Face and Roboflow use their REST APIs (no client libraries); restricted (gated, private, unexported) items are refused |
 | `app/services/plugins.py` | `PluginService`: install / test / search / download as tasks (`finished` signal), credentials to the OS keyring; page `plugin_store.py` (+ `plugin_browse.py`) |
 | `app/ui/pages/ide/` | Code page (IDE): `tree.py` (`ProjectTree`: files, new/rename/trash inside the project), `editors.py` (`EditorTabs`, `FindBar`; Python syntax-checked on save), `console.py` (Run output with traceback jumps, terminal, git); widgets `code_editor.py` (`CodeEditor`) and `highlighters.py`; engine `app/services/project.py` (`ProjectRunner`: experiment Python, project on `PYTHONPATH`; `RecentProjects` in `QSettings`) |
+| `packaging/` | Windows installer: `tedo_lab.spec` (one-folder PyInstaller build of the window; training libraries excluded; lab sources, cards and docs in `_internal/lab-code` = frozen `CODE_ROOT`), `installer.iss` (Inno Setup), `build_installer.bat`, `requirements-window.txt` (kept in step with `pyproject.toml`), notices in `licences/`; CI workflow `.github/workflows/installer.yml` builds, smoke-tests, installs silently and tests again |
 | `core/common/experiment_env.py` | The experiment Python: find a Python 3.11+, make the per-user environment (PyTorch CUDA/CPU + `configs/experiment-requirements.txt`, kept in step with `pyproject.toml`), `describe_python` in a subprocess; `app/services/experiment_setup.py` + Settings card `experiment_python_card.py`; `AppContext.set_experiment_python` |
 | `app/services/terminal.py` | `ShellSession`: one shell process per command (PowerShell on Windows, `$SHELL`/bash elsewhere, or `terminal_shell`), built-in `cd`, history, stop; stdin closed; page `terminal.py` |
 | `app/services/jupyter.py` | `Notebooks` (list, create from a run with relative paths, link via `notebook_links`, `notebook_markdown` viewer) and `JupyterLab` (a `LocalWebUi`, like `MlflowUi`: 127.0.0.1, fresh masked token); page `jupyter_page.py` |
@@ -225,7 +230,11 @@ Design for it now:
 - Keep everything a project needs inside its folder; store paths relative to it.
 - The installed app cannot pip-install into itself: experiments and plugins use a separate
   "experiment Python" environment (`python_executable`).
-- Resources are found relative to package files (works in a PyInstaller bundle).
+- Resources are found relative to package files (works in a PyInstaller bundle); a module that reads
+  files beside itself gets them bundled at its package path by `tedo_lab.spec` (every non-.py file
+  of `core`, `labs`, `plugins`).
+- In the installed app `CODE_ROOT` is `_internal/lab-code` (plain sources only), the workspace
+  defaults to `~/TEDO-AI-Lab`, and the experiment Python is the per-user environment the app makes.
 
 ## Environment notes
 

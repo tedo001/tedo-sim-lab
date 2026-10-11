@@ -39,7 +39,7 @@ def setup_logging(log_dir: Path | None, level: str = "INFO", *,
         log_dir.mkdir(parents=True, exist_ok=True)
         handlers.append(RotatingFileHandler(log_dir / "app.log", maxBytes=2_000_000,
                                             backupCount=3, encoding="utf-8"))
-    if console:
+    if console and sys.stderr is not None:  # a windowed .exe has no console streams at all
         handlers.append(logging.StreamHandler(sys.stderr))
     for handler in handlers:
         handler.setFormatter(formatter)

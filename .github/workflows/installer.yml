@@ -1,0 +1,87 @@
+name: Windows installer
+
+# Builds dist\installer\TEDO-AI-Lab-<version>-setup.exe on Windows (PyInstaller builds for the
+# system it runs on), checks the built app opens every page, installs it silently and checks the
+# installed copy too. On a v* tag the setup file is attached to the GitHub release of that tag.
+on:
+  workflow_dispatch:
+  push:
+    # Branch pushes build only when packaging changes; tags always build (GitHub does not apply
+    # path filters to tags).
+    branches: [tedo]
+    tags: ["v*"]
+    paths: ["packaging/**", ".github/workflows/installer.yml", "core/common/paths.py",
+            "core/common/experiment_env.py"]
+
+concurrency:
+  group: installer-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write  # attach the setup file to a release (tags only)
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: packaging/requirements-window.txt
+
+      - name: The window's libraries and PyInstaller
+        run: pip install -r packaging\requirements-window.txt pyinstaller
+
+      - name: Build TEDO-AI-Lab.exe
+        run: pyinstaller packaging\tedo_lab.spec --noconfirm --clean
+
+      - name: The built app opens every page
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\TEDO-AI-Lab\TEDO-AI-Lab.exe -ArgumentList "--smoke-test" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "smoke test failed with exit code $($p.ExitCode)" }
+          "{0:N0} MB" -f ((Get-ChildItem dist\TEDO-AI-Lab -Recurse | Measure-Object Length -Sum).Sum / 1MB)
+
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          $version = python -c "from app import __version__; print(__version__)"
+          & $iscc "/DAppVersion=$version" packaging\installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+          Get-ChildItem dist\installer
+
+      - name: Install silently and check the installed app
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem dist\installer\*.exe)[0].FullName
+          $target = "$env:RUNNER_TEMP\tedo-lab-installed"
+          $p = Start-Process $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/DIR=`"$target`"", "/LOG=`"$env:RUNNER_TEMP\setup.log`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content "$env:RUNNER_TEMP\setup.log" -Tail 40; throw "setup failed with exit code $($p.ExitCode)" }
+          $p = Start-Process "$target\TEDO-AI-Lab.exe" -ArgumentList "--smoke-test" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "the installed app failed its smoke test ($($p.ExitCode))" }
+          if (-not (Test-Path "$target\licences\THIRD-PARTY-NOTICES.md")) { throw "licence notices missing" }
+          "Installed and checked: $target"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TEDO-AI-Lab-setup
+          path: dist/installer/*.exe
+          retention-days: 30
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          gh release view $tag 2>$null; if ($LASTEXITCODE -ne 0) { gh release create $tag --title "TEDO AI Research Lab $tag" --notes "Windows setup: download TEDO-AI-Lab-*-setup.exe below." }
+          gh release upload $tag (Get-ChildItem dist\installer\*.exe).FullName --clobber

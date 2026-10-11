@@ -58,6 +58,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     log = setup_logging(paths.logs, args.log_level or config.log_level)
     log.info("Starting with workspace %s", paths.workspace)
 
+    from PySide6.QtGui import QIcon
     from PySide6.QtWidgets import QApplication
 
     from core.tracking import MigrationError
@@ -75,6 +76,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     app.setApplicationName("TEDO AI Research Lab")
     app.setOrganizationName("TEDO")
     apply_theme(app)
+    app.setWindowIcon(QIcon(str(Path(__file__).resolve().parent / "resources" / "tedo-lab.png")))
     try:
         ctx = build_context(paths, config, CredentialStore())
     except MigrationError as exc:

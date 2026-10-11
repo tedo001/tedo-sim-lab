@@ -23,9 +23,10 @@ Ten build phases:
 
 ## Next: shipping
 
-- **Windows installer.** PyInstaller and Inno Setup, the way `tedo001/sentra` ships:
-  - one `.exe` setup, with the app in Program Files and the data in a workspace folder you choose;
-  - first-run setup of an "experiment Python": the installed app cannot pip-install into itself, so PyTorch and plugins go there (`python_executable` is already the switch).
+- **Windows installer.** Built (`packaging/`, see [packaging/INSTALLER.md](packaging/INSTALLER.md)).
+  - A one-folder PyInstaller build of the window, wrapped in an Inno Setup wizard.
+  - The app makes its own experiment Python on request.
+  - Next: code signing, so Windows SmartScreen does not warn, and an in-app update check.
 - **Projects.** The Code page already opens a folder as a project. It has:
   - files, an editor and run;
   - a terminal;

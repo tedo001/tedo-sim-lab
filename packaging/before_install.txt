@@ -1,0 +1,22 @@
+TEDO AI Research Lab
+====================
+
+A desktop workbench for machine-learning and computer-vision research.
+
+WHERE THINGS GO
+  The program is installed in the folder you choose next. Your work never goes there:
+  datasets, runs, checkpoints, notebooks, reports and the lab's database live in a
+  workspace folder (by default "TEDO-AI-Lab" in your user folder; choose another with
+  --workspace). Uninstalling leaves the workspace untouched.
+
+TRAINING NEEDS AN "EXPERIMENT PYTHON"
+  The window is self-contained, but training runs in a separate Python environment with
+  PyTorch. After installing, open Settings > Experiment Python and press
+  "Make the environment": the lab builds it from a Python 3.11 or newer on this computer
+  (https://www.python.org/downloads/ - tick "Add python.exe to PATH"), with the CUDA build
+  of PyTorch when an NVIDIA GPU is present. This downloads a few GB once.
+
+LICENCES
+  The lab bundles Qt for Python (PySide6) under the LGPL-3.0; all other components are
+  permissively licensed (MIT, BSD, Apache-2.0). See licences\THIRD-PARTY-NOTICES.md in the
+  installation folder.

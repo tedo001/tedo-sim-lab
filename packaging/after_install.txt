@@ -1,0 +1,19 @@
+TEDO AI Research Lab is installed.
+==================================
+
+NEXT: SET UP THE EXPERIMENT PYTHON (once)
+  1. Install Python 3.11 or newer from https://www.python.org/downloads/ if you do not have
+     it (tick "Add python.exe to PATH").
+  2. Start the lab, click the gear (top right) > Settings > Experiment Python >
+     "Make the environment". It installs PyTorch (CUDA build with an NVIDIA GPU, a few GB)
+     and the lab's libraries into a folder of its own:
+       %LOCALAPPDATA%\TEDO AI Lab\experiment-python
+     Or choose a Python you already have with "Choose a Python...".
+
+  Everything else - browsing datasets and models, the CNN Explainer, the Code page, the
+  Plugin Store - works straight away.
+
+YOUR WORKSPACE
+  %USERPROFILE%\TEDO-AI-Lab, unless you start the lab with --workspace D:\somewhere
+  (the Start-menu entry can be edited to add it). Projects can be moved: paths inside are
+  stored relative to the workspace.
