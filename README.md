@@ -19,13 +19,14 @@ architecture and the project's rules.
 | Research labs | Computer Vision, CNN Explainer, Classical ML, Deep Learning | Presets for MNIST, Fashion-MNIST, CIFAR-10/100 with SimpleCNN, LeNet-5, ResNet-18 and TinyVGG; a layer-by-layer explainer of a trained TinyVGG; eleven scikit-learn/XGBoost models on built-in tables or your CSV (CV, search, ROC/PR, permutation importance, SHAP); a layer-stack network designer with live shapes and generated PyTorch code |
 | Data & models | Dataset Hub, Model Zoo, Model Registry | 23 datasets and 28 models with licences checked at their sources and downloads only where the terms allow; the ImageNet-1k classes in WordNet (names only); a COCO annotation inspector; versions of your trained models, mirrored into MLflow's registry |
 | Experimentation | Experiment Builder, Training, Evaluation, Benchmarking, Compare, MLflow | An experiment is an `experiment.yaml`; it runs in a background worker (cancel, resume, early stopping, AMP, checkpoints), is tracked in SQLite and MLflow, snapshotted for reproduction, re-scored on any split, timed by batch size, compared eight at a time and exported as CSV, JSON, Markdown or PDF |
-| Tools | Terminal, Jupyter Notebook, Google Colab, Plugin Store, Hardware Monitor, Documentation | A shell in the workspace; notebooks started from runs and Jupyter Lab on request; Colab notebooks whose results import back as runs; Kaggle, Hugging Face and Roboflow with keyring credentials and licence-first downloads; live CPU/RAM/GPU use |
+| Tools | Code (an IDE for a project folder), Terminal, Jupyter Notebook, Google Colab, Plugin Store, Hardware Monitor, Documentation | Edit and run a whole project's files with syntax colouring, run output, a terminal and git; a shell in the workspace; notebooks started from runs and Jupyter Lab on request; Colab notebooks whose results import back as runs; Kaggle, Hugging Face and Roboflow with keyring credentials and licence-first downloads; live CPU/RAM/GPU use |
 
 | | |
 | --- | --- |
 | ![Classical ML](docs/images/classical-ml.png) | ![Training](docs/images/training.png) |
 | ![Deep Learning](docs/images/deep-learning.png) | ![CNN Explainer](docs/images/cnn-explainer.png) |
 | ![Plugin Store](docs/images/plugin-store.png) | ![Split view](docs/images/split-view.png) |
+| ![Code](docs/images/code.png) | |
 
 Everything long runs outside the window: training, evaluation and benchmarks in a worker process,
 downloads and searches on background threads. The UI never waits.

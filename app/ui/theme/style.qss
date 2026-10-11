@@ -105,6 +105,7 @@ QPushButton#Segment[edge="first"] { border-top-left-radius: ${radius}px; border-
 QPushButton#Segment[edge="last"] { border-top-right-radius: ${radius}px; border-bottom-right-radius: ${radius}px; }
 QPushButton#Segment:checked { background: ${selected}; color: ${text}; border-color: ${accent}; }
 QPlainTextEdit#Code { font-family: "${mono}"; font-size: ${mono_px}px; }
+QPlainTextEdit#CodeEditor { font-family: "${mono}"; font-size: 13px; background: ${bg}; }
 QPushButton#Link { background: transparent; border: none; color: ${accent_hover}; padding: 2px 4px; }
 QPushButton#Link:hover { text-decoration: underline; }
 

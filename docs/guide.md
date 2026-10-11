@@ -119,6 +119,15 @@ environment snapshot. Open the MLflow UI from here.
 
 ## Tools
 
+**Code.** A small IDE for a whole project. Open any folder (*Open folder…*, or *Recent*).
+
+- The tree shows its files. Right-click to make a file or folder, rename, move to the trash, or show it in the file manager.
+- The editor colours Python, YAML, JSON, Markdown and TOML, numbers the lines, keeps indentation, and has Ctrl+/ to comment, Ctrl+F to find and replace, and Ctrl+S to save. Saving a Python file checks its syntax and marks the line of an error.
+- **Run** (F5) runs the current file: Python with the experiment Python (the project folder is the working folder and is on `PYTHONPATH`, so its own modules import), shell, PowerShell and batch scripts with their own interpreters. Add arguments in the box beside it. Unsaved changes are saved first.
+- The bottom panel has the run's output (double-click a traceback line to open that file at that line), a terminal in the project folder, and git: the branch and the changed files.
+
+A running program cannot be typed into (its input is closed).
+
 **Terminal.** Runs commands in the workspace:
 
 - PowerShell on Windows, bash elsewhere;

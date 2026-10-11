@@ -23,6 +23,7 @@ from .evaluation import EvaluationPage
 from .explainer import ExplainerPage
 from .hardware import HardwarePage
 from .home import HomePage
+from .ide import IdePage
 from .jupyter_page import JupyterPage
 from .mlflow_page import MlflowPage
 from .model_registry import ModelRegistryPage
@@ -43,6 +44,7 @@ PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "compare": ComparePage,
     "computer_vision": ComputerVisionPage,
     "dataset_hub": DatasetHubPage,
+    "code": IdePage,
     "colab": ColabPage,
     "jupyter": JupyterPage,
     "terminal": TerminalPage,

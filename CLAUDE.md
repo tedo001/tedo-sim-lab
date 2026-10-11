@@ -112,6 +112,8 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/ui/pages/deep_learning.py` | Deep Learning builder: dataset → input, `LayerEditor` + `StackDiagram` (`deep_learning_parts.py`), shapes table, code, Open in builder / Train now |
 | `plugins/sources.py` | `SourcePlugin`: `search` → `RemoteItem`s (`labs/common/remote.py`: licence, size, `restriction`), `download` into `datasets|models/<source>/<id>/` with `source.json`; Kaggle, Hugging Face and Roboflow use their REST APIs (no client libraries); restricted (gated, private, unexported) items are refused |
 | `app/services/plugins.py` | `PluginService`: install / test / search / download as tasks (`finished` signal), credentials to the OS keyring; page `plugin_store.py` (+ `plugin_browse.py`) |
+| `app/ui/pages/ide/` | Code page (IDE): `tree.py` (`ProjectTree`: files, new/rename/trash inside the project), `editors.py` (`EditorTabs`, `FindBar`; Python syntax-checked on save), `console.py` (Run output with traceback jumps, terminal, git); widgets `code_editor.py` (`CodeEditor`) and `highlighters.py`; engine `app/services/project.py` (`ProjectRunner`: experiment Python, project on `PYTHONPATH`; `RecentProjects` in `QSettings`) |
+| `core/common/experiment_env.py` | The experiment Python: find a Python 3.11+, make the per-user environment (PyTorch CUDA/CPU + `configs/experiment-requirements.txt`, kept in step with `pyproject.toml`), `describe_python` in a subprocess; `app/services/experiment_setup.py` + Settings card `experiment_python_card.py`; `AppContext.set_experiment_python` |
 | `app/services/terminal.py` | `ShellSession`: one shell process per command (PowerShell on Windows, `$SHELL`/bash elsewhere, or `terminal_shell`), built-in `cd`, history, stop; stdin closed; page `terminal.py` |
 | `app/services/jupyter.py` | `Notebooks` (list, create from a run with relative paths, link via `notebook_links`, `notebook_markdown` viewer) and `JupyterLab` (a `LocalWebUi`, like `MlflowUi`: 127.0.0.1, fresh masked token); page `jupyter_page.py` |
 | `plugins/colab/notebook.py` | `build_notebook` (clone at the commit, `experiment.yaml`, licence-checked dataset cell, worker → `events.jsonl`, zip) and `read_results`; `app/services/colab.py` `ColabService` exports into `notebooks/colab/` and imports a zip through `ExperimentService.import_run` (replays the events); page `colab_page.py` |
@@ -166,6 +168,7 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   download, which needs the person's confirmation; `RemoteItem.restriction` (gated, private, needs
   terms accepted) means the lab shows the page and never downloads. Plugin actions run in the app
   process, so they use only the standard library and the lab's own dependencies.
+- **Pages with unsaved work** implement `unsaved_work() -> list[str]`; the window asks before quitting.
 - **Quiet jobs**: housekeeping tasks (`submit_task(..., quiet=True)`) are not recorded, not
   "active", and never ask before quitting. Never delete a `QProcess` inside its own signal:
   keep it alive until the event loop is back (see `JobQueue._release`, `MlflowUi._release`).

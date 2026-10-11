@@ -61,6 +61,18 @@ COLORS: dict[str, str] = {
     # the surface) for none to light blue for most, OKLab-interpolated so lightness only rises.
     "seq_low": "#20252C",
     "seq_high": "#9EC5F4",
+    # Code editor syntax colours: muted, on the editor's surface; comments recede.
+    "code_keyword": "#8FA7E0",
+    "code_builtin": "#7FB8C7",
+    "code_string": "#9CC28A",
+    "code_number": "#D7A65E",
+    "code_comment": "#6B737E",
+    "code_decorator": "#C9973B",
+    "code_definition": "#E3E6EA",
+    "code_self": "#C792A8",
+    "code_line": "#1A1E24",
+    "code_gutter": "#5A626D",
+    "code_error": "#D2594F",
 }
 
 #: Pill tones → the status colour they are drawn in.

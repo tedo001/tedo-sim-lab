@@ -26,12 +26,13 @@ Ten build phases:
 - **Windows installer.** PyInstaller and Inno Setup, the way `tedo001/sentra` ships:
   - one `.exe` setup, with the app in Program Files and the data in a workspace folder you choose;
   - first-run setup of an "experiment Python": the installed app cannot pip-install into itself, so PyTorch and plugins go there (`python_executable` is already the switch).
-- **Projects.** Open a local folder as a project and manage everything in it:
-  - files and an editor;
-  - the terminal, which is already per workspace;
-  - git, experiments and notebooks.
+- **Projects.** The Code page already opens a folder as a project. It has:
+  - files, an editor and run;
+  - a terminal;
+  - git status.
 
-  The workspace layout and relative paths were designed for this.
+  Still to come: committing from git, a debugger, and the project's experiments and notebooks
+  listed beside its files.
 - **Settings page editing.** Change `settings.yaml` from the app (today it is read-only there).
 
 ## V0.2: audio

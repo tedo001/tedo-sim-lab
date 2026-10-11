@@ -102,6 +102,8 @@ NAV: tuple[PageSpec, ...] = (
        "Runs tracked in MLflow, and the MLflow UI."),
 
     # ── Tools ────────────────────────────────────────────────────────
+    _p("code", "Code", "tools", "code",
+       "A project folder as an IDE: files, editor, run, terminal and git."),
     _p("terminal", "Terminal", "tools", "terminal",
        "Shell commands in the workspace: PowerShell on Windows, bash elsewhere."),
     _p("jupyter", "Jupyter Notebook", "tools", "notebook-pen",

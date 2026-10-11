@@ -194,9 +194,24 @@ class MainWindow(QMainWindow):
         if active and self.isVisible() and not self._confirm_quit(len(active)):
             event.ignore()
             return
+        unsaved = [name for widget in self._all_pages() for name in getattr(widget, "unsaved_work", list)()]
+        if unsaved and self.isVisible() and not self._confirm_unsaved(unsaved):
+            event.ignore()
+            return
         self._save_layout()
         self.ctx.jobs.shutdown()
         super().closeEvent(event)
+
+    def _all_pages(self) -> list[QWidget]:
+        return [*self._pages.values(), *self.split_pane.pages()]
+
+    def _confirm_unsaved(self, names: list[str]) -> bool:
+        from PySide6.QtWidgets import QMessageBox
+        listed = ", ".join(names[:5]) + (f" and {len(names) - 5} more" if len(names) > 5 else "")
+        answer = QMessageBox.question(self, "Unsaved changes",
+                                      f"{listed} {'has' if len(names) == 1 else 'have'} unsaved changes. "
+                                      "Quit without saving?")
+        return answer == QMessageBox.StandardButton.Yes
 
     def _confirm_quit(self, count: int) -> bool:
         from PySide6.QtWidgets import QMessageBox

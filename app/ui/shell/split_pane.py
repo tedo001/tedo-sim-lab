@@ -84,5 +84,9 @@ class SplitPane(QFrame):
             self._current = page_id
             self.page_changed.emit(page_id)
 
+    def pages(self) -> list[QWidget]:
+        """Every page this pane has built (its own instances)."""
+        return list(self._pages.values())
+
     def current_page_id(self) -> str:
         return self._current

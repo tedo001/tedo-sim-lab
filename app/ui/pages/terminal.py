@@ -37,6 +37,7 @@ class TerminalPage(Page):
         where.addWidget(self.state)
         card.add(where)
         self.screen = QPlainTextEdit()
+        self.screen.setObjectName("Code")
         self.screen.setReadOnly(True)
         self.screen.setFont(mono_font())
         self.screen.setMaximumBlockCount(MAX_LINES)
