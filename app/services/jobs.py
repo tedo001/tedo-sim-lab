@@ -48,12 +48,19 @@ def worker_command(run_dir: Path, *, python: str, code_root: Path, workspace: Pa
     """``python -m core.experiment_engine.worker <run_dir> --cancel-on-eof``, able to import the
     lab's code even when ``python`` is a separate experiment environment, and pointed at the
     same workspace (datasets, model downloads) as the app."""
+    if not python:
+        raise NoExperimentPython("No experiment Python is set up yet: open Settings → Experiment Python "
+                                 "to make one (or choose an existing Python 3.11+).")
     pythonpath = os.pathsep.join(filter(None, [str(code_root), os.environ.get("PYTHONPATH", "")]))
     env = {"PYTHONPATH": pythonpath, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"}
     if workspace is not None:
         env[WORKSPACE_ENV] = str(workspace)
     return WorkerCommand(python, ["-m", "core.experiment_engine.worker", str(run_dir),
                                   "--cancel-on-eof", *extra], code_root, env)
+
+
+class NoExperimentPython(RuntimeError):
+    """Workers need an experiment Python, and none is set (the installed app before setup)."""
 
 
 @dataclass
@@ -124,7 +131,12 @@ class JobQueue(QObject):
 
     def _pump(self) -> None:
         while self._pending and len(self._processes) < self.max_concurrent_runs:
-            self._start_process(self._jobs[self._pending.popleft()])
+            job = self._jobs[self._pending.popleft()]
+            try:
+                self._start_process(job)
+            except NoExperimentPython as exc:
+                job.error = str(exc)
+                self._finish(job, "failed")
 
     def _start_process(self, job: Job) -> None:
         assert job.run_dir is not None

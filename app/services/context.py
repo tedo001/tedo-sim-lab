@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from core.catalog import Catalog, load_catalog
-from core.common import AppConfig, AppPaths, CredentialStore, experiment_python
+from core.common import AppConfig, AppPaths, CredentialStore, experiment_python, save_config
 from core.common.paths import WORKSPACE_ENV
 from core.tracking import LabStore
 from core.tracking.mlflow_tracker import release_mlflow_stores
@@ -20,6 +20,7 @@ from core.tracking.mlflow_tracker import release_mlflow_stores
 from .benchmarks import BenchmarkService
 from .colab import ColabService
 from .downloads import DownloadService
+from .experiment_setup import ExperimentSetup
 from .experiments import ExperimentService
 from .hardware import HardwareService
 from .jobs import JobQueue, worker_command
@@ -53,8 +54,18 @@ class AppContext:
     plugins: PluginService
     jupyter: JupyterLab
     notebooks: Notebooks
+    setup: ExperimentSetup
     #: Switch the main window to another page; set by :class:`app.main_window.MainWindow`.
     navigate: Callable[[str], None] = field(default=_nowhere)
+
+    def set_experiment_python(self, python: str) -> None:
+        """Use ``python`` for workers, the hardware probe and plugin installs from now on, and
+        remember it in this workspace's settings.yaml ("" = back to the default)."""
+        self.config.python_executable = python
+        save_config(self.config, self.paths)
+        current = experiment_python(self.config)
+        self.catalog.plugins.set_python(current)
+        self.hardware.set_python(current)
 
     def close(self) -> None:
         """Stop background work and close the database (app exit)."""
@@ -82,8 +93,9 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
     catalog = load_catalog(paths, credentials, python=python)
     store = LabStore.open(paths)
     store.recover_interrupted()
-    jobs = JobQueue(lambda run_dir: worker_command(run_dir, python=python, code_root=paths.code_root,
-                                                   workspace=paths.workspace),
+    # The experiment Python is read at each start, so setting it up takes effect at once.
+    jobs = JobQueue(lambda run_dir: worker_command(run_dir, python=experiment_python(config),
+                                                   code_root=paths.code_root, workspace=paths.workspace),
                     max_concurrent_runs=config.max_concurrent_runs, store=store)
     hardware = HardwareService(python=python, code_root=paths.code_root, probe=probe_hardware)
     experiments = ExperimentService(paths, store, jobs, catalog)
@@ -93,4 +105,4 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
                       MlflowUi(paths, config), models, BenchmarkService(paths, jobs),
                       ColabService(paths, experiments, jobs),
                       PluginService(paths, catalog, credentials, jobs), JupyterLab(paths, config),
-                      Notebooks(paths, store))
+                      Notebooks(paths, store), ExperimentSetup(jobs))

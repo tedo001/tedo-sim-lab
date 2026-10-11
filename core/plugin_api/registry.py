@@ -72,6 +72,13 @@ class PluginRegistry:
     def __contains__(self, name: object) -> bool:
         return name in self._manifests
 
+    def set_python(self, python: str) -> None:
+        """Install into ``python`` from now on (plugins already loaded follow too)."""
+        self.python = python or sys.executable
+        for plugin in self._plugins.values():
+            if isinstance(plugin, ManifestPlugin):
+                plugin.python = self.python
+
     def with_capability(self, capability: str) -> list[PluginManifest]:
         return [manifest for manifest in self.manifests() if capability in manifest.capabilities]
 

@@ -43,13 +43,23 @@ class AppConfig(BaseModel):
     max_concurrent_runs: int = Field(default=1, ge=1, le=8)
     default_device: str = "auto"
     #: Python that runs experiments and installs plugin packages. Empty = the app's own
-    #: interpreter. The packaged (installer) app needs a real Python environment here.
+    #: interpreter from a source checkout; the installed app uses the environment it made
+    #: (Settings → Experiment Python) or needs one chosen here.
     python_executable: str = ""
 
 
 def experiment_python(config: AppConfig) -> str:
-    """The interpreter experiment workers run under."""
-    return config.python_executable or sys.executable
+    """The interpreter experiment workers run under: the configured one; otherwise the app's
+    own interpreter from a source checkout, or, in the installed app (which has no usable
+    interpreter of its own), the per-user environment when it has been made. ``""`` = none yet."""
+    if config.python_executable:
+        return config.python_executable
+    if not getattr(sys, "frozen", False):
+        return sys.executable
+    from .experiment_env import default_env_dir, env_python
+
+    made = env_python(default_env_dir())
+    return str(made) if made.is_file() else ""
 
 
 def _reject_credentials(data: dict[str, Any]) -> None:

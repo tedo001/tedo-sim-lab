@@ -8,10 +8,11 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QWidget
 
-from core.common import KNOWN_CREDENTIALS, experiment_python, mlflow_tracking_uri
+from core.common import KNOWN_CREDENTIALS, mlflow_tracking_uri
 
 from ...services.context import AppContext
 from ..widgets import Card, DataTable, KeyValues, Page, Pill, label
+from .experiment_python_card import ExperimentPythonCard
 
 __all__ = ["SettingsPage"]
 
@@ -43,12 +44,12 @@ class SettingsPage(Page):
             ("Terminal shell", config.terminal_shell),
             ("Concurrent runs", str(config.max_concurrent_runs)),
             ("Default device", config.default_device),
-            ("Experiment Python", config.python_executable
-             or f"{experiment_python(config)} (this app's Python)"),
         )))
         configuration.add(label("Edit settings.yaml and restart to change these. Editing from "
                                 "this page is not built yet.", "CardCaption", wrap=True))
         self.body.addWidget(configuration)
+        self.experiment_python = ExperimentPythonCard(ctx)
+        self.body.addWidget(self.experiment_python)
 
         credentials = Card("Credentials", "values are never shown", padded=False)
         self.credential_table = DataTable(("Credential", "Variable", "Source"), mono_columns=(1,),

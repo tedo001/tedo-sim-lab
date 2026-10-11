@@ -92,9 +92,20 @@ class HardwareService(QObject):
         return sample
 
     # Probe ----------------------------------------------------------------------
+    def set_python(self, python: str) -> None:
+        """Probe with ``python`` from now on, and probe again now (when probing is on)."""
+        self._python = python
+        if self._started and self._probe_enabled:
+            self.reprobe()
+
     def reprobe(self) -> None:
         """Run the hardware probe again (e.g. after installing a CUDA build of PyTorch)."""
         if self._probe is not None:
+            return
+        if not self._python:  # the installed app before its experiment Python is made
+            self.info, self.info_error = None, ("PyTorch and CUDA details appear once the experiment "
+                                                "Python is set up (Settings → Experiment Python).")
+            self.info_changed.emit(None)
             return
         process = QProcess()  # Python-owned; released after its signals finish (see jobs.py)
         environment = QProcessEnvironment.systemEnvironment()
