@@ -16,10 +16,19 @@ from typing import Any
 
 from core.experiment_engine.runner import Tracker
 
-__all__ = ["CompositeTracker", "MlflowTracker", "flatten", "release_mlflow_stores"]
+__all__ = ["CompositeTracker", "MlflowTracker", "flatten", "hold_no_mlflow_connections",
+           "release_mlflow_stores"]
 
 log = logging.getLogger("tedo.tracking")
 _MAX_PARAM = 500  # MLflow's limit on a parameter value
+
+
+def hold_no_mlflow_connections() -> None:
+    """Make MLflow close each database connection as soon as an operation ends (no pool), in a
+    long-lived process that must be able to let go of ``mlflow.db``: with a pool, a read that has
+    a connection out while the stores are released hands it back to the discarded pool, where it
+    stays open, and Windows cannot delete or move an open file. Call before MLflow makes a store."""
+    os.environ.setdefault("MLFLOW_SQLALCHEMYSTORE_POOLCLASS", "NullPool")
 
 
 def release_mlflow_stores() -> None:

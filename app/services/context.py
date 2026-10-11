@@ -15,7 +15,7 @@ from core.catalog import Catalog, load_catalog
 from core.common import AppConfig, AppPaths, CredentialStore, experiment_python, save_config
 from core.common.paths import WORKSPACE_ENV
 from core.tracking import LabStore
-from core.tracking.mlflow_tracker import release_mlflow_stores
+from core.tracking.mlflow_tracker import hold_no_mlflow_connections, release_mlflow_stores
 
 from .benchmarks import BenchmarkService
 from .colab import ColabService
@@ -89,6 +89,7 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
     # Lab code that runs in this process (runner checks, dataset status) resolves the workspace
     # the same way a worker does.
     os.environ[WORKSPACE_ENV] = str(paths.workspace)
+    hold_no_mlflow_connections()  # the window can always let go of mlflow.db
     python = experiment_python(config)
     catalog = load_catalog(paths, credentials, python=python)
     store = LabStore.open(paths)

@@ -89,7 +89,13 @@ def test_a_read_that_ends_after_closing_lets_go_of_mlflow_db(tmp_path) -> None:
         def raise_if_cancelled(self) -> None:
             pass
 
+    from sqlalchemy.pool import NullPool
+
     uri = f"sqlite:///{(tmp_path / 'mlflow.db').as_posix()}"
+    assert read_mlflow_runs(uri) == []
+    # No pool: a connection handed back after the stores were released closes instead of
+    # waiting, open, in a discarded pool.
+    assert all(isinstance(engine.pool, NullPool) for engine in SqlAlchemyStore._engine_map.values())
     assert read_mlflow_runs(uri, cancel=ClosedDuringRead()) == []
     assert not SqlAlchemyStore._engine_map
     (tmp_path / "mlflow.db").unlink()  # nothing holds it open (Windows refuses otherwise)

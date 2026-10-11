@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from core.common import distribution_version, mlflow_tracking_uri
 from core.common.cancel import CancelToken, ProgressFn
-from core.tracking.mlflow_tracker import release_mlflow_stores
+from core.tracking.mlflow_tracker import hold_no_mlflow_connections, release_mlflow_stores
 
 from ...services.context import AppContext
 from ..icons import icon
@@ -29,6 +29,7 @@ def read_mlflow_runs(tracking_uri: str, limit: int = 100,
                      cancel: CancelToken | None = None) -> list[dict[str, Any]]:
     """The newest runs in every MLflow experiment (runs in a background task)."""
     os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
+    hold_no_mlflow_connections()
     from mlflow.tracking import MlflowClient
 
     if cancel is not None:  # importing MLflow takes seconds: the app may be closing by now, and
