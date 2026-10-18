@@ -73,10 +73,9 @@ NAV: tuple[PageSpec, ...] = (
        "Zero-shot classification and captioning with CLIP-style models"),
     _p("quantum_ml", "Quantum ML", "labs", "atom",
        "Quantum machine-learning experiments.", "TBD", None,
-       "Scope not decided yet"),
+       "Scope not decided yet (quantum circuits and wave mechanics are in the Simulation Lab)"),
     _p("simulation_lab", "Simulation Lab", "labs", "flask-conical",
-       "Simulation experiments.", "TBD", None,
-       "Scope not decided yet"),
+       "Quantum circuits and wave mechanics; image processing, synthetic datasets and a camera model."),
 
     # ── Data & models ────────────────────────────────────────────────
     _p("dataset_hub", "Dataset Hub", "data", "database",

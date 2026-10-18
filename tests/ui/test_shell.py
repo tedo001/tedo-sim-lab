@@ -77,7 +77,7 @@ def test_ambiguous_search_stays_put(window, qtbot) -> None:
 
 
 def test_placeholders_are_honest(window) -> None:
-    for page_id in ("nlp_llm", "audio", "simulation_lab"):
+    for page_id in ("nlp_llm", "audio", "quantum_ml"):
         window.navigate(page_id)
         widget = window.stack.currentWidget()
         assert isinstance(widget, PlaceholderPage)
@@ -98,5 +98,5 @@ def test_future_releases_are_tagged_in_the_sidebar(window) -> None:
     tags = {item_id: [w.text() for w in item.findChildren(QLabel) if w.objectName() == "NavTag"]
             for item_id, item in window.sidebar.items.items()}
     assert tags["audio"] == ["v0.2"]
-    assert tags["simulation_lab"] == ["TBD"]
+    assert tags["quantum_ml"] == ["TBD"] and tags["simulation_lab"] == []
     assert tags["training"] == []

@@ -47,6 +47,7 @@ class MainWindow(QMainWindow):
         ctx.navigate = self.navigate
         ctx.open_file = self.open_file
         ctx.open_terminal = self.open_terminal
+        ctx.show_page = self.show_page
         self.setWindowTitle(WINDOW_TITLE)
         self.setMinimumSize(1100, 700)
         self.resize(1440, 900)
@@ -153,6 +154,11 @@ class MainWindow(QMainWindow):
 
     def current_page_id(self) -> str:
         return self._current
+
+    def show_page(self, page_id: str) -> QWidget:
+        """Switch to ``page_id`` and return its page (other pages hand work over this way)."""
+        self.navigate(page_id)
+        return self.page_widget(page_id)
 
     def open_file(self, path: Path, line: int = 1) -> None:
         """Open ``path`` at ``line`` in the Code page (from a terminal's Ctrl+click, a log, ...)."""

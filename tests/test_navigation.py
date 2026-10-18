@@ -51,7 +51,7 @@ def test_future_domains_are_placeholders() -> None:
     assert page("nlp_llm").planned_for == "v0.3"
     assert page("multimodal").planned_for == "v0.4"
     assert page("quantum_ml").planned_for == "TBD"
-    assert page("simulation_lab").planned_for == "TBD"
+    assert page("simulation_lab").built
 
 
 def test_built_pages_have_factories_and_icons_exist() -> None:

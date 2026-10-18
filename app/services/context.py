@@ -67,6 +67,8 @@ class AppContext:
     open_file: Callable[..., None] = field(default=_no_editor)
     #: Open a terminal in a folder (the Terminal page); set by the main window.
     open_terminal: Callable[..., None] = field(default=_no_editor)
+    #: Switch to a page and return it (built on first use); set by the main window.
+    show_page: Callable[[str], object] = field(default=_nowhere)
 
     def set_experiment_python(self, python: str) -> None:
         """Use ``python`` for workers, the hardware probe and plugin installs from now on, and

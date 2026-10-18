@@ -1,5 +1,6 @@
 """The Code page's engine: a project is a folder. Run a file in it (Python with the experiment
-Python and the project on ``PYTHONPATH``; shell, PowerShell and batch scripts with their own
+Python, the project and then the lab's code on ``PYTHONPATH``; shell, PowerShell and batch
+scripts with their own
 interpreters), make, rename and delete files safely inside it, read its git state, check
 Python syntax, and remember recent projects (per person, in ``QSettings``)."""
 
@@ -17,10 +18,10 @@ from PySide6.QtCore import QFile, QObject, QProcess, QProcessEnvironment, QSetti
 
 from core.common import AppConfig, experiment_python
 from core.common.masking import mask_text
-from core.common.paths import WORKSPACE_ENV
+from core.common.paths import CODE_ROOT, WORKSPACE_ENV
 
 __all__ = ["ProjectRunner", "RecentProjects", "TRACEBACK_LINE", "check_python_syntax", "git_status",
-           "run_command", "safe_child", "trash"]
+           "project_environment", "run_command", "safe_child", "trash"]
 
 #: ``File "C:\\p\\x.py", line 12`` in a Python traceback.
 TRACEBACK_LINE = re.compile(r'File "(?P<path>[^"]+)", line (?P<line>\d+)')
@@ -53,6 +54,18 @@ def run_command(path: Path, args: list[str], python: str) -> list[str]:
                      "(it runs Python, shell, PowerShell and batch scripts).")
 
 
+def project_environment(root: Path, workspace: Path, python: str, base: dict[str, str]) -> dict[str, str]:
+    """What a project's programs run with, on top of ``base``: the project's own modules first on
+    ``PYTHONPATH``, then the lab's (exported simulations import them); unbuffered UTF-8 output;
+    the workspace; the experiment Python's folder first on ``PATH``."""
+    paths = [str(root), str(CODE_ROOT), base.get("PYTHONPATH", "")]
+    extra = {"PYTHONPATH": os.pathsep.join(filter(None, paths)), "PYTHONUNBUFFERED": "1",
+             "PYTHONIOENCODING": "utf-8", WORKSPACE_ENV: str(workspace)}
+    if python:
+        extra["PATH"] = str(Path(python).parent) + os.pathsep + base.get("PATH", "")
+    return extra
+
+
 class ProjectRunner(QObject):
     output = Signal(str, str)      # text, stream: "stdout" | "stderr" | "info"
     started = Signal(str)          # what runs
@@ -76,12 +89,8 @@ class ProjectRunner(QObject):
         python = experiment_python(self.config)
         command = run_command(path, list(args or []), python)
         env = QProcessEnvironment.systemEnvironment()
-        env.insert("PYTHONPATH", os.pathsep.join(filter(None, [str(root), env.value("PYTHONPATH", "")])))
-        env.insert("PYTHONUNBUFFERED", "1")
-        env.insert("PYTHONIOENCODING", "utf-8")
-        env.insert(WORKSPACE_ENV, str(self.workspace))
-        if python:
-            env.insert("PATH", str(Path(python).parent) + os.pathsep + env.value("PATH", ""))
+        for key, value in project_environment(root, self.workspace, python, dict(os.environ)).items():
+            env.insert(key, value)
         process = QProcess()  # no parent: kept alive from Python until the event loop is back
         self.destroyed.connect(process.kill)
         process.setProgram(command[0])
