@@ -76,12 +76,14 @@ def test_a_program_that_ends_can_be_started_again(tabs, qtbot) -> None:
 @POSIX
 def test_busy_tabs_are_reported_and_closing_ends_them(tabs, qtbot) -> None:
     view = tabs.open_default()
-    assert tabs.unsaved_work() == []
+    # A shell starting up runs its rc files (short-lived children); once settled it is not busy.
+    qtbot.waitUntil(lambda: tabs.unsaved_work() == [], timeout=20_000)
     view.session.write("sleep 30\r")
-    qtbot.waitUntil(lambda: tabs.unsaved_work() == [tabs.tabs.tabText(0)], timeout=10_000)
+    qtbot.waitUntil(lambda: tabs.unsaved_work() == [tabs.tabs.tabText(0)], timeout=20_000)
     session = view.session
     assert tabs.close_tab(0, confirm=False)
-    assert not session.alive and tabs.tabs.count() == 0 and tabs.stack.currentWidget() is tabs.empty
+    assert tabs.tabs.count() == 0 and tabs.stack.currentWidget() is tabs.empty
+    qtbot.waitUntil(lambda: not session.alive, timeout=10_000)  # the shell and its job end
 
 
 @pytest.mark.skipif(shutil.which("vim") is None, reason="vim is not installed")

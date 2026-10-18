@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from core.vcs import Git, GitError, GitHub, GitHubError, github_slug
+from core.vcs import Git, GitError, GitHub, GitHubError, github_slug, repository_name
 
 needs_git = pytest.mark.skipif(shutil.which("git") is None, reason="needs git")
 
@@ -140,6 +140,15 @@ def test_github_slugs() -> None:
     assert github_slug("git@github.com:tedo001/sentra.git") == ("tedo001", "sentra")
     assert github_slug("https://user@github.com/a/b") == ("a", "b")
     assert github_slug("https://gitlab.com/a/b.git") is None
+
+
+def test_clone_folder_names() -> None:
+    assert repository_name("https://github.com/tedo001/tedo-sim-lab.git") == "tedo-sim-lab"
+    assert repository_name("git@github.com:tedo001/sentra.git/") == "sentra"
+    assert repository_name("git@example.org:solo.git") == "solo"
+    assert repository_name(r"C:\Users\me\remote.git") == "remote"
+    assert repository_name("/srv/git/project") == "project"
+    assert repository_name(" ../ ") == "repository"
 
 
 class FakeGitHub(BaseHTTPRequestHandler):

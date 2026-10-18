@@ -63,8 +63,8 @@ def test_windows_profiles_and_the_configured_shell(tmp_path) -> None:
 def test_docker_commands() -> None:
     assert docker_command("docker", container="abc", shell="bash") == ["docker", "exec", "-it", "abc", "bash"]
     run = docker_command("docker", image="python:3.11-slim", mount=Path("/ws"))
-    assert run == ["docker", "run", "--rm", "-it", "-v", "/ws:/workspace", "-w", "/workspace",
-                   "python:3.11-slim", "sh"]
+    volume = f"{Path('/ws')}:/workspace"  # the folder as this system writes it (Docker Desktop takes C:\\…)
+    assert run == ["docker", "run", "--rm", "-it", "-v", volume, "-w", "/workspace", "python:3.11-slim", "sh"]
     with pytest.raises(ValueError):
         docker_command("docker")
 

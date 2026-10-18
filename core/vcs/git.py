@@ -21,7 +21,7 @@ from pathlib import Path
 from core.common.masking import mask_text
 
 __all__ = ["Branch", "Commit", "FileChange", "Git", "GitError", "RepoStatus", "git_executable",
-           "github_slug"]
+           "github_slug", "repository_name"]
 
 NETWORK_TIMEOUT = 600
 LOCAL_TIMEOUT = 60
@@ -113,6 +113,13 @@ def github_slug(url: str) -> tuple[str, str] | None:
     match = re.match(r"(?:https?://(?:[^@/]+@)?github\.com/|git@github\.com:|ssh://git@github\.com/)"
                      r"([^/]+)/([^/]+?)(?:\.git)?/?$", url.strip())
     return (match.group(1), match.group(2)) if match else None
+
+
+def repository_name(url: str) -> str:
+    """The folder ``git clone`` would make for ``url``: an HTTPS or SSH URL (``host:owner/repo``)
+    or a local path with either slash, without ``.git``."""
+    name = re.split(r"[/\\:]", url.strip().rstrip("/\\"))[-1].removesuffix(".git")
+    return name if name not in ("", ".", "..") else "repository"
 
 
 class Git:

@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from core.vcs import Git, RepoStatus
+from core.vcs import Git, RepoStatus, repository_name
 
 from ....services.context import AppContext
 from ....services.source_control import SourceControl
@@ -230,8 +230,7 @@ class SourceControlPage(Page):
             if not chosen:
                 return
             parent_folder = Path(chosen)
-        name = url.rstrip("/").split("/")[-1].removesuffix(".git") or "repository"
-        target, token = parent_folder / name, self.control.token()
+        target, token = parent_folder / repository_name(url), self.control.token()
         self.say(f"Cloning into {target}…")
         self.control.run("Clone", lambda: Git.clone(url.strip(), target, token=token).root,
                          lambda root: (self.say(f"Cloned into {root}"), self.open_folder(root)), self.say)
