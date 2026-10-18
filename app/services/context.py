@@ -28,11 +28,16 @@ from .jupyter import JupyterLab, Notebooks
 from .mlflow_ui import MlflowUi
 from .model_registry import ModelRegistryService
 from .plugins import PluginService
+from .terminals import TerminalService
 
 __all__ = ["AppContext", "build_context"]
 
 
 def _nowhere(page_id: str) -> None:  # until the main window installs the real one
+    return None
+
+
+def _no_editor(path, line: int = 1) -> None:  # until the main window installs the real one
     return None
 
 
@@ -55,8 +60,11 @@ class AppContext:
     jupyter: JupyterLab
     notebooks: Notebooks
     setup: ExperimentSetup
+    terminals: TerminalService
     #: Switch the main window to another page; set by :class:`app.main_window.MainWindow`.
     navigate: Callable[[str], None] = field(default=_nowhere)
+    #: Open a file at a line in the Code page; set by the main window.
+    open_file: Callable[..., None] = field(default=_no_editor)
 
     def set_experiment_python(self, python: str) -> None:
         """Use ``python`` for workers, the hardware probe and plugin installs from now on, and
@@ -69,6 +77,7 @@ class AppContext:
 
     def close(self) -> None:
         """Stop background work and close the database (app exit)."""
+        self.terminals.shutdown()
         self.hardware.stop()
         self.mlflow_ui.stop()
         self.jupyter.stop()
@@ -106,4 +115,4 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
                       MlflowUi(paths, config), models, BenchmarkService(paths, jobs),
                       ColabService(paths, experiments, jobs),
                       PluginService(paths, catalog, credentials, jobs), JupyterLab(paths, config),
-                      Notebooks(paths, store), ExperimentSetup(jobs))
+                      Notebooks(paths, store), ExperimentSetup(jobs), TerminalService(paths, config))

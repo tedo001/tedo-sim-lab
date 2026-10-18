@@ -1,12 +1,14 @@
 """The main window: top bar, sidebar, and a stack of pages built on first visit.
 
 Layout controls: Ctrl+B collapses the sidebar to an icon rail; Ctrl+\\ opens a split
-view with a second page beside the first. Both are remembered between sessions.
+view with a second page beside the first; Ctrl+` opens the terminal panel under the pages. All
+are remembered between sessions.
 """
 
 from __future__ import annotations
 
 import platform
+from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal, qVersion
 from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
@@ -27,6 +29,7 @@ from .services.ui_state import UiState
 from .ui.pages import build_page
 from .ui.shell import Sidebar, SplitPane, TopBar
 from .ui.shell.search_index import search_entries
+from .ui.shell.terminal_panel import TerminalPanel
 
 __all__ = ["MainWindow", "WINDOW_TITLE"]
 
@@ -42,6 +45,7 @@ class MainWindow(QMainWindow):
         self.ctx = ctx
         self.ui_state = ui_state or UiState()
         ctx.navigate = self.navigate
+        ctx.open_file = self.open_file
         self.setWindowTitle(WINDOW_TITLE)
         self.setMinimumSize(1100, 700)
         self.resize(1440, 900)
@@ -57,6 +61,7 @@ class MainWindow(QMainWindow):
         self.top_bar.entry_requested.connect(self.open_entry)
         self.top_bar.sidebar_toggle_requested.connect(self.toggle_sidebar)
         self.top_bar.split_toggle_requested.connect(self.toggle_split)
+        self.top_bar.terminal_toggle_requested.connect(self.toggle_terminal)
         column.addWidget(self.top_bar)
 
         row = QHBoxLayout()
@@ -75,8 +80,18 @@ class MainWindow(QMainWindow):
         self.splitter.setHandleWidth(1)
         self.splitter.addWidget(self.stack)
         self.splitter.addWidget(self.split_pane)
+        self.terminal_panel = TerminalPanel(ctx)
+        self.terminal_panel.close_requested.connect(lambda: self.set_terminal_open(False))
+        self.terminal_panel.hide()
+        self.vertical = QSplitter(Qt.Orientation.Vertical)
+        self.vertical.setObjectName("TerminalSplitter")
+        self.vertical.setChildrenCollapsible(False)
+        self.vertical.setHandleWidth(1)
+        self.vertical.addWidget(self.splitter)
+        self.vertical.addWidget(self.terminal_panel)
+        self.vertical.setStretchFactor(0, 1)
         row.addWidget(self.sidebar)
-        row.addWidget(self.splitter, 1)
+        row.addWidget(self.vertical, 1)
         column.addLayout(row, 1)
         self.setCentralWidget(central)
 
@@ -86,7 +101,8 @@ class MainWindow(QMainWindow):
             f"Python {platform.python_version()} · Qt {qVersion()} · v{__version__}"))
         self.statusBar().setSizeGripEnabled(False)
 
-        for keys, slot in (("Ctrl+B", self.toggle_sidebar), ("Ctrl+\\", self.toggle_split)):
+        for keys, slot in (("Ctrl+B", self.toggle_sidebar), ("Ctrl+\\", self.toggle_split),
+                           ("Ctrl+`", self.toggle_terminal)):
             shortcut = QShortcut(QKeySequence(keys), self)
             shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
             shortcut.activated.connect(slot)
@@ -137,6 +153,11 @@ class MainWindow(QMainWindow):
     def current_page_id(self) -> str:
         return self._current
 
+    def open_file(self, path: Path, line: int = 1) -> None:
+        """Open ``path`` at ``line`` in the Code page (from a terminal's Ctrl+click, a log, ...)."""
+        self.navigate("code")
+        self.page_widget("code").open_at(Path(path), int(line))
+
     # Layout -----------------------------------------------------------------
     def sidebar_collapsed(self) -> bool:
         return self.sidebar.collapsed()
@@ -172,11 +193,36 @@ class MainWindow(QMainWindow):
     def toggle_split(self) -> None:
         self.set_split_open(not self.split_open())
 
+    def terminal_open(self) -> bool:
+        return not self.terminal_panel.isHidden()
+
+    def set_terminal_open(self, open_: bool) -> None:
+        """Show or hide the terminal panel; opening it starts a shell when it has none."""
+        if open_:
+            if self.terminal_panel.isHidden():
+                self.terminal_panel.show()
+                total = max(self.vertical.height(), 400)
+                state = self.ui_state.terminal_splitter_state
+                if state is None or not self.vertical.restoreState(state):
+                    self.vertical.setSizes([total - 280, 280])
+            self.terminal_panel.open_if_empty()
+        else:
+            if not self.terminal_panel.isHidden():
+                self.ui_state.terminal_splitter_state = self.vertical.saveState()
+            self.terminal_panel.hide()
+        self.top_bar.show_terminal_open(open_)
+        self.ui_state.terminal_open = open_
+
+    def toggle_terminal(self) -> None:
+        self.set_terminal_open(not self.terminal_open())
+
     def _remember_split_page(self, page_id: str) -> None:
         self.ui_state.split_page = page_id
 
     def _restore_layout(self) -> None:
         self.set_sidebar_collapsed(self.ui_state.sidebar_collapsed)
+        if self.ui_state.terminal_open:
+            self.set_terminal_open(True)
         if self.ui_state.split_open:
             self.set_split_open(True)
             state = self.ui_state.splitter_state
@@ -186,6 +232,8 @@ class MainWindow(QMainWindow):
     def _save_layout(self) -> None:
         if self.split_open():
             self.ui_state.splitter_state = self.splitter.saveState()
+        if self.terminal_open():
+            self.ui_state.terminal_splitter_state = self.vertical.saveState()
         self.ui_state.sync()
 
     def closeEvent(self, event: QCloseEvent) -> None:
@@ -203,7 +251,7 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def _all_pages(self) -> list[QWidget]:
-        return [*self._pages.values(), *self.split_pane.pages()]
+        return [*self._pages.values(), *self.split_pane.pages(), self.terminal_panel]
 
     def _confirm_unsaved(self, names: list[str]) -> bool:
         from PySide6.QtWidgets import QMessageBox

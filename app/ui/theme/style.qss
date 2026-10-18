@@ -142,6 +142,9 @@ QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
 QSplitter#MainSplitter::handle { background: ${border}; }
 QFrame#SplitPane { background: ${bg}; border: none; }
 QFrame#SplitHead { background: ${sidebar}; border: none; border-bottom: 1px solid ${border_soft}; }
+QSplitter#TerminalSplitter::handle { background: ${border}; }
+QFrame#TerminalPanel { background: ${sidebar}; border: none; border-top: 1px solid ${border_soft}; }
+QAbstractScrollArea#Terminal { background: ${term_bg}; border: 1px solid ${border_soft}; border-radius: ${radius}px; }
 
 /* ── combo boxes (the arrow is a token-coloured asset: QSS drops the native one) ── */
 QComboBox { padding-right: 26px; }

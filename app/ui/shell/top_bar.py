@@ -36,6 +36,7 @@ class TopBar(QFrame):
     entry_requested = Signal(str)
     sidebar_toggle_requested = Signal()
     split_toggle_requested = Signal()
+    terminal_toggle_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -85,6 +86,10 @@ class TopBar(QFrame):
         row.addLayout(meters)
         row.addSpacing(6)
 
+        self.terminal_button = _tool_button("square-terminal", "Terminal panel (Ctrl+`)")
+        self.terminal_button.setCheckable(True)
+        self.terminal_button.clicked.connect(lambda _=False: self.terminal_toggle_requested.emit())
+        row.addWidget(self.terminal_button)
         self.split_button = _tool_button("columns-2", "Split view (Ctrl+\\)")
         self.split_button.setCheckable(True)
         self.split_button.clicked.connect(lambda _=False: self.split_toggle_requested.emit())
@@ -102,6 +107,11 @@ class TopBar(QFrame):
                      else ("panel-left-close", "Collapse sidebar (Ctrl+B)"))
         self.sidebar_button.setIcon(icon(name, COLORS["text_dim"], 18))
         self.sidebar_button.setToolTip(tip)
+
+    def show_terminal_open(self, open_: bool) -> None:
+        self.terminal_button.setChecked(open_)
+        tip = "Hide the terminal panel (Ctrl+`)" if open_ else "Terminal panel (Ctrl+`)"
+        self.terminal_button.setToolTip(tip)
 
     def show_split_open(self, open_: bool) -> None:
         self.split_button.setChecked(open_)

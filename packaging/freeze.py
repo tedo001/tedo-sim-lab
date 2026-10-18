@@ -44,7 +44,9 @@ WINDOWS = sys.platform == "win32"
 # plugin.yaml, runners.yaml), so nothing finds them by following imports. The other packages
 # load parts of themselves by name too.
 PACKAGES = ["app", "core", "labs", "plugins", "sklearn", "mlflow", "nltk", "pycocotools",
-            "keyring.backends", "sqlalchemy.dialects.sqlite", "pyqtgraph"]
+            "keyring.backends", "sqlalchemy.dialects.sqlite", "pyqtgraph", "psutil"]
+if sys.platform == "win32":
+    PACKAGES.append("winpty")  # the terminal's ConPTY console
 
 # Training libraries live in the experiment Python; the rest are optional extras of MLflow and
 # pandas that the window never uses (several hundred MB together).

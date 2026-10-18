@@ -28,6 +28,7 @@ packages:
   psutil: {spdx: BSD-3-Clause}
   nvidia-ml-py: {spdx: BSD-3-Clause}
   keyring: {spdx: MIT}
+  pywinpty: {spdx: MIT}   # Windows only: the terminal's ConPTY console
   GitPython: {spdx: BSD-3-Clause}
 
   # Machine learning

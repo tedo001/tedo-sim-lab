@@ -1,5 +1,6 @@
 """The Code page's bottom panel: Run output (double-click a traceback line to open that file at
-that line), a terminal in the project folder, and the project's git state."""
+that line), real terminals in the project folder (the debugger runs in one), and the project's
+git state."""
 
 from __future__ import annotations
 
@@ -9,7 +10,6 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor, QMouseEvent, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QHBoxLayout,
-    QLineEdit,
     QPlainTextEdit,
     QPushButton,
     QTabWidget,
@@ -19,11 +19,11 @@ from PySide6.QtWidgets import (
 
 from ....services.context import AppContext
 from ....services.project import TRACEBACK_LINE, git_status
-from ....services.terminal import ShellSession
 from ...icons import icon
 from ...theme import mono_font
 from ...theme.tokens import COLORS
 from ...widgets import DataTable, label
+from ..terminal_tabs import TerminalTabs
 
 __all__ = ["BottomPanel", "OutputView"]
 
@@ -77,28 +77,10 @@ class BottomPanel(QTabWidget):
         self.output.jump.connect(self.jump)
         self.addTab(self.output, icon("play"), "Run")
 
-        terminal = QWidget()
-        box = QVBoxLayout(terminal)
-        box.setContentsMargins(0, 4, 0, 0)
-        self.shell = ShellSession(ctx.paths, ctx.config, self)
-        self.shell_output = OutputView()
-        self.shell_output.jump.connect(self.jump)
-        box.addWidget(self.shell_output, 1)
-        row = QHBoxLayout()
-        self.prompt = QLineEdit()
-        self.prompt.setFont(mono_font())
-        self.prompt.setPlaceholderText("Command in the project folder (cd works; input is closed)")
-        self.prompt.returnPressed.connect(self.run_command)
-        stop = QPushButton(icon("square"), "Stop")
-        stop.clicked.connect(self.shell.stop)
-        row.addWidget(self.prompt, 1)
-        row.addWidget(stop)
-        box.addLayout(row)
-        self.shell.output.connect(self.shell_output.write)
-        self.shell.started.connect(lambda c: self.shell_output.write(f"{self.shell.cwd}> {c}\n", "info"))
-        self.shell.finished.connect(lambda code, stopped: self.shell_output.write(
-            "[stopped]\n" if stopped else f"[exit code {code}]\n" if code else "", "info"))
-        self.addTab(terminal, icon("terminal"), "Terminal")
+        self.terminals = TerminalTabs(ctx, folder=ctx.paths.workspace, compact=True)
+        self.terminals.open_path.connect(self.jump)
+        self.terminal_index = self.addTab(self.terminals, icon("terminal"), "Terminal")
+        self.currentChanged.connect(self._tab_changed)
 
         git = QWidget()
         box = QVBoxLayout(git)
@@ -122,16 +104,15 @@ class BottomPanel(QTabWidget):
 
     def set_root(self, root: Path) -> None:
         self.root = root
-        self.shell.cwd = root
+        self.terminals.set_folder(root)
         self.refresh_git()
 
-    def run_command(self) -> None:
-        text = self.prompt.text()
-        if text.strip() in ("clear", "cls"):
-            self.shell_output.clear()
-        elif text.strip():
-            self.shell.run(text)
-        self.prompt.clear()
+    def _tab_changed(self, index: int) -> None:
+        if index == self.terminal_index and not self.terminals.views():
+            self.terminals.open_default()  # the first visit opens a shell in the project
+
+    def show_terminal(self) -> None:
+        self.setCurrentIndex(self.terminal_index)
 
     # Git ---------------------------------------------------------------------------------------
     def refresh_git(self) -> None:

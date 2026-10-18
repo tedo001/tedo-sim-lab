@@ -60,5 +60,22 @@ class UiState:
     def splitter_state(self, state: QByteArray) -> None:
         self.settings.setValue("layout/splitter", state)
 
+    @property
+    def terminal_open(self) -> bool:
+        return self._bool("layout/terminal_open", False)
+
+    @terminal_open.setter
+    def terminal_open(self, value: bool) -> None:
+        self.settings.setValue("layout/terminal_open", bool(value))
+
+    @property
+    def terminal_splitter_state(self) -> QByteArray | None:
+        value = self.settings.value("layout/terminal_splitter")
+        return value if isinstance(value, QByteArray) else None
+
+    @terminal_splitter_state.setter
+    def terminal_splitter_state(self, state: QByteArray) -> None:
+        self.settings.setValue("layout/terminal_splitter", state)
+
     def sync(self) -> None:
         self.settings.sync()

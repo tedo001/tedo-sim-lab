@@ -73,6 +73,17 @@ COLORS: dict[str, str] = {
     "code_line": "#1A1E24",
     "code_gutter": "#5A626D",
     "code_error": "#D2594F",
+    # Terminal: its own surface, cursor and selection, and the 16 ANSI colours programs pick
+    # from (muted to sit with the rest of the interface, bright ones lighter, all readable on
+    # the terminal surface). 256-colour and true-colour output is drawn as programs ask.
+    "term_bg": "#0C0E11",
+    "term_fg": "#D9DDE2",
+    "term_cursor": "#C9D3E0",
+    "term_selection": "#2A3B57",
+    "term_0": "#2A2F37", "term_1": "#D2594F", "term_2": "#4FA874", "term_3": "#C9973B",
+    "term_4": "#5B8CDB", "term_5": "#B07CC6", "term_6": "#4FA3B3", "term_7": "#C5CAD1",
+    "term_8": "#6B737E", "term_9": "#E66767", "term_10": "#6CC28F", "term_11": "#E0B45A",
+    "term_12": "#7FA6E8", "term_13": "#C99BDB", "term_14": "#73C2CF", "term_15": "#EEF1F4",
 }
 
 #: Pill tones → the status colour they are drawn in.

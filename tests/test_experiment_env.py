@@ -31,7 +31,7 @@ def test_requirements_follow_pyproject() -> None:
     project = tomllib.loads((CODE_ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
     lines = [line for line in requirements_file().read_text(encoding="utf-8").splitlines()
              if line and not line.startswith("#")]
-    window_only = {"pyside6-essentials", "pyqtgraph", "torch", "torchvision"}
+    window_only = {"pyside6-essentials", "pyqtgraph", "pywinpty", "torch", "torchvision"}
     assert _names(lines) == _names(project["dependencies"]) - window_only
 
 

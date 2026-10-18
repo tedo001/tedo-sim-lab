@@ -130,6 +130,7 @@ class IdePage(Page):
         self.tree.set_root(folder)
         self.project_label.set_full_text(str(folder))
         self.panel.set_root(folder)
+        self.ctx.terminals.set_project(folder)
         if remember:
             self.recent.add(folder)
         self._update()
@@ -164,7 +165,7 @@ class IdePage(Page):
 
     def unsaved_work(self) -> list[str]:
         """Files with unsaved changes (the window asks before quitting)."""
-        return [path.name for path in self.tabs.unsaved()]
+        return [path.name for path in self.tabs.unsaved()] + self.panel.terminals.unsaved_work()
 
     # Running ------------------------------------------------------------------------------------
     def run_current(self) -> bool:

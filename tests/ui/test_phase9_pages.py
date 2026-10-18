@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
 import pytest
 
@@ -108,55 +106,6 @@ def test_plugin_store_lists_every_plugin_honestly(ctx, qtbot) -> None:
     assert page.browse.isVisibleTo(page) and page.browse.isEnabled()  # public repositories need no token
     page.select("mlflow")
     assert page.page_button.isVisibleTo(page) and "MLflow" in page.page_button.text()
-
-
-def test_shell_command_per_platform() -> None:
-    from app.services.terminal import shell_command
-    from core.common import AppConfig
-
-    program, args = shell_command(AppConfig(), "dir", windows=True)
-    assert "powershell" in program.lower() or "pwsh" in program.lower()
-    assert args[-2:] == ["-Command", "dir"]
-    posix = shell_command(AppConfig(terminal_shell="/bin/sh"), "ls", windows=False)
-    assert posix == ("/bin/sh", ["-c", "ls"])
-    assert shell_command(AppConfig(terminal_shell="cmd.exe"), "dir")[1] == ["/d", "/c", "dir"]
-
-
-@pytest.mark.skipif(sys.platform == "win32", reason="uses POSIX shell commands")
-def test_terminal_runs_commands_in_the_workspace(ctx, qtbot) -> None:
-    from PySide6.QtCore import QEvent, Qt
-    from PySide6.QtGui import QKeyEvent
-
-    from app.ui.pages.terminal import TerminalPage
-
-    page = TerminalPage(ctx)
-    qtbot.addWidget(page)
-    with qtbot.waitSignal(page.session.finished, timeout=20_000):
-        page.prompt.setText('echo "$TEDO_LAB_WORKSPACE"; pwd; echo oops >&2')
-        page.run()
-    assert page.text().count(str(ctx.paths.workspace)) >= 3 and "oops" in page.text()  # prompt, env, pwd
-    with qtbot.waitSignal(page.session.finished, timeout=5_000):
-        page.run("cd datasets")
-    assert page.session.cwd == ctx.paths.datasets
-    with qtbot.waitSignal(page.session.finished, timeout=5_000):
-        page.run("cd no-such-folder")
-    assert "no such folder" in page.text() and page.session.cwd == ctx.paths.datasets
-    with qtbot.waitSignal(page.session.finished, timeout=20_000):
-        page.run("which python")
-    assert str(Path(sys.executable).parent) in page.text()  # the experiment Python comes first
-    with qtbot.waitSignal(page.session.finished, timeout=20_000) as signal:
-        page.run("sleep 30")
-        assert page.stop_button.isEnabled() and not page.run("echo busy")
-        page.session.stop()
-    assert signal.args[1] is True and "[stopped]" in page.text()
-    page.prompt.setFocus()
-    qtbot.keyClick(page.prompt, Qt.Key.Key_Up)
-    assert page.prompt.text() == "sleep 30"
-    down = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Down, Qt.KeyboardModifier.NoModifier)
-    page.eventFilter(page.prompt, down)
-    assert page.prompt.text() == ""
-    page.run("clear")
-    assert page.text() == ""
 
 
 def test_jupyter_page_notebooks_and_lab(ctx, qtbot) -> None:
