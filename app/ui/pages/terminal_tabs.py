@@ -29,7 +29,7 @@ from core.terminal import Profile, PtyError, default_profile, find_profile
 from ...services.context import AppContext
 from ...services.pty_session import PtySession
 from ..icons import icon
-from ..widgets import PathLabel, label
+from ..widgets import FlowGrid, PathLabel, label
 from ..widgets.terminal_view import TerminalView
 from .terminal_dialogs import DockerDialog, ask_command
 
@@ -95,7 +95,8 @@ class TerminalTabs(QWidget):
         empty_box.addStretch(1)
         self.empty_hint = label("No terminal is open.", "CardCaption")
         empty_box.addWidget(self.empty_hint)
-        self.empty_buttons = QHBoxLayout()
+        self.empty_buttons = QVBoxLayout()  # holds a FlowGrid of the profiles (rebuilt on demand)
+        self.empty_buttons.setContentsMargins(0, 0, 0, 0)
         empty_box.addLayout(self.empty_buttons)
         empty_box.addStretch(2)
         self.stack.addWidget(self.empty)
@@ -138,12 +139,14 @@ class TerminalTabs(QWidget):
             item = self.empty_buttons.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-        shown = [p for p in self.profiles() if p.available and not p.needs_choice][:5]
-        for profile in shown:
+        buttons = []
+        for profile in [p for p in self.profiles() if p.available and not p.needs_choice][:5]:
             button = QPushButton(icon(profile.icon), profile.title)
+            button.setFixedWidth(150)
             button.clicked.connect(lambda _=False, p=profile: self.open_profile(p))
-            self.empty_buttons.addWidget(button)
-        self.empty_buttons.addStretch(1)
+            buttons.append(button)
+        if buttons:  # as many in a row as fit
+            self.empty_buttons.addWidget(FlowGrid(buttons, 150, fewest=1))
 
     # Opening -------------------------------------------------------------------------------------------
     def open_default(self) -> TerminalView | None:

@@ -103,12 +103,11 @@ class Card(QFrame):
         head_row = QHBoxLayout(self.head)
         head_row.setContentsMargins(14, 10, 10, 10)
         self.title = label(title, "CardTitle")
-        self.caption = label(caption, "CardCaption")
-        self.caption.setVisible(bool(caption))
+        # Shortens with "…" in a narrow pane; empty, it is the space before the head's actions.
+        self.caption = ElidedLabel(caption, "CardCaption")
         head_row.addWidget(self.title)
         head_row.addSpacing(6)
-        head_row.addWidget(self.caption)
-        head_row.addStretch(1)
+        head_row.addWidget(self.caption, 1)
         self._head_actions = head_row
         self.head.setVisible(bool(title))
         outer.addWidget(self.head)

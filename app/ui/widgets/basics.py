@@ -71,12 +71,19 @@ class ElidedLabel(QLabel):
         copy.triggered.connect(lambda: QGuiApplication.clipboard().setText(self.full_text))
         self.addAction(copy)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
-        self.setText(text)
+        QLabel.setText(self, text)
+
+    def setText(self, text: str) -> None:  # noqa: N802 (Qt API)
+        """The whole text; what shows is shortened to fit."""
+        self.set_full_text(text)
 
     def set_full_text(self, text: str) -> None:
         self.full_text = text
         self.setToolTip(text)
-        self._elide()
+        if self.isVisible():
+            self._elide()
+        else:  # not laid out yet: the first resize shortens it
+            QLabel.setText(self, text)
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
@@ -85,7 +92,7 @@ class ElidedLabel(QLabel):
     def _elide(self) -> None:
         shown = self.fontMetrics().elidedText(self.full_text, self._mode, max(self.width(), 0))
         if shown != self.text():
-            self.setText(shown)
+            QLabel.setText(self, shown)
 
 
 class PathLabel(ElidedLabel):

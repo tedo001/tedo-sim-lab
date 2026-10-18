@@ -48,12 +48,14 @@ class SettingsForm(Card):
         self.mlflow_uri.setToolTip("Leave empty for the workspace's own SQLite store")
         self.terminal_shell = QComboBox()
         self.terminal_shell.setEditable(True)
+        self.terminal_shell.setMinimumWidth(160)  # program paths can be long
         self.terminal_shell.setToolTip("auto = PowerShell on Windows, your $SHELL or bash elsewhere; or a "
                                        "program's name or path")
         self.concurrent = QSpinBox()
         self.concurrent.setRange(1, 8)
         self.concurrent.setToolTip("Runs that train at the same time (1 suits a single GPU)")
         self.device = QComboBox()
+        self.device.setMinimumWidth(160)  # GPU names can be long
         for title, rows in (("Log level", self.log_level), ("MLflow tracking", self.mlflow_tracking),
                             ("MLflow URI", self.mlflow_uri), ("Terminal shell", self.terminal_shell),
                             ("Concurrent runs", self.concurrent), ("Default device", self.device)):

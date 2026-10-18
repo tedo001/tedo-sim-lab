@@ -234,3 +234,15 @@ def test_closing_the_app_ends_every_terminal(ctx, tabs, qtbot) -> None:
     ctx.terminals.shutdown()
     assert not session.alive and ctx.terminals.sessions == []
     assert isinstance(Path(session.argv[0]), Path)
+
+
+def test_the_empty_panel_fits_a_narrow_pane(tabs, monkeypatch) -> None:
+    from core.terminal import Profile
+    titles = ("PowerShell", "Command Prompt", "Git Bash", "WSL", "Python")  # what Windows offers
+    windows = [Profile(f"p{i}", title, ("x",)) for i, title in enumerate(titles)]
+    monkeypatch.setattr(tabs, "profiles", lambda: windows)
+    tabs._fill_empty()
+    tabs.stack.setCurrentWidget(tabs.empty)
+    assert tabs.empty.minimumSizeHint().width() <= 320  # the buttons flow onto more rows
+    grid = tabs.empty_buttons.itemAt(tabs.empty_buttons.count() - 1).widget()
+    assert [button.text() for button in grid.widgets] == list(titles)
