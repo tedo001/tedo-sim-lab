@@ -46,6 +46,7 @@ class MainWindow(QMainWindow):
         self.ui_state = ui_state or UiState()
         ctx.navigate = self.navigate
         ctx.open_file = self.open_file
+        ctx.open_terminal = self.open_terminal
         self.setWindowTitle(WINDOW_TITLE)
         self.setMinimumSize(1100, 700)
         self.resize(1440, 900)
@@ -192,6 +193,11 @@ class MainWindow(QMainWindow):
 
     def toggle_split(self) -> None:
         self.set_split_open(not self.split_open())
+
+    def open_terminal(self, folder: Path) -> None:
+        """A new terminal in ``folder`` on the Terminal page."""
+        self.navigate("terminal")
+        self.page_widget("terminal").open_in(Path(folder))
 
     def terminal_open(self) -> bool:
         return not self.terminal_panel.isHidden()

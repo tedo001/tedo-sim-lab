@@ -31,6 +31,7 @@ from .model_zoo import ModelZooPage
 from .placeholder import PlaceholderPage
 from .plugin_store import PluginStorePage
 from .settings import SettingsPage
+from .source_control import SourceControlPage
 from .terminal import TerminalPage
 from .training import TrainingPage
 
@@ -48,6 +49,7 @@ PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "colab": ColabPage,
     "jupyter": JupyterPage,
     "terminal": TerminalPage,
+    "source_control": SourceControlPage,
     "plugin_store": PluginStorePage,
     "deep_learning": DeepLearningPage,
     "experiment_builder": ExperimentBuilderPage,

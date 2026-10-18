@@ -10,6 +10,8 @@ from pathlib import Path
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QWidget
 
+from core.terminal import default_profile
+
 from ...services.context import AppContext
 from ..widgets import Page, label
 from .terminal_tabs import TerminalTabs
@@ -40,6 +42,13 @@ class TerminalPage(Page):
     def _open_first(self) -> None:
         if not self.terminals.views():
             self.terminals.open_default()
+
+    def open_in(self, folder: Path) -> None:
+        """A new default shell in ``folder`` (from Git & GitHub's "Terminal here")."""
+        self._opened = True
+        profile = default_profile(self.terminals.profiles())
+        if profile is not None:
+            self.terminals.open_profile(profile, folder=folder)
 
     def _open_path(self, path: Path, line: int) -> None:
         self.ctx.open_file(path, line)
