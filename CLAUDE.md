@@ -42,7 +42,7 @@ python -m app.main                                   # run the app
 python -m app.main --workspace D:/lab                # runtime data elsewhere
 QT_QPA_PLATFORM=offscreen python -m app.main --smoke-test [--screenshots DIR]
 pytest                                               # full suite (offscreen Qt)
-packaging\build_installer.bat                        # Windows: the setup .exe (packaging/INSTALLER.md)
+packaging\build_installer.bat                        # Windows: the .msi installer (packaging/INSTALLER.md)
 ruff check .                                         # lint
 ```
 
@@ -119,10 +119,14 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/ui/pages/deep_learning.py` | Deep Learning builder: dataset → input, `LayerEditor` + `StackDiagram` (`deep_learning_parts.py`), shapes table, code, Open in builder / Train now |
 | `plugins/sources.py` | `SourcePlugin`: `search` → `RemoteItem`s (`labs/common/remote.py`: licence, size, `restriction`), `download` into `datasets|models/<source>/<id>/` with `source.json`; Kaggle, Hugging Face and Roboflow use their REST APIs (no client libraries); restricted (gated, private, unexported) items are refused |
 | `app/services/plugins.py` | `PluginService`: install / test / search / download as tasks (`finished` signal), credentials to the OS keyring; page `plugin_store.py` (+ `plugin_browse.py`) |
-| `app/ui/pages/ide/` | Code page (IDE): `tree.py` (`ProjectTree`: files, new/rename/trash inside the project), `editors.py` (`EditorTabs`, `FindBar`; Python syntax-checked on save), `console.py` (Run output with traceback jumps, terminal, git); widgets `code_editor.py` (`CodeEditor`) and `highlighters.py`; engine `app/services/project.py` (`ProjectRunner`: experiment Python, project on `PYTHONPATH`; `RecentProjects` in `QSettings`) |
+| `app/ui/pages/ide/` | Code page (IDE): `tree.py` (`ProjectTree`: files, new/rename/trash inside the project), `editors.py` (`EditorTabs`, `FindBar`; Python syntax-checked on save; breakpoints per file), `console.py` (Run output with traceback jumps, terminal, git), `debugging.py` (`Debugger`: Debug = pdb in a terminal tab with the breakpoints, the editor follows each stop; Run in terminal for programs that read input); widgets `code_editor.py` (`CodeEditor`: gutter breakpoints that move with edits, debug line) and `highlighters.py`; engine `app/services/project.py` (`ProjectRunner`, `project_environment`: experiment Python, project then lab code on `PYTHONPATH`; `RecentProjects` in `QSettings`) |
 | `packaging/` | Windows installer: `freeze.py` (cx_Freeze: `build_exe` = one-folder app, modules as files in `lib/`, data files beside them, package metadata only for what is bundled; training libraries excluded; lab sources, cards and docs in `lab-code/` beside the exe = frozen `CODE_ROOT`; `bdist_msi` = per-user `.msi`), `build_installer.bat`, `requirements-window.txt` (kept in step with `pyproject.toml`), `requirements-build.txt`, notices in `licences/`; CI workflow `.github/workflows/installer.yml` builds, smoke-tests, installs the `.msi` silently, tests again and uninstalls |
 | `core/common/experiment_env.py` | The experiment Python: find a Python 3.11+, make the per-user environment (PyTorch CUDA/CPU + `configs/experiment-requirements.txt`, kept in step with `pyproject.toml`), `describe_python` in a subprocess; `app/services/experiment_setup.py` + Settings card `experiment_python_card.py`; `AppContext.set_experiment_python` |
-| `app/services/terminal.py` | `ShellSession`: one shell process per command (PowerShell on Windows, `$SHELL`/bash elsewhere, or `terminal_shell`), built-in `cd`, history, stop; stdin closed; page `terminal.py` |
+| `core/terminal/` | A VT100/xterm terminal without Qt: `screen.py` (`Screen`: cells, scroll regions, alternate screen, scrollback with stable line numbers; + `editing.py`, `modes.py`, `cells.py`), `parser.py` (`Parser`: state kept across reads, unknown sequences skipped whole, replies to queries), `pty_process.py` (`spawn`: POSIX pty, Windows ConPTY through pywinpty), `profiles.py` (bash, zsh, fish, PowerShell, cmd, Git Bash, WSL, Python, vim, Neovim, Docker, a command of your own; install commands for missing editors), `debugger.py` (`pdb_command`; `find_stop` reads where pdb stopped off the screen) |
+| `app/services/pty_session.py` | `PtySession`: a program in a pty, read on a thread, parsed on the GUI thread, output masked, writes never block, bracketed paste; `terminals.py` `TerminalService` (sessions, profiles, the Code page's project); widget `terminal_view.py` (+ `terminal_keys.py`, `terminal_paint.py`, `terminal_mouse.py`); `TerminalTabs` (`app/ui/pages/terminal_tabs.py`) on the Terminal page, in the panel under every page (Ctrl+\`, `app/ui/shell/terminal_panel.py`) and in the Code page |
+| `core/vcs/` | `git.py` (`Git`: the git command line; porcelain v2 status, diffs, stage / commit / amend, history, branches, remotes, fetch / pull / push, init / clone; a GitHub token reaches git only as an HTTP header through `GIT_CONFIG_*`, prompts are off), `github.py` (`GitHub`: REST API with urllib: account, repositories, create, pull requests, issues, latest release); `app/services/source_control.py` (`SourceControl`: quiet background tasks; token in the keyring as `GITHUB_TOKEN`); page `app/ui/pages/source_control/` (changes, history, branches and remotes, GitHub) |
+| `labs/simulation/` | Simulation Lab engines (numpy/scipy, no Qt): `quantum/` (`gates.py`; `circuit.py`: `Circuit`, `Op`, presets, OpenQASM; `statevector.py`: simulate, sample, Bloch vectors, purity; `waves.py`: split-step Fourier wave packets, potentials, `eigenstates`), `vision/` (`filters.py` + `ops.py`: image operations as a pipeline of `Step`s; `png.py`: a standard-library PNG codec; `samples.py`; `scenes.py`: synthetic shapes as PNG + COCO, annotations of the visible parts; `camera.py`: pinhole camera with lens distortion), `records.py` (saved simulations in `results/simulations/`), `scripts.py` (`script_for`: a standalone script per tool) |
+| `app/ui/pages/simulation/` | Simulation Lab page: tools `circuits.py` (+ `circuit_canvas.py`), `waves.py`, `images.py` (+ `param_form.py`), `scenes.py` (datasets open in the Dataset Hub through `ctx.show_page`), `camera.py`, `saved.py`; save, export a script, open the folder; charts in `app/ui/widgets/sim_views.py` |
 | `app/services/jupyter.py` | `Notebooks` (list, create from a run with relative paths, link via `notebook_links`, `notebook_markdown` viewer) and `JupyterLab` (a `LocalWebUi`, like `MlflowUi`: 127.0.0.1, fresh masked token); page `jupyter_page.py` |
 | `plugins/colab/notebook.py` | `build_notebook` (clone at the commit, `experiment.yaml`, licence-checked dataset cell, worker → `events.jsonl`, zip) and `read_results`; `app/services/colab.py` `ColabService` exports into `notebooks/colab/` and imports a zip through `ExperimentService.import_run` (replays the events); page `colab_page.py` |
 
@@ -291,3 +295,17 @@ Design for it now:
       app releases its workspace on close, late task results never touch a closed database);
       README with screenshots (`docs/images/`), `ROADMAP.md`, `docs/guide.md` (a tour of every
       page); Markdown views draw images fitted to the page
+
+## After V0.1
+
+- [x] Windows installer: cx_Freeze app in a per-user `.msi` (permissive build tools only); the app
+      sets up the experiment Python itself
+- [x] Code page (IDE): project tree, editors, Run, terminal, git; Debug with pdb (breakpoints in
+      the gutter, the editor follows), Run in terminal
+- [x] Real terminals (xterm emulator on a pty / ConPTY): bash, zsh, fish, PowerShell, cmd, Git Bash,
+      WSL, Python, vim, Neovim, Docker; tabs on the Terminal page, under every page and in the Code page
+- [x] Git & GitHub page: changes, commits, history, branches, remotes, sync; GitHub account,
+      repositories, clone, publish, pull requests and issues
+- [x] Simulation Lab: quantum circuits, wave mechanics, image lab, synthetic scenes (COCO), camera
+      model; saved simulations and exported scripts
+- [ ] Logs page, settings edited in the app, update check

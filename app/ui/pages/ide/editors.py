@@ -1,6 +1,7 @@
 """Open files as editor tabs: load (text only, up to 5 MB), save (Python is syntax-checked on
 save and the error line marked), unsaved marker, close with a question when there are unsaved
-changes, follow renames and deletions from the tree, and a find / replace bar."""
+changes, follow renames and deletions from the tree, breakpoints kept per file for the session
+(closing a tab keeps them), and a find / replace bar."""
 
 from __future__ import annotations
 
@@ -43,6 +44,7 @@ def read_text(path: Path) -> str:
 class EditorTabs(QTabWidget):
     current_file = Signal(object)  # Path or None
     message = Signal(str)
+    breakpoint_toggled = Signal(Path, int, bool)  # file, line, set
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -53,6 +55,7 @@ class EditorTabs(QTabWidget):
         self.tabCloseRequested.connect(self.close_tab)
         self.currentChanged.connect(lambda _: self.current_file.emit(self.current_path()))
         self._highlighters: dict[int, object] = {}
+        self._breakpoints: dict[Path, set[int]] = {}
 
     # Tabs ----------------------------------------------------------------------------------------
     def editors(self) -> list[CodeEditor]:
@@ -90,6 +93,10 @@ class EditorTabs(QTabWidget):
         editor.setProperty("path", path)
         editor.setPlainText(text)
         editor.document().setModified(False)
+        editor.set_breakpoints(self._breakpoints.get(path, ()))
+        editor.breakpoints_changed.connect(lambda e=editor: self._remember(e))
+        editor.breakpoint_toggled.connect(
+            lambda line, on, e=editor: self.breakpoint_toggled.emit(self.path_of(e), line, on))
         self._highlighters[id(editor)] = highlighter_for(path, editor.document())
         editor.document().modificationChanged.connect(lambda _m, e=editor: self._retitle(e))
         index = self.addTab(editor, path.name)
@@ -106,6 +113,34 @@ class EditorTabs(QTabWidget):
 
     def unsaved(self) -> list[Path]:
         return [self.path_of(e) for e in self.editors() if e.document().isModified()]
+
+    # Breakpoints ---------------------------------------------------------------------------------
+    def _remember(self, editor: CodeEditor) -> None:
+        path = self.path_of(editor)
+        if editor.breakpoints:
+            self._breakpoints[path] = set(editor.breakpoints)
+        else:
+            self._breakpoints.pop(path, None)
+
+    def breakpoints(self) -> dict[Path, set[int]]:
+        """Every file's breakpoints, open in a tab or not."""
+        return {path: set(lines) for path, lines in self._breakpoints.items() if lines}
+
+    def show_debug_line(self, path: Path | None, line: int = 0) -> CodeEditor | None:
+        """Mark where the debugger stopped (opening the file, keeping the keyboard where it is);
+        ``None`` clears every mark."""
+        for editor in self.editors():
+            editor.set_debug_line(None)
+        if path is None:
+            return None
+        focused = self.window().focusWidget() if self.window() else None
+        editor = self.open(path)
+        if editor is not None:
+            editor.set_debug_line(line)
+            editor.go_to_line(line, focus=False)
+        if focused is not None:
+            focused.setFocus()
+        return editor
 
     # Saving --------------------------------------------------------------------------------------
     def save(self, editor: CodeEditor | None = None) -> bool:
@@ -154,10 +189,13 @@ class EditorTabs(QTabWidget):
             path = self.path_of(editor)
             if path != old and old not in path.parents:
                 continue
+            lines = self._breakpoints.pop(path, None)
             if new is None:
                 self.close_tab(self.indexOf(editor), ask=False)
             else:
                 moved = new.resolve() / path.relative_to(old) if path != old else new.resolve()
+                if lines:
+                    self._breakpoints[moved] = lines
                 editor.setProperty("path", moved)
                 self.setTabToolTip(self.indexOf(editor), str(moved))
                 self._retitle(editor)

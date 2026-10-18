@@ -1,4 +1,5 @@
 """A plain-text code editor: line numbers, the current line marked, an error line marked,
+breakpoints (click the gutter, or F9) that move with the text, the line a debugger stopped at,
 indentation that follows the previous line, Tab as four spaces, Shift+Tab to dedent,
 Ctrl+/ to comment or uncomment, and find/replace helpers for the IDE's find bar."""
 
@@ -6,10 +7,11 @@ from __future__ import annotations
 
 import re
 
-from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtCore import QPoint, QRect, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QKeyEvent,
+    QMouseEvent,
     QPainter,
     QPaintEvent,
     QResizeEvent,
@@ -52,8 +54,18 @@ class _Gutter(QWidget):
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         self.editor.paint_gutter(event)
 
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton:
+            block = self.editor.cursorForPosition(QPoint(0, round(event.position().y()))).block()
+            self.editor.toggle_breakpoint(block.blockNumber() + 1)
+
 
 class CodeEditor(QPlainTextEdit):
+    #: The set of breakpoint lines changed (toggled, or moved by an edit).
+    breakpoints_changed = Signal()
+    #: The person set (True) or cleared (False) the breakpoint on a line.
+    breakpoint_toggled = Signal(int, bool)
+
     def __init__(self, parent: QWidget | None = None, *, comment: str = "#") -> None:
         super().__init__(parent)
         self.setObjectName("CodeEditor")
@@ -62,7 +74,13 @@ class CodeEditor(QPlainTextEdit):
         self.setTabStopDistance(self.fontMetrics().horizontalAdvance(" ") * 4)
         self.comment = comment
         self.error_line: int | None = None
+        self.debug_line: int | None = None
+        self.breakpoints: set[int] = set()
+        self._lines = self.blockCount()
         self._gutter = _Gutter(self)
+        self._gutter.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._gutter.setToolTip("Click to set or clear a breakpoint (F9)")
+        self.document().contentsChange.connect(self._move_breakpoints)
         self.blockCountChanged.connect(lambda _: self._fit_gutter())
         self.updateRequest.connect(self._scroll_gutter)
         self.cursorPositionChanged.connect(self._mark_lines)
@@ -72,7 +90,10 @@ class CodeEditor(QPlainTextEdit):
     # Gutter ---------------------------------------------------------------------------------
     def gutter_width(self) -> int:
         digits = len(str(max(1, self.blockCount())))
-        return 18 + self.fontMetrics().horizontalAdvance("9") * max(3, digits)
+        return 18 + self._dot_space() + self.fontMetrics().horizontalAdvance("9") * max(3, digits)
+
+    def _dot_space(self) -> int:
+        return self.fontMetrics().height()
 
     def _fit_gutter(self) -> None:
         self.setViewportMargins(self.gutter_width(), 0, 0, 0)
@@ -96,16 +117,60 @@ class CodeEditor(QPlainTextEdit):
         number = block.blockNumber()
         top = round(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
         current = self.textCursor().blockNumber()
+        height, dot = self.fontMetrics().height(), self._dot_space()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         while block.isValid() and top <= event.rect().bottom():
             bottom = top + round(self.blockBoundingRect(block).height())
             if block.isVisible() and bottom >= event.rect().top():
+                if number + 1 in self.breakpoints:
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QColor(COLORS["code_breakpoint"]))
+                    size = max(6, dot - 8)
+                    painter.drawEllipse(4 + (dot - size) // 2, top + (height - size) // 2, size, size)
                 colour = (COLORS["code_error"] if number + 1 == self.error_line else
-                          COLORS["text"] if number == current else COLORS["code_gutter"])
+                          COLORS["text"] if number in (current, (self.debug_line or 0) - 1) else
+                          COLORS["code_gutter"])
                 painter.setPen(QColor(colour))
-                painter.drawText(0, top, self._gutter.width() - 8, self.fontMetrics().height(),
+                painter.drawText(0, top, self._gutter.width() - 8, height,
                                  Qt.AlignmentFlag.AlignRight, str(number + 1))
             block, top, number = block.next(), bottom, number + 1
         painter.end()
+
+    # Breakpoints ------------------------------------------------------------------------------
+    def toggle_breakpoint(self, line: int | None = None) -> None:
+        """Set or clear a breakpoint on ``line`` (the cursor's line by default)."""
+        line = line or self.textCursor().blockNumber() + 1
+        if not 1 <= line <= self.blockCount():
+            return
+        self.breakpoints ^= {line}
+        self._gutter.update()
+        self.breakpoints_changed.emit()
+        self.breakpoint_toggled.emit(line, line in self.breakpoints)
+
+    def set_breakpoints(self, lines) -> None:  # noqa: ANN001 (iterable of int)
+        self.breakpoints = {line for line in lines if 1 <= line <= self.blockCount()}
+        self._gutter.update()
+        self.breakpoints_changed.emit()
+
+    def _move_breakpoints(self, position: int, _removed: int, _added: int) -> None:
+        """Lines added or removed above a breakpoint move it; a removed line takes its own."""
+        delta, self._lines = self.blockCount() - self._lines, self.blockCount()
+        if not delta or not self.breakpoints:
+            return
+        block = self.document().findBlock(position)
+        # The first line whose text moved: the edit's own line when it began at the line's start.
+        first = block.blockNumber() + (1 if position == block.position() else 2)
+        gone = range(first, first - delta)  # lines removed (none when lines were added)
+        moved = {line + delta if line >= first else line for line in self.breakpoints if line not in gone}
+        moved = {line for line in moved if 1 <= line <= self.blockCount()}
+        if moved != self.breakpoints:
+            self.breakpoints = moved
+            self.breakpoints_changed.emit()
+
+    def set_debug_line(self, line: int | None) -> None:
+        """Mark the line a debugger stopped at (``None`` clears it)."""
+        self.debug_line = line
+        self._mark_lines()
 
     # Marks ----------------------------------------------------------------------------------
     def _mark_lines(self) -> None:
@@ -116,6 +181,14 @@ class CodeEditor(QPlainTextEdit):
         current.cursor = self.textCursor()
         current.cursor.clearSelection()
         marks.append(current)
+        if self.debug_line is not None:
+            block = self.document().findBlockByNumber(self.debug_line - 1)
+            if block.isValid():
+                stopped = QTextEdit.ExtraSelection()
+                stopped.format.setBackground(QColor(COLORS["code_debug_line"]))
+                stopped.format.setProperty(QTextFormat.Property.FullWidthSelection, True)
+                stopped.cursor = QTextCursor(block)
+                marks.append(stopped)
         if self.error_line is not None:
             block = self.document().findBlockByNumber(self.error_line - 1)
             if block.isValid():
@@ -132,13 +205,14 @@ class CodeEditor(QPlainTextEdit):
         self.error_line = line
         self._mark_lines()
 
-    def go_to_line(self, line: int, column: int = 0) -> None:
+    def go_to_line(self, line: int, column: int = 0, *, focus: bool = True) -> None:
         block = self.document().findBlockByNumber(max(0, line - 1))
         cursor = QTextCursor(block)
         cursor.movePosition(QTextCursor.MoveOperation.Right, n=max(0, min(column, block.length() - 1)))
         self.setTextCursor(cursor)
         self.centerCursor()
-        self.setFocus()
+        if focus:
+            self.setFocus()
 
     # Editing ----------------------------------------------------------------------------------
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
@@ -162,6 +236,9 @@ class CodeEditor(QPlainTextEdit):
             return
         if key == Qt.Key.Key_Slash and mods == Qt.KeyboardModifier.ControlModifier:
             self.toggle_comment()
+            return
+        if key == Qt.Key.Key_F9 and not mods:
+            self.toggle_breakpoint()
             return
         super().keyPressEvent(event)
 

@@ -37,6 +37,8 @@ __all__ = ["TerminalTabs"]
 
 class TerminalTabs(QWidget):
     open_path = Signal(Path, int)
+    #: A finished tab started again: (old view, new view).
+    restarted = Signal(object, object)
 
     def __init__(self, ctx: AppContext, *, folder: Path | None = None, compact: bool = False,
                  parent: QWidget | None = None) -> None:
@@ -44,7 +46,8 @@ class TerminalTabs(QWidget):
         self.ctx = ctx
         self.folder = folder or ctx.terminals.default_folder()
         self.compact = compact
-        self._meta: dict[TerminalView, tuple[list[str], str, bool]] = {}
+        #: view → (argv, title, is a shell, extra environment): enough to start it again.
+        self._meta: dict[TerminalView, tuple[list[str], str, bool, dict[str, str] | None]] = {}
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
         box.setSpacing(4)
@@ -171,17 +174,18 @@ class TerminalTabs(QWidget):
         return self.open_command(argv, argv[0]) if argv else None
 
     def open_command(self, argv: list[str], title: str, *, folder: Path | None = None,
-                     shell: bool = True) -> TerminalView | None:
-        """A new tab running ``argv`` in ``folder`` (the tabs' folder by default)."""
+                     shell: bool = True, env: dict[str, str] | None = None) -> TerminalView | None:
+        """A new tab running ``argv`` in ``folder`` (the tabs' folder by default); ``env`` adds
+        to the terminal environment."""
         folder = folder or self.folder
         try:
-            session = self.ctx.terminals.start(argv, folder, title=title)
+            session = self.ctx.terminals.start(argv, folder, title=title, env=env)
         except PtyError as exc:
             self._problem(str(exc))
             return None
         self._problem("")
         view = self._view(session)
-        self._meta[view] = (list(argv), title, shell)
+        self._meta[view] = (list(argv), title, shell, env)
         index = self.tabs.addTab(view, icon("terminal"), self._unique(title))
         self.tabs.setTabToolTip(index, f"{' '.join(argv)}\nin {folder}")
         self.tabs.setCurrentIndex(index)
@@ -209,7 +213,7 @@ class TerminalTabs(QWidget):
     def _retitle(self, view: TerminalView, text: str) -> None:
         index = self.tabs.indexOf(view)
         if index >= 0 and text:
-            argv, _title, _shell = self._meta.get(view, ([], "", True))
+            argv, _title, _shell, _env = self._meta.get(view, ([], "", True, None))
             self.tabs.setTabToolTip(index, f"{text}\n{' '.join(argv)}")
 
     def _exited(self, view: TerminalView, code: int) -> None:
@@ -221,11 +225,11 @@ class TerminalTabs(QWidget):
 
     def _restart(self, view: TerminalView) -> None:
         index = self.tabs.indexOf(view)
-        argv, title, shell = self._meta.get(view, ([], "", True))
+        argv, title, shell, env = self._meta.get(view, ([], "", True, None))
         if index < 0 or not argv:
             return
         try:
-            session = self.ctx.terminals.start(argv, view.session.cwd, title=title)
+            session = self.ctx.terminals.start(argv, view.session.cwd, title=title, env=env)
         except PtyError as exc:
             view.session.feed_local(f"\r\n{exc}\r\n")
             return
@@ -236,6 +240,7 @@ class TerminalTabs(QWidget):
         self.tabs.removeTab(index)
         self.tabs.insertTab(index, new, icon("terminal"), text)
         self.tabs.setCurrentIndex(index)
+        self.restarted.emit(view, new)
         view.deleteLater()
         new.setFocus()
 
@@ -248,7 +253,7 @@ class TerminalTabs(QWidget):
         return widget if isinstance(widget, TerminalView) else None
 
     def busy(self, view: TerminalView) -> bool:
-        _argv, _title, shell = self._meta.get(view, ([], "", True))
+        _argv, _title, shell, _env = self._meta.get(view, ([], "", True, None))
         return view.session.busy(shell)
 
     def unsaved_work(self) -> list[str]:

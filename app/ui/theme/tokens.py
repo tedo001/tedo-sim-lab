@@ -73,6 +73,9 @@ COLORS: dict[str, str] = {
     "code_line": "#1A1E24",
     "code_gutter": "#5A626D",
     "code_error": "#D2594F",
+    "code_breakpoint": "#D2594F",
+    #: The line the debugger stopped at: a muted accent tint on the editor's surface.
+    "code_debug_line": "#1E2C47",
     # Terminal: its own surface, cursor and selection, and the 16 ANSI colours programs pick
     # from (muted to sit with the rest of the interface, bright ones lighter, all readable on
     # the terminal surface). 256-colour and true-colour output is drawn as programs ask.

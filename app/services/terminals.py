@@ -43,9 +43,11 @@ class TerminalService(QObject):
         return terminal_environment(self.paths.workspace, experiment_python(self.config))
 
     def start(self, argv: list[str], cwd: Path, *, title: str = "", rows: int = 24,
-              cols: int = 80) -> PtySession:
-        """A running session; ``PtyError`` when the program cannot start."""
-        session = PtySession(argv, cwd, self.environment(), rows=rows, cols=cols, title=title)
+              cols: int = 80, env: dict[str, str] | None = None) -> PtySession:
+        """A running session (``env`` adds to the terminal environment); ``PtyError`` when the
+        program cannot start."""
+        session = PtySession(argv, cwd, {**self.environment(), **(env or {})}, rows=rows, cols=cols,
+                             title=title)
         session.start()
         self.sessions.append(session)
         return session

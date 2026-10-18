@@ -86,6 +86,29 @@ def test_editor_keys(qtbot) -> None:
     assert editor.replace_all("f(", "g(") == 1 and editor.toPlainText().startswith("def g")
 
 
+def test_breakpoints_move_with_the_text(qtbot) -> None:
+    editor = CodeEditor()
+    qtbot.addWidget(editor)
+    editor.setPlainText("a\nb\nc\nd\n")
+    editor.toggle_breakpoint(2)
+    editor.toggle_breakpoint(4)
+    cursor = editor.textCursor()
+    cursor.setPosition(0)
+    cursor.insertText("x\n")                       # a line above both
+    assert editor.breakpoints == {3, 5}
+    block = editor.document().findBlockByNumber(2)  # "b", with a breakpoint: delete the whole line
+    cursor.setPosition(block.position())
+    cursor.setPosition(block.next().position(), cursor.MoveMode.KeepAnchor)
+    cursor.removeSelectedText()
+    assert editor.breakpoints == {4} and editor.document().findBlockByNumber(3).text() == "d"
+    cursor.setPosition(editor.document().findBlockByNumber(0).position() + 1)
+    cursor.insertText("\n")                        # Enter at the end of line 1
+    assert editor.breakpoints == {5}
+    editor.go_to_line(5)
+    qtbot.keyClick(editor, Qt.Key.Key_F9)
+    assert editor.breakpoints == set()
+
+
 def test_run_commands_and_files(tmp_path) -> None:
     assert run_command(tmp_path / "a.py", ["-v"], "/py") == ["/py", "-u", str(tmp_path / "a.py"), "-v"]
     with pytest.raises(ValueError, match="experiment Python"):
@@ -186,3 +209,36 @@ def test_unsaved_work_is_asked_about_before_quitting(window, qtbot, project, mon
     assert asked == [["main.py"]] and window.isVisible()
     assert sys.platform  # (window closes normally in the fixture teardown)
     ide.tabs.current_editor().document().setModified(False)
+
+
+def test_debugging_follows_pdb_and_takes_breakpoints_at_its_prompt(page, qtbot, project) -> None:
+    script = project / "steps.py"
+    script.write_text("a = 1\nb = a + 1\nc = b * 2\nprint('done', c)\n")
+    page.open_file(script)
+    editor = page.tabs.current_editor()
+    editor.toggle_breakpoint(3)
+    assert page.debug_current() and page.stop_button.isEnabled()
+    qtbot.waitUntil(lambda: editor.debug_line == 3 and page.debugger.at_prompt(), timeout=30_000)
+    editor.toggle_breakpoint(4)  # pdb waits at its prompt: it is told at once
+    qtbot.waitUntil(lambda: "Breakpoint 2" in "\n".join(page.debugger.view.session.screen.display()),
+                    timeout=20_000)
+    qtbot.waitUntil(page.debugger.at_prompt, timeout=20_000)
+    page.debugger.view.session.write("c\r")
+    qtbot.waitUntil(lambda: editor.debug_line == 4, timeout=20_000)
+    qtbot.waitUntil(page.debugger.at_prompt, timeout=20_000)
+    page.debugger.view.session.write("q\r")
+    qtbot.waitUntil(lambda: not page.debugger.active, timeout=20_000)
+    assert editor.debug_line is None and not page.stop_button.isEnabled()
+    assert page.tabs.breakpoints() == {script.resolve(): {3, 4}}
+
+
+def test_a_file_runs_in_a_terminal_where_it_can_read_input(page, qtbot, project) -> None:
+    script = project / "ask.py"
+    script.write_text("name = input('name? ')\nprint('hello', name)\n")
+    page.open_file(script)
+    assert page.debug_current(debug=False)
+    view = page.debugger.run_view
+    qtbot.waitUntil(lambda: "name?" in "\n".join(view.session.screen.display()), timeout=20_000)
+    view.session.write("lab\r")
+    qtbot.waitUntil(lambda: view.session.exit_code is not None, timeout=20_000)
+    assert "hello lab" in "\n".join(view.session.screen.display()) and view.session.exit_code == 0
