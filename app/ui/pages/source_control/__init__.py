@@ -22,7 +22,7 @@ from core.vcs import Git, RepoStatus, repository_name
 from ....services.context import AppContext
 from ....services.source_control import SourceControl
 from ...icons import icon
-from ...widgets import Card, Page, PathLabel, Segmented, label
+from ...widgets import Card, Page, PathLabel, ResponsiveRow, Segmented, label
 from .branches import BranchesView
 from .changes import ChangesView
 from .github_view import GitHubView
@@ -49,7 +49,9 @@ class SourceControlPage(Page):
             self.head.add_action(widget)
 
         bar = Card("Repository", "")
-        row = QHBoxLayout()
+        where = QWidget()  # the folder and branch beside the buttons, above them when narrow
+        row = QHBoxLayout(where)
+        row.setContentsMargins(0, 0, 0, 0)
         self.path_label = PathLabel(self.folder)
         row.addWidget(self.path_label, 1)
         self.branch_box = QComboBox()
@@ -59,6 +61,9 @@ class SourceControlPage(Page):
         row.addWidget(self.branch_box)
         self.sync_label = label("", "Mono")
         row.addWidget(self.sync_label)
+        actions = QWidget()
+        buttons = QHBoxLayout(actions)
+        buttons.setContentsMargins(0, 0, 0, 0)
         self.fetch_button = QPushButton(icon("refresh-cw"), "Fetch")
         self.pull_button = QPushButton(icon("arrow-down-to-line"), "Pull")
         self.push_button = QPushButton(icon("arrow-up-from-line"), "Push")
@@ -67,8 +72,9 @@ class SourceControlPage(Page):
         for button, slot in ((self.fetch_button, self.fetch), (self.pull_button, self.pull),
                              (self.push_button, self.push), (self.terminal_button, self.open_terminal)):
             button.clicked.connect(slot)
-            row.addWidget(button)
-        bar.add(row)
+            buttons.addWidget(button)
+        buttons.addStretch(1)
+        bar.add(ResponsiveRow([(where, 1), (actions, 0)], breakpoint=900))
         self.init_row = QWidget()
         init_box = QHBoxLayout(self.init_row)
         init_box.setContentsMargins(0, 0, 0, 0)

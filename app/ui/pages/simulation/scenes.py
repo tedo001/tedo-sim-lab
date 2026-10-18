@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 
 import numpy as np
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -28,7 +28,7 @@ from labs.simulation.vision import CATEGORIES, SceneSpec, generate_dataset, rend
 
 from ....services.context import AppContext
 from ...icons import icon
-from ...widgets import Card, PathLabel, label
+from ...widgets import Card, PathLabel, ResponsiveRow, label
 from ...widgets.sim_views import ImageView
 
 __all__ = ["SceneLab"]
@@ -56,7 +56,6 @@ class SceneLab(QWidget):
         self._job: str | None = None
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
-        top = QHBoxLayout()
 
         scene = Card("Scene", "every image follows from the seed")
         form = QFormLayout()
@@ -97,7 +96,6 @@ class SceneLab(QWidget):
         form.addRow("Overlap", self.overlap)
         form.addRow("Seed", seed_row)
         scene.add(form)
-        top.addWidget(scene, 0, Qt.AlignmentFlag.AlignTop)
 
         preview = Card("Preview", "the first images of the dataset, with their boxes")
         grid = QGridLayout()
@@ -108,8 +106,7 @@ class SceneLab(QWidget):
         preview.add(grid)
         self.stats = label("", "CardCaption", wrap=True)
         preview.add(self.stats)
-        top.addWidget(preview, 1, Qt.AlignmentFlag.AlignTop)
-        box.addLayout(top)
+        box.addWidget(ResponsiveRow([(scene, 0), (preview, 1)], breakpoint=760))
 
         dataset = Card("Make a dataset", "PNG images and COCO annotations in the workspace")
         row = QHBoxLayout()

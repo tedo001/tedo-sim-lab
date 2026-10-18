@@ -64,11 +64,11 @@ class ComparePage(Page):
         self.body.addWidget(self.table_card)
 
         curves = Card("Curves", "one metric, every ticked run that has per-epoch values")
-        self.metric = QComboBox()
+        self.metric_box = QComboBox()
         for key, title, _share in CURVES:
-            self.metric.addItem(title, key)
-        self.metric.currentIndexChanged.connect(lambda _: self._draw())
-        curves.add_head_widget(self.metric)
+            self.metric_box.addItem(title, key)
+        self.metric_box.currentIndexChanged.connect(lambda _: self._draw())
+        curves.add_head_widget(self.metric_box)
         self.chart = OverlayChart()
         curves.add(self.chart)
         self.curves_card = curves
@@ -169,13 +169,13 @@ class ComparePage(Page):
         self._draw()
 
     def _draw(self) -> None:
-        key = self.metric.currentData()
+        key = self.metric_box.currentData()
         share = next(s for k, _t, s in CURVES if k == key)
         series = []
         for run_id in self.selected_ids():
             view = self.ctx.experiments.view(run_id)
             series.append((view.name, [] if view.tabular else self.ctx.store.metric_history(run_id, key)))
-        self.chart.set_series(self.metric.currentText(), series, percent=share)
+        self.chart.set_series(self.metric_box.currentText(), series, percent=share)
 
     # Exporting --------------------------------------------------------------------------
     def markdown(self, rows: list[dict], with_chart: bool) -> str:
@@ -184,7 +184,7 @@ class ComparePage(Page):
                  f"TEDO AI Research Lab · {stamp} · workspace `{self.ctx.paths.workspace}`", "",
                  markdown_by_measure(rows, used_columns(rows)), ""]
         if with_chart:
-            lines += [f"## {self.metric.currentText()}", "", "![curves](curves.png)", ""]
+            lines += [f"## {self.metric_box.currentText()}", "", "![curves](curves.png)", ""]
         lines += ["## Runs", ""]
         for row in rows:
             lines.append(f"- **{row['name']}** (run `{row['run_id']}`): {row['dataset']} · {row['model']} · "
@@ -207,7 +207,7 @@ class ComparePage(Page):
             printable.deleteLater()
         self.last_export = export_report(self.ctx.paths.reports, f"compare-{len(rows)}-runs",
                                          self.markdown(rows, with_chart), rows=rows, images=images,
-                                         formats=formats, extra={"metric": self.metric.currentData()})
+                                         formats=formats, extra={"metric": self.metric_box.currentData()})
         self.export_text.setText("\n".join(str(path) for path in self.last_export.values()))
         self.open_button.setEnabled(bool(self.last_export))
         return self.last_export

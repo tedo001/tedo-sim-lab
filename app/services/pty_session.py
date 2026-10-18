@@ -12,6 +12,7 @@ import threading
 from collections import deque
 from pathlib import Path
 
+import shiboken6
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
 
 from core.common.masking import mask_text
@@ -77,7 +78,8 @@ class PtySession(QObject):
     def terminate(self) -> None:
         """End the program and stop reading (idempotent; used on close)."""
         self._stop.set()
-        self._flush_timer.stop()
+        if shiboken6.isValid(self._flush_timer):  # Qt may have deleted it already (app exit)
+            self._flush_timer.stop()
         process, self._process = self._process, None
         if process is not None:
             process.terminate()

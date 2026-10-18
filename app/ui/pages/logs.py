@@ -147,7 +147,7 @@ class LogsPage(Page):
 
         sources = QHBoxLayout()
         self.source = QComboBox()
-        self.source.setMinimumWidth(260)
+        self.source.setMinimumWidth(160)  # long run names shorten in a narrow pane
         self.source.activated.connect(lambda _i: self.open_source(self.source.currentData()))
         self.level_box = QComboBox()
         self.level_box.setToolTip("What the lab records from now on (saved in settings.yaml)")
@@ -163,12 +163,15 @@ class LogsPage(Page):
 
         filters = QHBoxLayout()
         self.level_filter = QComboBox()
+        self.level_filter.setMinimumWidth(130)
         for title, value in LEVEL_FILTERS:
             self.level_filter.addItem(title, value)
         self.logger_filter = QComboBox()
+        self.logger_filter.setMinimumWidth(120)
         self.logger_filter.addItem("All sources", "")
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search the records")
+        self.search.setMinimumWidth(110)
         self.search.setClearButtonEnabled(True)
         self.follow = QCheckBox("Follow new lines")
         self.follow.setChecked(True)

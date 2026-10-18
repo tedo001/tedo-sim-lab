@@ -7,6 +7,7 @@ from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
     QBoxLayout,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLayout,
     QScrollArea,
@@ -16,13 +17,14 @@ from PySide6.QtWidgets import (
 )
 
 from ..theme.tokens import SIZES
-from .basics import label
+from .basics import ElidedLabel, label
 
-__all__ = ["Card", "Page", "PageHead", "ResponsiveRow"]
+__all__ = ["Card", "FlowGrid", "Page", "PageHead", "ResponsiveRow"]
 
 
 class PageHead(QWidget):
-    """Title, a one-line monospace caption, and actions aligned right."""
+    """Title, a one-line monospace caption, and actions aligned right. The caption shortens with
+    "…" in a narrow pane (the whole of it in its tooltip), so it never makes the page wider."""
 
     def __init__(self, title: str, caption: str = "", parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -31,7 +33,7 @@ class PageHead(QWidget):
         text = QVBoxLayout()
         text.setSpacing(2)
         self.title = label(title, "PageTitle")
-        self.caption = label(caption, "PageCaption", selectable=True)
+        self.caption = ElidedLabel(caption, "PageCaption")
         self.caption.setVisible(bool(caption))
         text.addWidget(self.title)
         text.addWidget(self.caption)
@@ -41,7 +43,7 @@ class PageHead(QWidget):
         row.addLayout(self.actions)
 
     def set_caption(self, caption: str) -> None:
-        self.caption.setText(caption)
+        self.caption.set_full_text(caption)
         self.caption.setVisible(bool(caption))
 
     def add_action(self, widget: QWidget) -> None:
@@ -190,3 +192,47 @@ class ResponsiveRow(QWidget):
                 self._box.setStretch(index, 0 if narrow else stretch)
             self.updateGeometry()  # the row's height changed: ask the page to lay out again
         super().resizeEvent(event)
+
+
+class FlowGrid(QWidget):
+    """Same-sized widgets (buttons) in as many columns as fit, at least ``fewest``; they flow onto
+    more rows when the pane narrows, so a long row of buttons never makes the page wider."""
+
+    def __init__(self, widgets: list[QWidget], cell_width: int, *, fewest: int = 4,
+                 parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.widgets = list(widgets)
+        self.cell_width = cell_width
+        self.fewest = fewest
+        self.columns = 0
+        self.grid = QGridLayout(self)
+        self.grid.setContentsMargins(0, 0, 0, 0)
+        self.grid.setSpacing(4)
+        self.grid.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)  # the width is ours to set
+        self._place(len(self.widgets))
+
+    def _place(self, columns: int) -> None:
+        columns = max(1, min(columns, len(self.widgets)))
+        if columns == self.columns:
+            return
+        for column in range(self.grid.columnCount()):
+            self.grid.setColumnStretch(column, 0)
+        for widget in self.widgets:
+            self.grid.removeWidget(widget)
+        for index, widget in enumerate(self.widgets):
+            self.grid.addWidget(widget, index // columns, index % columns)
+        self.grid.setColumnStretch(columns, 1)
+        self.columns = columns
+        self.updateGeometry()  # the number of rows changed
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        step = self.cell_width + self.grid.spacing()
+        self._place(max(self.fewest, (event.size().width() + self.grid.spacing()) // step))
+        super().resizeEvent(event)
+
+    def minimumSizeHint(self) -> QSize:
+        width = self.fewest * (self.cell_width + self.grid.spacing()) - self.grid.spacing()
+        return QSize(width, self.grid.minimumSize().height())
+
+    def sizeHint(self) -> QSize:
+        return QSize(self.grid.sizeHint().width(), self.grid.sizeHint().height())

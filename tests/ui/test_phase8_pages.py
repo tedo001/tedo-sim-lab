@@ -38,7 +38,7 @@ def test_benchmarking_page_runs_an_untrained_model(ctx, qtbot) -> None:
     page.source.setCurrentIndex(page.source.findData("card:simple_cnn"))
     assert page.shape_row.isEnabled() and not page.precision.isEnabled()  # fp16 needs CUDA
     page.channels.setValue(1)
-    page.size.setValue(28)
+    page.image_size.setValue(28)
     page.batches.setText("1, 4")
     page.warmup.setValue(1)
     page.iterations.setValue(3)

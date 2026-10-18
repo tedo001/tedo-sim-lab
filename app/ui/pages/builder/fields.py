@@ -44,6 +44,7 @@ def form(card: Card) -> QFormLayout:
     layout = QFormLayout()
     layout.setHorizontalSpacing(14)
     layout.setVerticalSpacing(8)
+    layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)  # a narrow pane: field under label
     card.add(layout)
     return layout
 

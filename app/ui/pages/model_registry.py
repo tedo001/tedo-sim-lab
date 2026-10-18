@@ -70,7 +70,6 @@ class ModelRegistryPage(Page):
         self.notes.setPlaceholderText("Notes: what this version is for, how it was checked…")
         self.notes.setFixedHeight(80)
         self.detail.add(self.notes)
-        buttons = QHBoxLayout()
         save = QPushButton("Save notes")
         save.clicked.connect(self._save_notes)
         self.run_button = QPushButton(icon("activity"), "Open source run")
@@ -80,10 +79,16 @@ class ModelRegistryPage(Page):
         self.delete_button = QPushButton(icon("x"), "Remove version")
         self.delete_button.setToolTip("Forget this version; the checkpoint stays in its run folder")
         self.delete_button.clicked.connect(lambda: self.delete())
-        for button in (save, self.run_button, self.folder_button, self.delete_button):
-            buttons.addWidget(button)
-        buttons.addStretch(1)
-        self.detail.add(buttons)
+        pairs = []
+        for pair in ((save, self.run_button), (self.folder_button, self.delete_button)):
+            holder = QWidget()
+            row = QHBoxLayout(holder)
+            row.setContentsMargins(0, 0, 0, 0)
+            for button in pair:
+                row.addWidget(button)
+            row.addStretch(1)
+            pairs.append((holder, 0))
+        self.detail.add(ResponsiveRow(pairs, breakpoint=640))  # two rows in a narrow pane
         self.body.addWidget(ResponsiveRow([(listing, 2), (self.detail, 3)], breakpoint=1000))
         self.body.addStretch(1)
         ctx.models.registered.connect(self._registered)

@@ -71,7 +71,7 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/ui/shell/search_index.py` | Ctrl+K entries: pages, dataset and model cards, recent runs (`page:`/`dataset:`/`model:`/`run:` keys, opened by `MainWindow.open_entry`) |
 | `app/services/ui_state.py` | `UiState`: remembered layout via `QSettings` (per person, never in a project) |
 | `app/ui/pages/` | One module per built page; `PAGE_FACTORIES` maps id → page class |
-| `app/ui/widgets/` | Kit: `Page`, `PageHead`, `Card`, `Pill`, `KeyValues`, `ElidedLabel`/`PathLabel`, `DataTable`, `MarkdownView` |
+| `app/ui/widgets/` | Kit: `Page`, `PageHead` (caption elides), `Card`, `Pill`, `KeyValues`, `ElidedLabel`/`PathLabel`, `DataTable`, `MarkdownView`, `ResponsiveRow` (side by side, stacked when narrow), `FlowGrid` (equal buttons that flow onto more rows) |
 | `app/ui/theme/` | `tokens.py` (all colours/sizes), `style.qss` (template), fonts |
 | `app/resources/` | Bundled fonts (Inter, JetBrains Mono — OFL) and Lucide icons (ISC) |
 | `app/services/context.py` | `AppContext` (paths, config, credentials, catalogue, store, jobs, terminals, settings, logs, updates; `navigate`, `show_page`, `open_file`, `open_terminal` set by the window); `build_context()` |
@@ -221,8 +221,13 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   `labs/computer_vision/explainer/LICENSE-cnn-explainer.txt` and the credit on the page. Never copy
   its Tiny ImageNet images or pretrained weights (ImageNet-derived). Its numpy engine must match
   PyTorch exactly (`tests/core/test_explainer.py`); activations use the diverging `heat_*` tokens.
-- **Narrow panes**: pages must work at half width (split view). Key/value rows are single
-  line and elide (full text in tooltip); tables stretch a text column, never a pill column.
+- **Narrow panes**: pages must work at half width (split view): `tests/ui/test_responsive.py` fails
+  when a page needs more than 600 px. Put cards or rows of controls side by side in a
+  `ResponsiveRow`, many equal buttons in a `FlowGrid`, give choosers an explicit minimum width, and
+  let forms wrap long rows. Key/value rows are single line and elide (full text in tooltip);
+  tables stretch a text column, never a pill column.
+- **Qt names**: never give a widget an attribute named after a `QWidget` method (`metric`, `width`,
+  `height`, `size`, `scroll`, …): it hides the method, and Qt calls virtual ones from C++.
 - **Look**: dark, restrained, flat. Colours only from `tokens.py`; one accent (muted
   blue) for anything pressable; status shown with tinted pills. No gradients or glow.
 - **Workspace**: runtime folders (`models/ datasets/ experiments/ notebooks/ results/

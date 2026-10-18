@@ -29,7 +29,7 @@ from core.common import experiment_python
 from ....services.context import AppContext
 from ....services.project import RUNNABLE, ProjectRunner, RecentProjects
 from ...icons import icon
-from ...widgets import Page, PathLabel, label
+from ...widgets import Page, PathLabel, ResponsiveRow, label
 from .console import BottomPanel
 from .debugging import Debugger
 from .editors import EditorTabs, FindBar
@@ -55,10 +55,15 @@ class IdePage(Page):
         for widget in (open_button, self.recent_button):
             self.head.add_action(widget)
 
-        top = QHBoxLayout()
+        project = QWidget()  # the project beside the run buttons, above them in a narrow pane
+        where = QHBoxLayout(project)
+        where.setContentsMargins(0, 0, 0, 0)
         self.project_label = PathLabel("")
-        top.addWidget(label("Project", "KvKey"))
-        top.addWidget(self.project_label, 1)
+        where.addWidget(label("Project", "KvKey"))
+        where.addWidget(self.project_label, 1)
+        actions = QWidget()
+        top = QHBoxLayout(actions)
+        top.setContentsMargins(0, 0, 0, 0)
         self.args = QLineEdit()
         self.args.setPlaceholderText("Arguments for Run")
         self.args.setMaximumWidth(260)
@@ -83,7 +88,7 @@ class IdePage(Page):
         for widget in (self.save_button, self.run_button, self.terminal_run_button, self.debug_button,
                        self.stop_button):
             top.addWidget(widget)
-        self.body.addLayout(top)
+        self.body.addWidget(ResponsiveRow([(project, 1), (actions, 0)], breakpoint=900))
 
         self.tree = ProjectTree()
         self.tabs = EditorTabs()

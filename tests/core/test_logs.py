@@ -63,6 +63,9 @@ def test_a_growing_file_is_followed_through_rotation(tmp_path) -> None:
     log.write_text("", encoding="utf-8")  # truncated
     assert follower.read() == []
     assert LogFollower(tmp_path / "missing.log").read() == []
+    windows = tmp_path / "windows.log"
+    windows.write_bytes(f"{LINES[0]}\r\n{LINES[1]}\r\n".encode())
+    assert LogFollower(windows).read() == LINES[:2]  # Windows line ends come back without the \r
 
 
 def test_errors_log_keeps_only_problems_and_both_are_masked(tmp_path) -> None:

@@ -53,9 +53,11 @@ class TerminalService(QObject):
         return session
 
     def end(self, session: PtySession) -> None:
+        """End a session this service started (one already ended, by ``shutdown`` say, is left)."""
+        if session not in self.sessions:
+            return
+        self.sessions.remove(session)
         session.terminate()
-        if session in self.sessions:
-            self.sessions.remove(session)
         session.deleteLater()
 
     def shutdown(self) -> None:

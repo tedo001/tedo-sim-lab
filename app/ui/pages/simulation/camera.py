@@ -25,7 +25,7 @@ from labs.simulation.vision.camera import OBJECTS, intrinsics, rotation
 from ...icons import icon
 from ...theme import mono_font
 from ...theme.tokens import COLORS, MONO_FAMILY, SERIES
-from ...widgets import Card
+from ...widgets import Card, ResponsiveRow
 from ...widgets.plots import _font
 
 __all__ = ["CameraLab", "CameraView"]
@@ -105,7 +105,6 @@ class CameraLab(QWidget):
         super().__init__(parent)
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
-        row = QHBoxLayout()
         controls = Card("Camera", "angles in degrees, distances in scene units")
         form = QFormLayout()
         default = Camera()
@@ -135,12 +134,10 @@ class CameraLab(QWidget):
         reset = QPushButton(icon("rotate-ccw"), "Reset the camera")
         reset.clicked.connect(lambda: self.load({"camera": Camera().to_dict()}))
         controls.add(reset)
-        row.addWidget(controls, 0, Qt.AlignmentFlag.AlignTop)
         image = Card("What the camera sees", "")
         self.view = CameraView()
         image.add(self.view)
-        row.addWidget(image, 1, Qt.AlignmentFlag.AlignTop)
-        box.addLayout(row)
+        box.addWidget(ResponsiveRow([(controls, 0), (image, 1)], breakpoint=760))
         matrices = Card("Matrices", "x ~ P X with P = K [R | t]; distortion is applied after projection")
         self.matrices = QPlainTextEdit()
         self.matrices.setObjectName("Code")

@@ -5,7 +5,7 @@ position, momentum, energy and transmission; and the potential's lowest stationa
 from __future__ import annotations
 
 import numpy as np
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from labs.simulation.quantum.waves import POTENTIALS, USES, WaveSetup, WaveSimulation, eigenstates
 
 from ...icons import icon
-from ...widgets import Card, DataTable, KeyValues, label
+from ...widgets import Card, DataTable, KeyValues, ResponsiveRow, label
 from ...widgets.sim_views import LineChart
 
 __all__ = ["WaveLab"]
@@ -48,7 +48,6 @@ class WaveLab(QWidget):
         self.timer.timeout.connect(self.tick)
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
-        top = QHBoxLayout()
 
         setup = Card("Set-up", "ħ = m = 1")
         form = QFormLayout()
@@ -56,8 +55,8 @@ class WaveLab(QWidget):
         for key, title in POTENTIALS.items():
             self.potential.addItem(title, key)
         self.potential.setCurrentIndex(self.potential.findData("barrier"))
-        self.height = _spin(-20, 20, 0.1, 1.0)
-        self.width = _spin(0.1, 40, 0.1, 1.0)
+        self.height_spin = _spin(-20, 20, 0.1, 1.0)
+        self.width_spin = _spin(0.1, 40, 0.1, 1.0)
         self.omega = _spin(0.01, 5, 0.05, 0.5)
         self.x0 = _spin(-100, 100, 0.5, -15.0)
         self.sigma = _spin(0.2, 30, 0.1, 2.0)
@@ -69,8 +68,8 @@ class WaveLab(QWidget):
         self.dt = _spin(0.001, 0.2, 0.005, 0.02, 3)
         self.absorbing = QCheckBox("Absorb at the edges")
         self.absorbing.setChecked(True)
-        for title, widget in (("Potential", self.potential), ("Height / depth V₀", self.height),
-                              ("Width a", self.width), ("Oscillator ω", self.omega),
+        for title, widget in (("Potential", self.potential), ("Height / depth V₀", self.height_spin),
+                              ("Width a", self.width_spin), ("Oscillator ω", self.omega),
                               ("Packet centre x₀", self.x0), ("Packet width σ", self.sigma),
                               ("Wave number k₀", self.k0), ("Grid points", self.points),
                               ("Time step", self.dt),
@@ -92,15 +91,13 @@ class WaveLab(QWidget):
         for widget in (self.play_button, self.step_button, self.reset_button, self.speed):
             row.addWidget(widget)
         setup.add(row)
-        top.addWidget(setup, 0, Qt.AlignmentFlag.AlignTop)
 
         readout = Card("Now", "")
         self.values = KeyValues(())
         readout.add(self.values)
         self.energy_note = label("", "CardCaption", wrap=True)
         readout.add(self.energy_note)
-        top.addWidget(readout, 1, Qt.AlignmentFlag.AlignTop)
-        box.addLayout(top)
+        box.addWidget(ResponsiveRow([(setup, 0), (readout, 1)], breakpoint=760))
 
         self.density = LineChart("Probability density |ψ(x, t)|²", "x", "|ψ|²")
         self.potential_chart = LineChart("Potential V(x)", "x", "V")
@@ -131,7 +128,7 @@ class WaveLab(QWidget):
         box.addWidget(levels)
         box.addStretch(1)
         self._levels = None
-        for widget in (self.height, self.width, self.omega, self.x0, self.sigma, self.k0, self.dt):
+        for widget in (self.height_spin, self.width_spin, self.omega, self.x0, self.sigma, self.k0, self.dt):
             widget.valueChanged.connect(lambda _v: self.reset())
         for combo in (self.potential, self.points):
             combo.currentIndexChanged.connect(lambda _i: self.reset())
@@ -143,14 +140,13 @@ class WaveLab(QWidget):
     def _show_uses(self) -> None:
         """Only the values the chosen potential depends on can be changed."""
         used = USES[self.potential.currentData()]
-        for name in ("height", "width", "omega"):
-            spin = getattr(self, name)
+        for name, spin in (("height", self.height_spin), ("width", self.width_spin), ("omega", self.omega)):
             spin.setEnabled(name in used)
             spin.setToolTip("" if name in used else f"Not used by the {self.potential.currentText().lower()}")
 
     # Running ---------------------------------------------------------------------------------------
     def setup(self) -> WaveSetup:
-        return WaveSetup(self.potential.currentData(), self.height.value(), self.width.value(),
+        return WaveSetup(self.potential.currentData(), self.height_spin.value(), self.width_spin.value(),
                          self.omega.value(), self.x0.value(), self.sigma.value(), self.k0.value(),
                          points=int(self.points.currentData()), dt=self.dt.value(),
                          absorbing=self.absorbing.isChecked())
@@ -172,7 +168,7 @@ class WaveLab(QWidget):
         self.draw()
 
     def _band(self) -> tuple[float, float] | None:
-        kind, half = self.potential.currentData(), self.width.value() / 2
+        kind, half = self.potential.currentData(), self.width_spin.value() / 2
         if kind in ("barrier", "well", "box"):
             return (-half, half)
         if kind == "step":
@@ -204,7 +200,7 @@ class WaveLab(QWidget):
             return
         self.density.set_line(sim.x, sim.density(), y_range=(0.0, self.peak), fill=True, band=self._band(),
                               headline=f"t = {sim.time:.2f}")
-        half = self.width.value() / 2
+        half = self.width_spin.value() / 2
         kind = self.potential.currentData()
         edge = 0.0 if kind == "step" else half
         flow = kind in ("barrier", "step")
@@ -217,10 +213,10 @@ class WaveLab(QWidget):
             self.values.set_value(key, value)
         energy = 0.5 * self.k0.value() ** 2 + 1 / (8 * self.sigma.value() ** 2)
         if kind in ("barrier", "step"):
-            versus = "below" if energy < self.height.value() else "above"
+            versus = "below" if energy < self.height_spin.value() else "above"
             ending = ": what gets through tunnels." if versus == "below" else "."
             self.energy_note.setText(f"The packet's energy ≈ {energy:.3f} is {versus} the barrier height "
-                                     f"{self.height.value():.3f}{ending}")
+                                     f"{self.height_spin.value():.3f}{ending}")
         else:
             self.energy_note.setText(f"The packet's energy ≈ {energy:.3f}.")
 
@@ -251,8 +247,9 @@ class WaveLab(QWidget):
 
     def load(self, settings: dict) -> None:
         setup = WaveSetup.from_dict(settings.get("setup", {}))
-        widgets = [(self.height, setup.height), (self.width, setup.width), (self.omega, setup.omega),
-                   (self.x0, setup.x0), (self.sigma, setup.sigma), (self.k0, setup.k0), (self.dt, setup.dt)]
+        widgets = [(self.height_spin, setup.height), (self.width_spin, setup.width),
+                   (self.omega, setup.omega), (self.x0, setup.x0), (self.sigma, setup.sigma),
+                   (self.k0, setup.k0), (self.dt, setup.dt)]
         for widget, value in widgets:
             widget.blockSignals(True)
             widget.setValue(value)

@@ -57,24 +57,24 @@ you import. Each preset runs in seconds. The results show:
 Each tool saves what you set up (*Save*, then the *Saved* list) and writes it out as a Python
 script that runs on its own (*Export script*).
 
-- **Quantum circuits.** Pick a gate, then click a wire to place it (for a CNOT, click the control,
+- **Circuits** (quantum circuits). Pick a gate, then click a wire to place it (for a CNOT, click the control,
   then the target); right-click removes a gate. You see the exact probabilities, shots sampled
   with a seed, each qubit on its Bloch sphere (shorter than 1 when it is entangled) and the state
   vector with phases. Start from a preset: Bell and GHZ states, teleportation, Deutsch–Jozsa,
   Grover search, the quantum Fourier transform. Circuits export as OpenQASM 2.0.
-- **Wave mechanics.** A wave packet in a potential you choose (free, barrier, step, well, box,
+- **Waves** (wave mechanics). A wave packet in a potential you choose (free, barrier, step, well, box,
   harmonic, double well), moving in time: watch it tunnel, reflect or oscillate, with its norm,
   position, momentum, energy and how much got through. *Compute* finds the potential's lowest
   energies and draws each stationary state.
-- **Image lab.** Build a pipeline of image operations (blur, sharpen, edges, corners, thresholds,
+- **Images** (image processing). Build a pipeline of image operations (blur, sharpen, edges, corners, thresholds,
   morphology, colour, noise, geometry, Fourier filters, a kernel of your own) on a test pattern or
   your own PNG; every change runs again in the background, with timings and a histogram.
-- **Synthetic scenes.** Circles, squares and triangles on varied backgrounds, the same for the
+- **Scenes** (synthetic scenes). Circles, squares and triangles on varied backgrounds, the same for the
   same seed. *Make the dataset* writes PNG images and COCO annotations into
   `datasets/synthetic/<name>/` (the same button stops it; nothing half-made is kept), and
   *Inspect in the Dataset Hub* opens them there. Shapes may cover each other: the annotations then
   describe only what is visible.
-- **Camera model.** A pinhole camera with lens distortion looking at a cube, a ground grid and
+- **Camera** (camera model). A pinhole camera with lens distortion looking at a cube, a ground grid and
   axes. Change its angles, position, focal length and distortion; the matrices K, R, t and
   P = K [R | t] are shown.
 

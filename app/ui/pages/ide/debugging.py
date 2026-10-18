@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import shiboken6
 from PySide6.QtCore import QObject, Signal
 
 from core.common import experiment_python
@@ -89,7 +90,7 @@ class Debugger(QObject):
         self.active_changed.emit(True)
 
     def _changed(self, view: TerminalView) -> None:
-        if view is not self.view:
+        if view is not self.view or not shiboken6.isValid(self.tabs):
             return
         stop = find_stop(view.session.screen)
         if stop is None or stop == self.last_stop:
@@ -100,7 +101,7 @@ class Debugger(QObject):
             self.tabs.show_debug_line(path, stop.line)
 
     def _ended(self, view: TerminalView) -> None:
-        if view is self.view:
+        if view is self.view and shiboken6.isValid(self.tabs):
             self._active = False
             self.tabs.show_debug_line(None)
             self.active_changed.emit(False)

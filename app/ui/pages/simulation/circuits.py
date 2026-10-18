@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
     QDoubleSpinBox,
-    QGridLayout,
     QHBoxLayout,
     QPushButton,
     QScrollArea,
@@ -25,7 +24,7 @@ from PySide6.QtWidgets import (
 from labs.simulation.quantum import GATES, MAX_QUBITS, PRESETS, Circuit, Op, preset, purity, sample, simulate
 
 from ...icons import icon
-from ...widgets import Card, DataTable, label
+from ...widgets import Card, DataTable, FlowGrid, ResponsiveRow, label
 from ...widgets.plots import BarList
 from ...widgets.sim_views import BlochView
 from .circuit_canvas import CircuitCanvas
@@ -70,23 +69,20 @@ class CircuitLab(QWidget):
         self.description = label("", "CardCaption", wrap=True)
         build.add(self.description)
 
-        palette = QGridLayout()
-        palette.setSpacing(4)
         self.gate_group = QButtonGroup(self)
         self.gate_buttons: dict[str, QToolButton] = {}
-        for index, name in enumerate(PALETTE):
+        for name in PALETTE:
             button = QToolButton()
             button.setText(_SHOWN.get(name, name))
             button.setCheckable(True)
-            button.setMinimumWidth(56)
+            button.setFixedWidth(56)
             spec = GATES[name]
             button.setToolTip(f"{spec.title}" + (f": {spec.help}" if spec.help else ""))
             button.clicked.connect(lambda _=False, n=name: self.select_gate(n))
             self.gate_group.addButton(button)
             self.gate_buttons[name] = button
-            palette.addWidget(button, index // 12, index % 12)
-        palette.setColumnStretch(12, 1)
-        build.add(palette)
+        self.palette_grid = FlowGrid(list(self.gate_buttons.values()), 56, fewest=6)
+        build.add(self.palette_grid)
         angles = QHBoxLayout()
         self.angle_spins = []
         for name in ("θ", "φ", "λ"):
@@ -110,14 +106,13 @@ class CircuitLab(QWidget):
         scroll.setWidget(self.canvas)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         build.add(scroll)
-        self.scroll = scroll
+        self.canvas_scroll = scroll
         box.addWidget(build)
 
-        results = QHBoxLayout()
         probabilities = Card("Probabilities", "exact, before measuring")
         self.bars = BarList()
         probabilities.add(self.bars)
-        results.addWidget(probabilities, 1, Qt.AlignmentFlag.AlignTop)
+
         shots = Card("Shots", "measuring every qubit, again and again")
         row = QHBoxLayout()
         self.shots = QSpinBox()
@@ -134,8 +129,7 @@ class CircuitLab(QWidget):
         shots.add(row)
         self.counts = BarList()
         shots.add(self.counts)
-        results.addWidget(shots, 1, Qt.AlignmentFlag.AlignTop)
-        box.addLayout(results)
+        box.addWidget(ResponsiveRow([(probabilities, 1), (shots, 1)], breakpoint=720))
 
         spheres = Card("Each qubit", "Bloch vectors; shorter than 1 = entangled with the others")
         self.sphere_row = QHBoxLayout()
@@ -248,8 +242,8 @@ class CircuitLab(QWidget):
 
     def _changed(self) -> None:
         self.canvas.set_circuit(self.circuit)
-        bar = self.scroll.horizontalScrollBar().sizeHint().height()
-        self.scroll.setFixedHeight(self.canvas.sizeHint().height() + bar + 4)
+        bar = self.canvas_scroll.horizontalScrollBar().sizeHint().height()
+        self.canvas_scroll.setFixedHeight(self.canvas.sizeHint().height() + bar + 4)
         self.undo_button.setEnabled(bool(self.history))
         self.refresh()
 

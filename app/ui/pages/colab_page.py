@@ -38,6 +38,7 @@ class ColabPage(Page):
         row = QHBoxLayout()
         self.source = QComboBox()
         self.source.setPlaceholderText("No experiments yet: run one, or open one in the Experiment Builder")
+        self.source.setMinimumWidth(180)  # long names and the placeholder shorten in a narrow pane
         row.addWidget(self.source, 1)
         self.export_button = QPushButton(icon("file-plus"), "Write notebook")
         self.export_button.setObjectName("Primary")

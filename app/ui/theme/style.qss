@@ -119,6 +119,12 @@ QLineEdit, QPlainTextEdit, QTextEdit, QComboBox, QSpinBox, QDoubleSpinBox {
     padding: 4px 8px; selection-background-color: ${accent};
 }
 QLineEdit:focus, QPlainTextEdit:focus, QComboBox:focus, QSpinBox:focus { border-color: ${accent}; }
+/* A field that does not apply right now reads as such (not just refuses input). */
+QLineEdit:disabled, QPlainTextEdit:disabled, QTextEdit:disabled, QComboBox:disabled,
+QSpinBox:disabled, QDoubleSpinBox:disabled {
+    color: ${text_faint}; border-color: ${border_soft}; background: ${surface};
+}
+QCheckBox:disabled, QRadioButton:disabled { color: ${text_faint}; }
 
 QToolTip {
     background: ${raised}; color: ${text}; border: 1px solid ${border}; padding: 4px 6px;

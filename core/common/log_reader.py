@@ -105,4 +105,4 @@ class LogFollower:
         self._partial = lines.pop()
         if skip_first and lines:
             lines.pop(0)
-        return [line.decode("utf-8", errors="replace") for line in lines]
+        return [line.rstrip(b"\r").decode("utf-8", errors="replace") for line in lines]  # Windows: \r\n

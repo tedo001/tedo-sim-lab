@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import shiboken6
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -48,6 +49,10 @@ class TerminalTabs(QWidget):
         self.compact = compact
         #: view → (argv, title, is a shell, extra environment): enough to start it again.
         self._meta: dict[TerminalView, tuple[list[str], str, bool, dict[str, str] | None]] = {}
+        # The programs in these tabs end with them (a widget can go before the app does).
+        self._sessions: list[PtySession] = []
+        sessions, terminals = self._sessions, ctx.terminals
+        self.destroyed.connect(lambda *_: [terminals.end(session) for session in list(sessions)])
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
         box.setSpacing(4)
@@ -194,6 +199,7 @@ class TerminalTabs(QWidget):
         return view
 
     def _view(self, session: PtySession) -> TerminalView:
+        self._sessions.append(session)
         view = TerminalView(session)
         view.open_path.connect(self.open_path)
         view.restart_requested.connect(lambda v=view: self._restart(v))
@@ -210,13 +216,21 @@ class TerminalTabs(QWidget):
             number += 1
         return f"{title} ({number})"
 
+    def _gone(self) -> bool:
+        """This widget was destroyed; a program's last signals can still arrive."""
+        return not shiboken6.isValid(self) or not shiboken6.isValid(self.tabs)
+
     def _retitle(self, view: TerminalView, text: str) -> None:
+        if self._gone():
+            return
         index = self.tabs.indexOf(view)
         if index >= 0 and text:
             argv, _title, _shell, _env = self._meta.get(view, ([], "", True, None))
             self.tabs.setTabToolTip(index, f"{text}\n{' '.join(argv)}")
 
     def _exited(self, view: TerminalView, code: int) -> None:
+        if self._gone():
+            return
         view.session.feed_local(f"\r\n\x1b[2m[{'finished' if code == 0 else f'exited with code {code}'}"
                                 f" — press Enter to start it again]\x1b[0m\r\n")
         index = self.tabs.indexOf(view)
@@ -233,7 +247,7 @@ class TerminalTabs(QWidget):
         except PtyError as exc:
             view.session.feed_local(f"\r\n{exc}\r\n")
             return
-        self.ctx.terminals.end(view.session)
+        self._forget(view.session)
         new = self._view(session)
         self._meta[new] = self._meta.pop(view)
         text = self.tabs.tabText(index)
@@ -272,11 +286,16 @@ class TerminalTabs(QWidget):
                 return False
         self.tabs.removeTab(index)
         self._meta.pop(view, None)
-        self.ctx.terminals.end(view.session)
+        self._forget(view.session)
         view.deleteLater()
         if not self.tabs.count():
             self.stack.setCurrentWidget(self.empty)
         return True
+
+    def _forget(self, session: PtySession) -> None:
+        if session in self._sessions:
+            self._sessions.remove(session)
+        self.ctx.terminals.end(session)
 
     def close_all(self) -> None:
         while self.tabs.count():

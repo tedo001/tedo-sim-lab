@@ -39,7 +39,8 @@ class TorchSection:
         rows = form_widget(self.data)
         self.val_fraction = double(0.0, 0.5, 0.1, 2, 0.05)
         self.subset = spin(0, 1_000_000, 0, special="all")
-        self.normalize = QCheckBox("Normalise with the dataset's mean and standard deviation")
+        self.normalize = QCheckBox("Normalise the images")
+        self.normalize.setToolTip("Subtract the dataset's mean and divide by its standard deviation")
         self.normalize.setChecked(True)
         rows.addRow("Validation share", self.val_fraction)
         rows.addRow("Images per split", self.subset)
@@ -93,7 +94,8 @@ class TorchSection:
         ctx.settings.changed.connect(self._settings_changed)
         self.precision = combo([("fp32", "fp32"), ("fp16 (CUDA, halves memory)", "fp16"), ("bf16", "bf16")])
         self.seed = spin(0, 2_147_483_647, 42)
-        self.deterministic = QCheckBox("Deterministic algorithms (slower, repeatable on the same machine)")
+        self.deterministic = QCheckBox("Deterministic algorithms")
+        self.deterministic.setToolTip("Slower, but a run repeats exactly on the same machine")
         self.workers = spin(0, 32, 0)
         for title, widget in (("Device", self.device), ("Precision", self.precision), ("Seed", self.seed),
                               ("", self.deterministic), ("Loader workers", self.workers)):
@@ -180,4 +182,5 @@ def form_widget(widget: QWidget) -> Any:
     rows.setContentsMargins(0, 0, 0, 0)
     rows.setHorizontalSpacing(14)
     rows.setVerticalSpacing(8)
+    rows.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
     return rows

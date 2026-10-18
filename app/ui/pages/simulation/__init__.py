@@ -39,8 +39,12 @@ from .waves import WaveLab
 
 __all__ = ["SimulationLabPage"]
 
-TOOLS = (("circuit", "Quantum circuits"), ("waves", "Wave mechanics"), ("image", "Image lab"),
-         ("scenes", "Synthetic scenes"), ("camera", "Camera model"), ("saved", "Saved"))
+TOOLS = (("circuit", "Circuits"), ("waves", "Waves"), ("image", "Images"), ("scenes", "Scenes"),
+         ("camera", "Camera"), ("saved", "Saved"))
+#: The tabs' names in full (their tooltips).
+TITLES = {"circuit": "Quantum circuits", "waves": "Wave mechanics", "image": "Image processing",
+          "scenes": "Synthetic scenes for detection and segmentation", "camera": "Camera model",
+          "saved": "Saved simulations"}
 
 
 class SimulationLabPage(Page):
@@ -59,6 +63,8 @@ class SimulationLabPage(Page):
         for widget in (self.save_button, self.script_button, folder):
             self.head.add_action(widget)
         self.switch = Segmented(TOOLS)
+        for key, button in self.switch.buttons.items():
+            button.setToolTip(TITLES[key])
         self.body.addWidget(self.switch)
         self.message = label("", "CardCaption", wrap=True)
         self.message.hide()

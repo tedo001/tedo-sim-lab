@@ -59,11 +59,12 @@ class BenchmarkingPage(Page):
         self.source.setMaximumWidth(460)
         self.source.currentIndexChanged.connect(lambda _: self._source_changed())
         self.channels = _spin(1, 4, 3)
-        self.size = _spin(8, 1024, 32)
+        self.image_size = _spin(8, 1024, 32)
         self.shape_row = QWidget()
         shape = QHBoxLayout(self.shape_row)
         shape.setContentsMargins(0, 0, 0, 0)
-        for widget in (self.channels, label("channels ×", "Body"), self.size, label("pixels square", "Body")):
+        for widget in (self.channels, label("channels ×", "Body"), self.image_size,
+                       label("pixels square", "Body")):
             shape.addWidget(widget)
         shape.addStretch(1)
         self.device = QComboBox()
@@ -185,7 +186,8 @@ class BenchmarkingPage(Page):
             request["run_dir"] = view.run_dir.relative_to(self.ctx.paths.workspace).as_posix() \
                 if view.run_dir.is_relative_to(self.ctx.paths.workspace) else str(view.run_dir)
             return request, f"{view.name} ({view.model})"
-        request.update(model=key, input_shape=[self.channels.value(), self.size.value(), self.size.value()])
+        side = self.image_size.value()
+        request.update(model=key, input_shape=[self.channels.value(), side, side])
         return request, f"{self.ctx.catalog.models.get(key).name} untrained"
 
     def run(self) -> str | None:

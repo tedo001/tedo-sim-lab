@@ -26,7 +26,7 @@ from labs.simulation.vision.png import encode_png
 
 from ....services.jobs import JobQueue
 from ...icons import icon
-from ...widgets import Card, label
+from ...widgets import Card, ResponsiveRow, label
 from ...widgets.sim_views import ImageView, LineChart
 from .param_form import ParamForm
 
@@ -64,7 +64,6 @@ class ImageLab(QWidget):
         jobs.job_finished.connect(self._processed)
         box = QVBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
-        top = QHBoxLayout()
 
         source = Card("Image", "a generated test pattern or a file of yours")
         row = QHBoxLayout()
@@ -115,9 +114,7 @@ class ImageLab(QWidget):
         self.form = ParamForm()
         self.form.changed.connect(self._params_changed)
         pipeline.add(self.form)
-        top.addWidget(source, 1, Qt.AlignmentFlag.AlignTop)
-        top.addWidget(pipeline, 1, Qt.AlignmentFlag.AlignTop)
-        box.addLayout(top)
+        box.addWidget(ResponsiveRow([(source, 1), (pipeline, 1)], breakpoint=760))
 
         views = Card("Before and after", "")
         row = QHBoxLayout()
