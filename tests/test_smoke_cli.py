@@ -36,3 +36,16 @@ def test_bad_settings_stop_startup_with_a_message(tmp_path: Path) -> None:
     assert result.returncode == 2
     assert "must not contain credentials" in result.stderr
     assert "hf_should_not_be_here" not in result.stderr
+
+
+def test_a_failing_engine_fails_the_smoke_test(window, qapp, monkeypatch) -> None:
+    import app.smoke as smoke
+
+    smoke.exercise_engines()  # the real engines pass
+
+    def broken() -> None:
+        raise ImportError("No module named 'scipy.ndimage'")  # as a build that left it out would
+
+    monkeypatch.setattr(smoke, "exercise_engines", broken)
+    report = smoke.run_smoke(window, qapp, uncaught=[])
+    assert not report.ok and report.errors == ["engines: ImportError: No module named 'scipy.ndimage'"]

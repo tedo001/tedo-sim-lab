@@ -1,9 +1,11 @@
-"""Headless smoke test: open every page in :data:`app.navigation.NAV`, then exit.
+"""Headless smoke test: open every page in :data:`app.navigation.NAV`, run each engine the
+window runs itself once, then exit.
 
     QT_QPA_PLATFORM=offscreen python -m app.main --smoke-test [--screenshots DIR]
 
 Fails (exit code 1) if any page raises while being built or shown, including
-errors raised later inside slots. ``--screenshots`` saves one PNG per page.
+errors raised later inside slots, or if an engine fails (in the installed app: a module the
+build left out, found before someone clicks). ``--screenshots`` saves one PNG per page.
 """
 
 from __future__ import annotations
@@ -70,6 +72,11 @@ def run_smoke(window: MainWindow, app: QApplication, *, uncaught: list[str],
         _exercise_layout(window, app, screenshot_dir, report)
     except Exception as exc:
         report.errors.append(f"layout: {type(exc).__name__}: {exc}")
+    try:
+        exercise_engines()
+    except Exception as exc:
+        report.errors.append(f"engines: {type(exc).__name__}: {exc}")
+        log.error("An engine failed in the smoke test", exc_info=exc)
     report.errors.extend(uncaught)
     window.close()
     return report
@@ -91,3 +98,53 @@ def _exercise_layout(window: MainWindow, app: QApplication, screenshot_dir: Path
     window.set_split_open(False)
     window.set_sidebar_collapsed(False)
     app.processEvents()
+
+
+def exercise_engines() -> None:
+    """Run, small, what the window computes in its own process: the Simulation Lab's quantum,
+    wave and vision engines (numpy and scipy: every image operation, the stationary-state solver),
+    the PNG codec, reading logs and pdb's stops."""
+    import tempfile
+
+    import numpy as np
+
+    from core.common.log_reader import parse_lines
+    from core.terminal import Parser, Screen
+    from core.terminal.debugger import find_stop
+    from labs.simulation.quantum import preset, sample, simulate
+    from labs.simulation.quantum.waves import WaveSetup, WaveSimulation, eigenstates
+    from labs.simulation.vision import (
+        OPERATIONS,
+        Camera,
+        SceneSpec,
+        Step,
+        render_scene,
+        run_pipeline,
+        wireframe,
+    )
+    from labs.simulation.vision import sample as test_pattern
+    from labs.simulation.vision.png import read_png, write_png
+
+    state = simulate(preset("Teleportation")).state
+    if abs(float(np.vdot(state, state).real) - 1.0) > 1e-9 or not sample(state, 16, 0):
+        raise RuntimeError("the circuit simulator lost its norm")
+    waves = WaveSimulation(WaveSetup(points=256))
+    waves.step(5)
+    energies, _x, _states = eigenstates(WaveSetup(potential="harmonic", points=256), 2)
+    if not 0 < energies[0] < energies[1]:
+        raise RuntimeError("stationary states are not ordered")
+    image = test_pattern("Shapes", 48)
+    result, _timings = run_pipeline(image, [Step(name) for name in sorted(OPERATIONS)])
+    scene, _objects = render_scene(SceneSpec(width=48, height=48, max_size=20, seed=1),
+                                   np.random.default_rng(1))
+    with tempfile.TemporaryDirectory() as folder:
+        if read_png(write_png(Path(folder) / "scene.png", scene)).shape != (48, 48, 3):
+            raise RuntimeError("PNG round trip changed the image")
+    if not wireframe(Camera()) or result.size == 0:
+        raise RuntimeError("the vision engines returned nothing")
+    if parse_lines(["2026-01-01 00:00:00,000 ERROR   tedo.smoke: x"])[0].level != "ERROR":
+        raise RuntimeError("log lines are not read")
+    screen = Screen(60, 6, 10)
+    Parser(screen).feed("> /lab/x.py(3)<module>()\r\n(Pdb) ")
+    if find_stop(screen) is None:
+        raise RuntimeError("pdb's stop is not found")
