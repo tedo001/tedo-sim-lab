@@ -37,15 +37,23 @@ class TaskRunnable(QRunnable):
 
     def run(self) -> None:
         try:
-            result = self.fn(self.token, lambda fraction, message="": self.signals.progress.emit(
-                float(fraction), str(message)))
+            result = self.fn(self.token, lambda fraction, message="": self._emit(
+                self.signals.progress, float(fraction), str(message)))
         except Cancelled:
-            self.signals.cancelled.emit()
+            self._emit(self.signals.cancelled)
         except Exception as exc:
             log.exception("Background task failed")
-            self.signals.failed.emit(mask_text(f"{type(exc).__name__}: {exc}"))
+            self._emit(self.signals.failed, mask_text(f"{type(exc).__name__}: {exc}"))
         else:
             if self.token.cancelled:
-                self.signals.cancelled.emit()
+                self._emit(self.signals.cancelled)
             else:
-                self.signals.succeeded.emit(result)
+                self._emit(self.signals.succeeded, result)
+
+    @staticmethod
+    def _emit(signal, *args) -> None:  # noqa: ANN001 (a bound signal)
+        """A task that outlives the app's shutdown has no one left to tell."""
+        try:
+            signal.emit(*args)
+        except RuntimeError:
+            pass

@@ -10,7 +10,7 @@ from __future__ import annotations
 import platform
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal, qVersion
+from PySide6.QtCore import Qt, QTimer, Signal, qVersion
 from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -64,6 +64,8 @@ class MainWindow(QMainWindow):
         self.top_bar.sidebar_toggle_requested.connect(self.toggle_sidebar)
         self.top_bar.split_toggle_requested.connect(self.toggle_split)
         self.top_bar.terminal_toggle_requested.connect(self.toggle_terminal)
+        self.top_bar.problems_requested.connect(self.show_problems)
+        self.top_bar.update_requested.connect(lambda: self.navigate("settings"))
         column.addWidget(self.top_bar)
 
         row = QHBoxLayout()
@@ -110,6 +112,10 @@ class MainWindow(QMainWindow):
             shortcut.activated.connect(slot)
 
         ctx.hardware.sampled.connect(self.top_bar.show_sample)
+        ctx.logs.problems_changed.connect(self.top_bar.show_problems)
+        ctx.updates.finished.connect(self._update_found)
+        if ctx.config.check_updates:
+            QTimer.singleShot(5_000, ctx.updates.check)  # once, after the window has settled
         self.refresh_search()
         ctx.experiments.run_changed.connect(lambda _: self.refresh_search())
         ctx.downloads.imported.connect(lambda *_: self.refresh_search())
@@ -134,6 +140,15 @@ class MainWindow(QMainWindow):
         if page_id != self._current:
             self._current = page_id
             self.page_changed.emit(page_id)
+
+    def show_problems(self) -> None:
+        """The Logs page with warnings and errors; the count starts again."""
+        self.show_page("logs").show_problems()
+        self.ctx.logs.clear_problems()
+
+    def _update_found(self, result) -> None:  # noqa: ANN001 (UpdateResult)
+        if result.newer:
+            self.top_bar.show_update(f"{result.tag} available", f"{result.summary()} See Settings → About.")
 
     def refresh_search(self) -> None:
         self.top_bar.set_entries(search_entries(self.ctx))

@@ -26,6 +26,11 @@ QLineEdit#GlobalSearch:focus { border-color: ${accent}; }
 QToolButton#TopBarButton { border: none; border-radius: ${radius}px; padding: 6px; }
 QToolButton#TopBarButton:hover { background: ${raised}; }
 QToolButton#TopBarButton:checked { background: ${selected}; }
+QToolButton#TopBarNotice {
+    border: 1px solid ${border}; border-radius: ${radius}px; padding: 3px 8px; color: ${text_dim};
+    font-family: "${mono}"; font-size: 12px;
+}
+QToolButton#TopBarNotice:hover { background: ${raised}; color: ${text}; }
 
 /* ── sidebar ───────────────────────────────────────────────────────── */
 QFrame#Sidebar { background: ${sidebar}; border-right: 1px solid ${border_soft}; }

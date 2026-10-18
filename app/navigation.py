@@ -115,6 +115,8 @@ NAV: tuple[PageSpec, ...] = (
        "Integrations: licence, status, install, account; browse Kaggle, Hugging Face and Roboflow."),
     _p("hardware", "Hardware Monitor", "tools", "cpu",
        "CPU, memory and GPU: what this machine has and how busy it is."),
+    _p("logs", "Logs", "tools", "scroll-text",
+       "What the lab records, live: the app log, warnings and errors, each run's log."),
     _p("documentation", "Documentation", "tools", "book-open-text",
        "The lab's own documentation."),
 

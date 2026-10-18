@@ -21,20 +21,27 @@ Ten build phases:
 - the Deep Learning builder, Plugin Store, Terminal, Jupyter and Colab;
 - search across pages, datasets, models and runs.
 
-## Next: shipping
+## After V0.1 (done)
 
-- **Windows installer.** Built (`packaging/`, see [packaging/INSTALLER.md](packaging/INSTALLER.md)).
-  - A one-folder cx_Freeze build of the window in a per-user `.msi` (MIT/Apache/PSF build tools only).
-  - The app makes its own experiment Python on request.
-  - Next: code signing, so Windows SmartScreen does not warn, and an in-app update check.
-- **Projects.** The Code page already opens a folder as a project. It has:
-  - files, an editor and run;
-  - a terminal;
-  - git status.
+- **Windows installer** (`packaging/`, see [packaging/INSTALLER.md](packaging/INSTALLER.md)): a
+  one-folder cx_Freeze build of the window in a per-user `.msi`, MIT/Apache/PSF build tools only;
+  the app makes its own experiment Python on request.
+- **Projects.** The Code page opens a folder as a project: files, an editor, Run, Run in terminal,
+  a debugger (pdb, breakpoints in the gutter, the editor follows), terminals and git status.
+- **Real terminals** in tabs: bash, zsh, fish, PowerShell, Command Prompt, Git Bash, WSL, Python,
+  vim, Neovim and Docker, with full-screen programs.
+- **Git & GitHub:** commit, history, branches, remotes, sync; your GitHub repositories, clone,
+  publish, pull requests and issues.
+- **Simulation Lab:** quantum circuits, wave mechanics, an image lab, synthetic COCO datasets and a
+  camera model, saved and exported as scripts.
+- **Logs page** (live, filtered, with a problem count in the title row), **settings edited in the
+  app**, and an **update check** that asks GitHub when you want it to.
 
-  Still to come: committing from git, a debugger, and the project's experiments and notebooks
-  listed beside its files.
-- **Settings page editing.** Change `settings.yaml` from the app (today it is read-only there).
+## Next
+
+- **Code signing**, so Windows SmartScreen does not warn about the installer (needs a code-signing
+  certificate from the owner).
+- **Projects:** the project's experiments and notebooks listed beside its files.
 
 ## V0.2: audio
 
@@ -74,4 +81,6 @@ Ten build phases:
 - **Benchmarks:**
   - ONNX Runtime;
   - TensorRT, where the licence allows.
-- **Quantum ML and the Simulation Lab:** their scope is not decided yet.
+- **Simulation Lab:** noise and density matrices for circuits, two-dimensional wave packets,
+  scenes with more kinds of objects and occlusion levels.
+- **Quantum ML:** its scope is not decided yet.

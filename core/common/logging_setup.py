@@ -1,8 +1,10 @@
-"""Application logging: a rotating file in ``<workspace>/logs`` plus stderr.
+"""Application logging: rotating files in ``<workspace>/logs`` plus stderr.
 
-Handlers sit on the root logger so records from third-party libraries (MLflow,
-urllib3, ...) pass through the same :class:`SecretMaskingFilter`. The root
-stays at WARNING; the lab's own ``tedo.*`` loggers use the configured level.
+``app.log`` holds everything at the configured level; ``errors.log`` keeps only warnings and
+errors, so problems stay findable long after app.log has rotated. Handlers sit on the root
+logger so records from third-party libraries (MLflow, urllib3, ...) pass through the same
+:class:`SecretMaskingFilter`. The root stays at WARNING; the lab's own ``tedo.*`` loggers use
+the configured level (:func:`set_level` changes it while the app runs).
 """
 
 from __future__ import annotations
@@ -14,9 +16,10 @@ from pathlib import Path
 
 from .masking import SecretMaskingFilter
 
-__all__ = ["LOG_FORMAT", "get_logger", "setup_logging"]
+__all__ = ["APP_LOG", "ERRORS_LOG", "LOG_FORMAT", "get_logger", "set_level", "setup_logging"]
 
 LOG_FORMAT = "%(asctime)s %(levelname)-7s %(name)s: %(message)s"
+APP_LOG, ERRORS_LOG = "app.log", "errors.log"
 _OWNED = "_tedo_handler"
 
 
@@ -37,8 +40,12 @@ def setup_logging(log_dir: Path | None, level: str = "INFO", *,
     handlers: list[logging.Handler] = []
     if log_dir is not None:
         log_dir.mkdir(parents=True, exist_ok=True)
-        handlers.append(RotatingFileHandler(log_dir / "app.log", maxBytes=2_000_000,
+        handlers.append(RotatingFileHandler(log_dir / APP_LOG, maxBytes=5_000_000,
                                             backupCount=3, encoding="utf-8"))
+        problems = RotatingFileHandler(log_dir / ERRORS_LOG, maxBytes=2_000_000, backupCount=2,
+                                       encoding="utf-8")
+        problems.setLevel(logging.WARNING)
+        handlers.append(problems)
     if console and sys.stderr is not None:  # a windowed .exe has no console streams at all
         handlers.append(logging.StreamHandler(sys.stderr))
     for handler in handlers:
@@ -49,6 +56,11 @@ def setup_logging(log_dir: Path | None, level: str = "INFO", *,
 
     if root.level == logging.NOTSET or root.level > logging.WARNING:
         root.setLevel(logging.WARNING)
+    return set_level(level)
+
+
+def set_level(level: str) -> logging.Logger:
+    """The lab's loggers record ``level`` and above from now on; returns the ``tedo`` logger."""
     lab = logging.getLogger("tedo")
     lab.setLevel(level.upper())
     return lab

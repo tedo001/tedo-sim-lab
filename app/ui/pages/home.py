@@ -83,7 +83,8 @@ class HomePage(Page):
         ))
         card.add(self.workspace_values)
         buttons = QHBoxLayout()
-        for title, page_id in (("Documentation", "documentation"), ("Settings", "settings")):
+        for title, page_id in (("Documentation", "documentation"), ("Logs", "logs"),
+                               ("Settings", "settings")):
             button = QPushButton(title)
             button.clicked.connect(lambda _=False, target=page_id: self.ctx.navigate(target))
             buttons.addWidget(button)

@@ -30,6 +30,17 @@ def _tool_button(name: str, tooltip: str) -> QToolButton:
     return button
 
 
+def _notice(name: str, colour: str) -> QToolButton:
+    """A small labelled button that appears only when there is something to say."""
+    button = QToolButton()
+    button.setObjectName("TopBarNotice")
+    button.setIcon(icon(name, colour, 14))
+    button.setIconSize(QSize(14, 14))
+    button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+    button.setVisible(False)
+    return button
+
+
 class TopBar(QFrame):
     page_requested = Signal(str)
     #: A search entry's key ("dataset:mnist", "run:<id>", ...); pages come as page_requested.
@@ -37,6 +48,9 @@ class TopBar(QFrame):
     sidebar_toggle_requested = Signal()
     split_toggle_requested = Signal()
     terminal_toggle_requested = Signal()
+    #: The problem count was clicked (errors logged since start) / the update notice was clicked.
+    problems_requested = Signal()
+    update_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -85,6 +99,13 @@ class TopBar(QFrame):
             meters.addWidget(meter)
         row.addLayout(meters)
         row.addSpacing(6)
+
+        self.update_button = _notice("download", COLORS["info"])
+        self.update_button.clicked.connect(self.update_requested.emit)
+        row.addWidget(self.update_button)
+        self.problems_button = _notice("triangle-alert", COLORS["fail"])
+        self.problems_button.clicked.connect(self.problems_requested.emit)
+        row.addWidget(self.problems_button)
 
         self.terminal_button = _tool_button("square-terminal", "Terminal panel (Ctrl+`)")
         self.terminal_button.setCheckable(True)
@@ -136,6 +157,21 @@ class TopBar(QFrame):
                                       "—" if pct is None else f"{pct:.0f}%",
                                       f"GPU memory {gpu.vram_used_gb or 0:.1f} of "
                                       f"{gpu.vram_total_gb or 0:.1f} GB")
+
+    def show_problems(self, count: int, latest: str) -> None:
+        """``count`` errors logged since start (0 hides the notice); ``latest`` is the last one."""
+        self.problems_button.setVisible(count > 0)
+        self.problems_button.setText(f"{count} error{'s' if count != 1 else ''}")
+        self.problems_button.setToolTip(f"Logged since the app started; the latest:\n{latest}\n\n"
+                                        "Click to see warnings and errors in the Logs page.")
+        self.problems_button.setAccessibleName(f"{count} errors logged")
+
+    def show_update(self, text: str, tooltip: str = "") -> None:
+        """A newer release (empty ``text`` hides the notice)."""
+        self.update_button.setVisible(bool(text))
+        self.update_button.setText(text)
+        self.update_button.setToolTip(tooltip)
+        self.update_button.setAccessibleName(text)
 
     def focus_search(self) -> None:
         self.search.setFocus(Qt.FocusReason.ShortcutFocusReason)

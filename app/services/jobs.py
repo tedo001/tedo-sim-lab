@@ -129,6 +129,11 @@ class JobQueue(QObject):
         self._pump()
         return job.id
 
+    def set_max_concurrent_runs(self, count: int) -> None:
+        """Run up to ``count`` at once from now on (waiting runs start if there is room)."""
+        self.max_concurrent_runs = max(1, int(count))
+        self._pump()
+
     def _pump(self) -> None:
         while self._pending and len(self._processes) < self.max_concurrent_runs:
             job = self._jobs[self._pending.popleft()]

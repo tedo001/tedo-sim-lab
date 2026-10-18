@@ -47,7 +47,7 @@ class ChangesView(QWidget):
         self.staged_title = label("Staged", "CardTitle")
         column.addWidget(self.staged_title)
         self.staged_table = DataTable(("State", "File"), mono_columns=(1,), stretch_column=1)
-        self.staged_table.cellClicked.connect(lambda row, _c: self._show(self._staged, row, True))
+        self.staged_table.currentCellChanged.connect(lambda row, *_: self._show(self._staged, row, True))
         column.addWidget(self.staged_table)
         row = QHBoxLayout()
         self.unstage_button = QPushButton(icon("arrow-down"), "Unstage")
@@ -61,7 +61,7 @@ class ChangesView(QWidget):
         self.changes_title = label("Changes", "CardTitle")
         column.addWidget(self.changes_title)
         self.changes_table = DataTable(("State", "File"), mono_columns=(1,), stretch_column=1)
-        self.changes_table.cellClicked.connect(lambda row, _c: self._show(self._unstaged, row, False))
+        self.changes_table.currentCellChanged.connect(lambda row, *_: self._show(self._unstaged, row, False))
         column.addWidget(self.changes_table)
         row = QHBoxLayout()
         self.stage_button = QPushButton(icon("arrow-up"), "Stage")
@@ -125,8 +125,12 @@ class ChangesView(QWidget):
         self.staged_title.setText(f"Staged ({len(self._staged)})")
         self.changes_title.setText(f"Changes ({len(self._unstaged)})")
         self._update()
-        if not self._staged and not self._unstaged:
+        if status is None:
+            self.diff.show_diff("Open a repository to see its changes.")
+        elif not self._staged and not self._unstaged:
             self.diff.show_diff("Nothing to commit: the working tree matches the last commit.")
+        else:
+            self.diff.show_diff("Choose a file to see what changed in it.")
 
     def _update(self) -> None:
         ready = self.status is not None

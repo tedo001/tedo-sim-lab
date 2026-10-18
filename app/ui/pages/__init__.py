@@ -25,6 +25,7 @@ from .hardware import HardwarePage
 from .home import HomePage
 from .ide import IdePage
 from .jupyter_page import JupyterPage
+from .logs import LogsPage
 from .mlflow_page import MlflowPage
 from .model_registry import ModelRegistryPage
 from .model_zoo import ModelZooPage
@@ -50,6 +51,7 @@ PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "colab": ColabPage,
     "jupyter": JupyterPage,
     "terminal": TerminalPage,
+    "logs": LogsPage,
     "source_control": SourceControlPage,
     "simulation_lab": SimulationLabPage,
     "plugin_store": PluginStorePage,

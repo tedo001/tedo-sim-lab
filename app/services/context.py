@@ -1,5 +1,5 @@
-"""What every page is given: paths, settings, credentials, the catalogue, the lab's
-database, the job queue, hardware, experiments, and a way to navigate.
+"""What every page is given: paths, settings (and a way to change them), credentials, the
+catalogue, the lab's database, the job queue, hardware, experiments, logs, and a way to navigate.
 
 Pages receive an :class:`AppContext` in their constructor instead of reaching
 for globals, so a test can build any page against a temporary workspace.
@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from core.catalog import Catalog, load_catalog
-from core.common import AppConfig, AppPaths, CredentialStore, experiment_python, save_config
+from core.common import AppConfig, AppPaths, CredentialStore, experiment_python
 from core.common.paths import WORKSPACE_ENV
 from core.tracking import LabStore
 from core.tracking.mlflow_tracker import hold_no_mlflow_connections, release_mlflow_stores
@@ -25,10 +25,13 @@ from .experiments import ExperimentService
 from .hardware import HardwareService
 from .jobs import JobQueue, worker_command
 from .jupyter import JupyterLab, Notebooks
+from .logs import LogService
 from .mlflow_ui import MlflowUi
 from .model_registry import ModelRegistryService
 from .plugins import PluginService
+from .settings import SettingsService
 from .terminals import TerminalService
+from .updates import UpdateCheck
 
 __all__ = ["AppContext", "build_context"]
 
@@ -61,6 +64,9 @@ class AppContext:
     notebooks: Notebooks
     setup: ExperimentSetup
     terminals: TerminalService
+    settings: SettingsService
+    logs: LogService
+    updates: UpdateCheck
     #: Switch the main window to another page; set by :class:`app.main_window.MainWindow`.
     navigate: Callable[[str], None] = field(default=_nowhere)
     #: Open a file at a line in the Code page; set by the main window.
@@ -73,8 +79,7 @@ class AppContext:
     def set_experiment_python(self, python: str) -> None:
         """Use ``python`` for workers, the hardware probe and plugin installs from now on, and
         remember it in this workspace's settings.yaml ("" = back to the default)."""
-        self.config.python_executable = python
-        save_config(self.config, self.paths)
+        self.settings.update(python_executable=python)
         current = experiment_python(self.config)
         self.catalog.plugins.set_python(current)
         self.hardware.set_python(current)
@@ -82,6 +87,7 @@ class AppContext:
     def close(self) -> None:
         """Stop background work and close the database (app exit)."""
         self.terminals.shutdown()
+        self.logs.close()
         self.hardware.stop()
         self.mlflow_ui.stop()
         self.jupyter.stop()
@@ -115,8 +121,10 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
     experiments = ExperimentService(paths, store, jobs, catalog)
     downloads = DownloadService(catalog.datasets, jobs)
     models = ModelRegistryService(paths, config, store, experiments, jobs)
+    terminals = TerminalService(paths, config)
     return AppContext(paths, config, credentials, catalog, store, jobs, hardware, experiments, downloads,
                       MlflowUi(paths, config), models, BenchmarkService(paths, jobs),
                       ColabService(paths, experiments, jobs),
                       PluginService(paths, catalog, credentials, jobs), JupyterLab(paths, config),
-                      Notebooks(paths, store), ExperimentSetup(jobs), TerminalService(paths, config))
+                      Notebooks(paths, store), ExperimentSetup(jobs), terminals,
+                      SettingsService(paths, config, jobs, terminals), LogService(paths), UpdateCheck(jobs))

@@ -53,7 +53,8 @@ def test_changes_are_staged_committed_and_shown_in_history(page, qtbot, repo) ->
     (repo.root / "new.py").write_text("x = 1\n")
     page.refresh()
     qtbot.waitUntil(lambda: page.changes.changes_table.rowCount() == 2, timeout=10_000)
-    page.changes._show(page.changes._unstaged, 0, False)
+    assert page.changes.diff.toPlainText() == "Choose a file to see what changed in it."
+    page.changes.changes_table.selectRow(0)  # a row becoming current shows its diff
     qtbot.waitUntil(lambda: "+more" in page.changes.diff.toPlainText(), timeout=10_000)
     page.changes.stage_all_button.click()
     qtbot.waitUntil(lambda: page.changes.staged_table.rowCount() == 2, timeout=10_000)

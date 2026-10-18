@@ -74,7 +74,7 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/ui/widgets/` | Kit: `Page`, `PageHead`, `Card`, `Pill`, `KeyValues`, `ElidedLabel`/`PathLabel`, `DataTable`, `MarkdownView` |
 | `app/ui/theme/` | `tokens.py` (all colours/sizes), `style.qss` (template), fonts |
 | `app/resources/` | Bundled fonts (Inter, JetBrains Mono — OFL) and Lucide icons (ISC) |
-| `app/services/context.py` | `AppContext` (paths, config, credentials, catalogue, store, jobs, navigate); `build_context()` |
+| `app/services/context.py` | `AppContext` (paths, config, credentials, catalogue, store, jobs, terminals, settings, logs, updates; `navigate`, `show_page`, `open_file`, `open_terminal` set by the window); `build_context()` |
 | `app/services/jobs.py` | `JobQueue`: runs via `QProcess` worker (FIFO, `max_concurrent_runs`), tasks via `QThreadPool` |
 | `app/services/hardware.py` | `HardwareService`: probe in its own process, 1 s psutil/NVML sampler, 2-min history |
 | `app/ui/widgets/charts.py` | `TimeSeriesChart` (small-multiple live chart, hover), `MeterBar` (title-row gauges) |
@@ -127,6 +127,10 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `core/vcs/` | `git.py` (`Git`: the git command line; porcelain v2 status, diffs, stage / commit / amend, history, branches, remotes, fetch / pull / push, init / clone; a GitHub token reaches git only as an HTTP header through `GIT_CONFIG_*`, prompts are off), `github.py` (`GitHub`: REST API with urllib: account, repositories, create, pull requests, issues, latest release); `app/services/source_control.py` (`SourceControl`: quiet background tasks; token in the keyring as `GITHUB_TOKEN`); page `app/ui/pages/source_control/` (changes, history, branches and remotes, GitHub) |
 | `labs/simulation/` | Simulation Lab engines (numpy/scipy, no Qt): `quantum/` (`gates.py`; `circuit.py`: `Circuit`, `Op`, presets, OpenQASM; `statevector.py`: simulate, sample, Bloch vectors, purity; `waves.py`: split-step Fourier wave packets, potentials, `eigenstates`), `vision/` (`filters.py` + `ops.py`: image operations as a pipeline of `Step`s; `png.py`: a standard-library PNG codec; `samples.py`; `scenes.py`: synthetic shapes as PNG + COCO, annotations of the visible parts; `camera.py`: pinhole camera with lens distortion), `records.py` (saved simulations in `results/simulations/`), `scripts.py` (`script_for`: a standalone script per tool) |
 | `app/ui/pages/simulation/` | Simulation Lab page: tools `circuits.py` (+ `circuit_canvas.py`), `waves.py`, `images.py` (+ `param_form.py`), `scenes.py` (datasets open in the Dataset Hub through `ctx.show_page`), `camera.py`, `saved.py`; save, export a script, open the folder; charts in `app/ui/widgets/sim_views.py` |
+| `core/common/log_reader.py` | Reading log files: `parse_lines` (records with their tracebacks), `matches` (level, logger and those below it, text), `LogFollower` (new lines, through rotation and truncation; opens the file only while reading, so Windows can rotate it); `logging_setup.py` writes `app.log` and `errors.log` (warnings and errors only), `set_level` while running |
+| `app/services/logs.py` | `LogService`: the log files, errors counted since start (the top bar's red notice → Logs page on warnings and errors); page `app/ui/pages/logs.py` (`LogModel`: sources incl. each run's `run.log`, level/source/text filters, follow, details with traceback jumps, log level) |
+| `app/services/settings.py` | `SettingsService.update(**changes)`: checked together (`ConfigError`, nothing saved), written to `settings.yaml`, applied at once where possible (log level, concurrent runs, terminal profiles; `LATER` names the rest), `changed` signal; form `app/ui/pages/settings_form.py`; the builder's device follows `default_device` unless chosen there |
+| `core/common/updates.py` | `is_newer` / `version_key` (tags compared as numbers), `RELEASES`; `app/services/updates.py` `UpdateCheck` asks GitHub for the latest release in a quiet task (on request, or at start with `check_updates`); shown in Settings → About and the top bar; nothing is downloaded |
 | `app/services/jupyter.py` | `Notebooks` (list, create from a run with relative paths, link via `notebook_links`, `notebook_markdown` viewer) and `JupyterLab` (a `LocalWebUi`, like `MlflowUi`: 127.0.0.1, fresh masked token); page `jupyter_page.py` |
 | `plugins/colab/notebook.py` | `build_notebook` (clone at the commit, `experiment.yaml`, licence-checked dataset cell, worker → `events.jsonl`, zip) and `read_results`; `app/services/colab.py` `ColabService` exports into `notebooks/colab/` and imports a zip through `ExperimentService.import_run` (replays the events); page `colab_page.py` |
 
@@ -181,6 +185,10 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   terms accepted) means the lab shows the page and never downloads. Plugin actions run in the app
   process, so they use only the standard library and the lab's own dependencies.
 - **Pages with unsaved work** implement `unsaved_work() -> list[str]`; the window asks before quitting.
+- **Logging**: `logging.getLogger("tedo.<area>")`. Every logged error counts in the top bar, so an
+  expected failure (offline, a refused request, a missing tool) is `info` or `warning` with a short
+  message, never an error with a traceback. Settings change through `ctx.settings.update`, never by
+  assigning to `ctx.config` (that would skip the check, the file and the live effects).
 - **Quiet jobs**: housekeeping tasks (`submit_task(..., quiet=True)`) are not recorded, not
   "active", and never ask before quitting. Never delete a `QProcess` inside its own signal:
   keep it alive until the event loop is back (see `JobQueue._release`, `MlflowUi._release`).
@@ -308,4 +316,5 @@ Design for it now:
       repositories, clone, publish, pull requests and issues
 - [x] Simulation Lab: quantum circuits, wave mechanics, image lab, synthetic scenes (COCO), camera
       model; saved simulations and exported scripts
-- [ ] Logs page, settings edited in the app, update check
+- [x] Logs page (live, filters, run logs, traceback jumps, log level), errors.log and a problem count
+      in the title row; settings edited in the app (checked, saved, applied live); update check

@@ -46,6 +46,8 @@ class AppConfig(BaseModel):
     #: interpreter from a source checkout; the installed app uses the environment it made
     #: (Settings → Experiment Python) or needs one chosen here.
     python_executable: str = ""
+    #: Ask GitHub for a newer release when the app starts (off: only when you ask).
+    check_updates: bool = False
 
 
 def experiment_python(config: AppConfig) -> str:

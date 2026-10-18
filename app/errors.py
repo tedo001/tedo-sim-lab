@@ -50,7 +50,7 @@ def install_excepthook(*, show_dialog: bool = True,
                 if QApplication.instance() is not None:
                     QMessageBox.critical(None, "Something went wrong",
                                          mask_text(f"{kind.__name__}: {error}") +
-                                         "\n\nThe full traceback is in logs/app.log.")
+                                         "\n\nThe full traceback is in the Logs page (logs/app.log).")
             finally:
                 showing = False
 

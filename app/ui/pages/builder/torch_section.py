@@ -34,6 +34,7 @@ class TorchSection:
     """Builds ``data`` (rows inside the data step) and ``cards`` (training and device steps)."""
 
     def __init__(self, ctx: AppContext) -> None:
+        self.ctx = ctx
         self.data = QWidget()
         rows = form_widget(self.data)
         self.val_fraction = double(0.0, 0.5, 0.1, 2, 0.05)
@@ -87,6 +88,9 @@ class TorchSection:
                 self.device.addItem(f"cuda:{gpu.index} · {gpu.name}", f"cuda:{gpu.index}")
         if info is not None and info.mps_available:
             self.device.addItem("Apple MPS", "mps")
+        self._default_device = ""
+        self._use_default_device(ctx.config.default_device)
+        ctx.settings.changed.connect(self._settings_changed)
         self.precision = combo([("fp32", "fp32"), ("fp16 (CUDA, halves memory)", "fp16"), ("bf16", "bf16")])
         self.seed = spin(0, 2_147_483_647, 42)
         self.deterministic = QCheckBox("Deterministic algorithms (slower, repeatable on the same machine)")
@@ -122,6 +126,18 @@ class TorchSection:
             early_stopping=EarlyStoppingSpec(monitor=monitor, mode=mode, patience=self.patience.value())
             if self.early.isChecked() else None,
             max_steps_per_epoch=self.max_steps.value() or None)
+
+    def _use_default_device(self, device: str) -> None:
+        """Start on the configured device (automatic when this machine has no such device), unless
+        a device was chosen here."""
+        if self._default_device and self.device.currentData() != self._default_device:
+            return
+        self.device.setCurrentIndex(max(self.device.findData(device), 0))
+        self._default_device = self.device.currentData()
+
+    def _settings_changed(self, names: set[str]) -> None:
+        if "default_device" in names:
+            self._use_default_device(self.ctx.config.default_device)
 
     def runtime(self) -> RuntimeSpec:
         return RuntimeSpec(device=self.device.currentData(), precision=self.precision.currentData(),

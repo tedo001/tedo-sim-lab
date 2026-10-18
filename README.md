@@ -5,9 +5,11 @@ Qt for Python (PySide6). Pick a dataset, a model, hyperparameters and a device; 
 in the background; track it in MLflow and SQLite; compare runs; reproduce any run
 from its saved folder.
 
-**V0.1.** Every lab page below works end to end; pages for later releases (NLP, audio, multimodal,
-quantum, simulation) say which release brings them. See [ROADMAP.md](ROADMAP.md) for what comes next,
-[docs/guide.md](docs/guide.md) for a tour of every page, and [CLAUDE.md](CLAUDE.md) for the
+**V0.1, and since then:** a Windows installer, a Simulation Lab for quantum physics and computer
+vision, real terminals, Git and GitHub, a debugger in the Code page, a Logs page and settings you
+edit in the app. Every page below works end to end; pages for later releases (NLP, audio,
+multimodal, quantum ML) say which release brings them. See [ROADMAP.md](ROADMAP.md) for what comes
+next, [docs/guide.md](docs/guide.md) for a tour of every page, and [CLAUDE.md](CLAUDE.md) for the
 architecture and the project's rules.
 
 ![Home](docs/images/home.png)
@@ -16,17 +18,20 @@ architecture and the project's rules.
 
 | Area | Pages | What you get |
 | --- | --- | --- |
-| Research labs | Computer Vision, CNN Explainer, Classical ML, Deep Learning | Presets for MNIST, Fashion-MNIST, CIFAR-10/100 with SimpleCNN, LeNet-5, ResNet-18 and TinyVGG; a layer-by-layer explainer of a trained TinyVGG; eleven scikit-learn/XGBoost models on built-in tables or your CSV (CV, search, ROC/PR, permutation importance, SHAP); a layer-stack network designer with live shapes and generated PyTorch code |
+| Research labs | Computer Vision, CNN Explainer, Classical ML, Deep Learning, Simulation Lab | Presets for MNIST, Fashion-MNIST, CIFAR-10/100 with SimpleCNN, LeNet-5, ResNet-18 and TinyVGG; a layer-by-layer explainer of a trained TinyVGG; eleven scikit-learn/XGBoost models on built-in tables or your CSV (CV, search, ROC/PR, permutation importance, SHAP); a layer-stack network designer with live shapes and generated PyTorch code; quantum circuits you build by clicking (exact states, shots, Bloch spheres, OpenQASM), wave packets that tunnel and oscillate, an image-processing pipeline, synthetic COCO datasets and a camera model, each saved and exported as a script |
 | Data & models | Dataset Hub, Model Zoo, Model Registry | 23 datasets and 28 models with licences checked at their sources and downloads only where the terms allow; the ImageNet-1k classes in WordNet (names only); a COCO annotation inspector; versions of your trained models, mirrored into MLflow's registry |
 | Experimentation | Experiment Builder, Training, Evaluation, Benchmarking, Compare, MLflow | An experiment is an `experiment.yaml`; it runs in a background worker (cancel, resume, early stopping, AMP, checkpoints), is tracked in SQLite and MLflow, snapshotted for reproduction, re-scored on any split, timed by batch size, compared eight at a time and exported as CSV, JSON, Markdown or PDF |
-| Tools | Code (an IDE for a project folder), Terminal, Jupyter Notebook, Google Colab, Plugin Store, Hardware Monitor, Documentation | Edit and run a whole project's files with syntax colouring, run output, a terminal and git; a shell in the workspace; notebooks started from runs and Jupyter Lab on request; Colab notebooks whose results import back as runs; Kaggle, Hugging Face and Roboflow with keyring credentials and licence-first downloads; live CPU/RAM/GPU use |
+| Tools | Code (an IDE for a project folder), Terminal, Git & GitHub, Jupyter Notebook, Google Colab, Plugin Store, Hardware Monitor, Logs, Documentation | Edit, run and debug a whole project (pdb with breakpoints in the gutter; the editor follows); real terminals in tabs: bash, PowerShell, Command Prompt, Python, vim, Neovim, Docker; commits, history, branches, sync and your GitHub repositories; notebooks started from runs and Jupyter Lab on request; Colab notebooks whose results import back as runs; Kaggle, Hugging Face and Roboflow with keyring credentials and licence-first downloads; live CPU/RAM/GPU use; the lab's logs, live and filtered |
 
 | | |
 | --- | --- |
 | ![Classical ML](docs/images/classical-ml.png) | ![Training](docs/images/training.png) |
 | ![Deep Learning](docs/images/deep-learning.png) | ![CNN Explainer](docs/images/cnn-explainer.png) |
+| ![Simulation Lab: quantum circuits](docs/images/simulation-lab.png) | ![Simulation Lab: wave mechanics](docs/images/wave-mechanics.png) |
+| ![Code: debugging with pdb](docs/images/code.png) | ![Terminal](docs/images/terminal.png) |
+| ![Git & GitHub](docs/images/git.png) | ![Logs](docs/images/logs.png) |
 | ![Plugin Store](docs/images/plugin-store.png) | ![Split view](docs/images/split-view.png) |
-| ![Code](docs/images/code.png) | |
+| ![Settings](docs/images/settings.png) | |
 
 Everything long runs outside the window: training, evaluation and benchmarks in a worker process,
 downloads and searches on background threads. The UI never waits.
@@ -91,14 +96,17 @@ python -m app.main --workspace D:/lab    # keep datasets, runs and logs elsewher
 
 Runtime data (datasets, checkpoints, runs, the database, MLflow's store, logs) lives in
 the *workspace*: the repository folder by default, or `--workspace` /
-`TEDO_LAB_WORKSPACE`. None of it is committed to git.
+`TEDO_LAB_WORKSPACE`. None of it is committed to git. Settings live in the workspace's
+`configs/settings.yaml`; change them on the Settings page (the gear in the title row).
 
 ## Credentials
 
 Integrations read credentials from environment variables or the OS keyring — never
 from files. Recognised variables: `KAGGLE_USERNAME`, `KAGGLE_KEY`, `ROBOFLOW_API_KEY`,
 `HF_TOKEN`, `GITHUB_TOKEN`. Store or remove them in the OS keyring from the Plugin Store
-(Account); Settings shows which are set and where from, never the values; logs mask them.
+(Account), or connect GitHub on the Git & GitHub page; Settings shows which are set and where
+from, never the values; logs and terminals mask them. Git receives a GitHub token only as an HTTP
+header in its environment, never on a command line or in a file.
 
 The Kaggle, Hugging Face and Roboflow plugins talk to each service's public REST API with the
 lab's own code (no client libraries). A download lands in `datasets/<source>/` or

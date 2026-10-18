@@ -70,9 +70,10 @@ class Debugger(QObject):
         if debug:
             self._follow(view)
             marks = sum(len(lines) for lines in self.tabs.breakpoints().values())
-            self.message.emit(f"Debugging {path.name}: " + (
-                f"runs to the first of {marks} breakpoint{'s' if marks != 1 else ''}" if marks else
-                "stopped on the first line") + " · n next, s step in, c continue, p name print, q quit")
+            where = ("runs to its breakpoint" if marks == 1 else f"runs to the first of {marks} breakpoints"
+                     if marks else "stops on the first line")
+            self.message.emit(f"Debugging {path.name}: {where} · n next, s step in, c continue, "
+                              "p name print, q quit")
         else:
             self.run_view = view
         return True
