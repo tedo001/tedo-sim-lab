@@ -125,6 +125,14 @@ pytest
 QT_QPA_PLATFORM=offscreen python -m app.main --smoke-test
 ```
 
+## Paper
+
+A three-page paper in IEEE conference format describes the lab's design, the Kohn–Sham lattice
+model and how both are verified: [docs/paper/paper.pdf](docs/paper/paper.pdf). Its LaTeX source
+uses the IEEEtran class and IEEE reference style (`docs/paper/paper.tex`, `references.bib`);
+build it with `pdflatex paper && bibtex paper && pdflatex paper && pdflatex paper`, or upload the
+folder to Overleaf.
+
 ## Every page
 
 Every page and view as it looks today, at the window's default size, with a few real runs in it (a
