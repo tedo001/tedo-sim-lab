@@ -36,12 +36,19 @@ Ten build phases:
   camera model, saved and exported as scripts.
 - **Logs page** (live, filtered, with a problem count in the title row), **settings edited in the
   app**, and an **update check** that asks GitHub when you want it to.
+- **3-D:** electrons in a crystal lattice (a self-consistent Kohn–Sham calculation, the potential
+  and density as surfaces, the electrons moving on them); datasets in the Dataset Hub and clusters
+  and projections in the results as point clouds you turn with the mouse.
 
 ## Next
 
 - **Code signing**, so Windows SmartScreen does not warn about the installer (needs a code-signing
   certificate from the owner).
 - **Projects:** the project's experiments and notebooks listed beside its files.
+- **Lattice:** band structures along a path through the Brillouin zone (k-points), spin
+  polarization, and forces on the ions so the lattice can relax.
+- **3-D views of trained networks:** the features a trained CNN gives each test image, in 3-D
+  (computed by the worker, which has PyTorch).
 
 ## V0.2: audio
 

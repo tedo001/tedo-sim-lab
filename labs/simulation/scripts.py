@@ -22,7 +22,8 @@ import numpy as np
 
 
 def script_for(kind: str, settings: dict) -> str:
-    builders = {"circuit": _circuit, "waves": _waves, "image": _image, "scenes": _scenes, "camera": _camera}
+    builders = {"circuit": _circuit, "waves": _waves, "lattice": _lattice, "image": _image, "scenes": _scenes,
+                "camera": _camera}
     if kind not in builders:
         raise ValueError(f"no script for {kind!r}")
     return builders[kind](settings)
@@ -72,6 +73,41 @@ for chunk in range(10):
 
 energies, x, states = eigenstates(SETUP, 6)
 print("Lowest energies:", np.round(energies, 5))
+'''
+
+
+def _lattice(settings: dict) -> str:
+    head = _HEAD.format(title="Electrons in a lattice (Kohn-Sham)")
+    return head + f'''from labs.simulation.quantum.kohn_sham import ENERGY_TERMS, solve
+from labs.simulation.quantum.lattice import LatticeSetup
+
+SETUP = LatticeSetup.from_dict({_literal(settings["setup"])})
+
+result = solve(SETUP, progress=lambda fraction, text: print(text))
+print("Converged" if result.converged else "Not converged", f"in {{result.seconds:.2f}} s")
+for key, title in ENERGY_TERMS.items():
+    print(f"{{title:22s}} {{result.energies[key]:+.6f}} Ha")
+gap = result.gap()
+print(f"Fermi level {{result.fermi:.5f}} Ha;", "a metal" if gap is None else f"gap {{gap:.5f}} Ha")
+print("Lowest levels (Ha) and electrons in them:")
+for n, (energy, filled) in enumerate(zip(result.eigenvalues[:12], result.occupations[:12])):
+    print(f"  {{n:3d}} {{energy:+.5f}} {{filled:.3f}}")
+np.savetxt("density.csv", result.density, delimiter=",")
+print("Wrote density.csv (rows along y)")
+
+try:  # draw it in 3-D if matplotlib is installed (it is in the experiment Python)
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
+if plt is not None:
+    x, y = np.meshgrid(result.x, result.y)
+    figure = plt.figure(figsize=(11, 5))
+    for index, (field, title) in enumerate(((result.v_ion, "Lattice potential V_ion (Ha)"),
+                                            (result.density, "Electron density n (bohr^-2)"))):
+        axes = figure.add_subplot(1, 2, index + 1, projection="3d")
+        axes.plot_surface(x, y, field, cmap="Blues_r" if index == 0 else "Reds", linewidth=0.2)
+        axes.set_title(title)
+    plt.show()
 '''
 
 

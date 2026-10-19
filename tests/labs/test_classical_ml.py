@@ -160,9 +160,12 @@ def test_clustering_and_projection(workspace) -> None:
     _d, _r, result, results = fit(workspace, make_spec(model="kmeans", task=Task.CLUSTERING), "kmeans")
     assert result.metrics["clusters"] == 3 and sum(results["sizes"]) == 150
     assert 0 < result.metrics["adjusted_rand"] <= 1 and len(results["points"]) == 150
+    assert len(results["points3d"]) == 150 and all(len(point) == 4 for point in results["points3d"])
+    assert [p[3] for p in results["points3d"]] == [p[2] for p in results["points"]]  # same rows, same order
     _d, _r, result, results = fit(workspace, make_spec("digits", "pca", Task.DIMENSIONALITY_REDUCTION), "pca")
     assert len(results["explained_variance_ratio"]) == 2 and 0 < result.metrics["explained_variance"] < 1
     assert {point[2] for point in results["points"]} == set(range(10))
+    assert "points3d" not in results  # two components: nothing to show in 3-D
 
 
 def test_csv_import_and_training(workspace, tmp_path) -> None:

@@ -61,6 +61,15 @@ COLORS: dict[str, str] = {
     # the surface) for none to light blue for most, OKLab-interpolated so lightness only rises.
     "seq_low": "#20252C",
     "seq_high": "#9EC5F4",
+    # The 3-D lattice view: a potential surface on one blue scale (dark wells, light ridges), its
+    # mesh, the electron density painted on it (one red scale, none → most, lightness rising) and
+    # the electrons drawn as spheres.
+    "surface_low": "#22406B",
+    "surface_high": "#A9CBF2",
+    "surface_mesh": "#C9DCF5",
+    "density_low": "#2E333B",
+    "density_high": "#E66767",
+    "electron": "#E66767",
     # Code editor syntax colours: muted, on the editor's surface; comments recede.
     "code_keyword": "#8FA7E0",
     "code_builtin": "#7FB8C7",

@@ -70,7 +70,8 @@ CLASSICAL_PRESETS: tuple[ClassicalPreset, ...] = (
                     lambda: _spec("iris-kmeans", Task.CLUSTERING, "iris", "kmeans", scale=True,
                                   params={"n_clusters": 3})),
     ClassicalPreset("digits_pca", "Digits · PCA",
-                    "64 pixel values squeezed into two components, coloured by digit.", "digits",
+                    "64 pixel values squeezed into three components, coloured by digit: the first two "
+                    "on a flat chart, all three in 3-D.", "digits",
                     lambda: _spec("digits-pca", Task.DIMENSIONALITY_REDUCTION, "digits", "pca",
-                                  scale=True, params={"n_components": 2})),
+                                  scale=True, params={"n_components": 3})),
 )

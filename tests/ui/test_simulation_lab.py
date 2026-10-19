@@ -147,3 +147,71 @@ def test_the_camera_and_saving_reopening_exporting(page, ctx, tmp_path) -> None:
     page.saved.delete_row(row, confirm=False)
     assert len(records.list_saved(ctx.paths.results)) == 1
     assert not page.save_button.isEnabled()  # nothing to save on the list itself
+
+
+def test_the_lattice_is_solved_drawn_in_3d_saved_and_exported(page, ctx, qtbot, tmp_path) -> None:
+    lab = page.tools["lattice"]
+    lab.cells.setValue(2)
+    lab.spacing.setValue(4.0)
+    lab.cutoff.setValue(5.0)
+    assert lab.size_note.text().startswith("4 ions, 4 electrons")
+    page.show_tool("lattice")  # the first showing solves in the background
+    qtbot.waitUntil(lambda: lab.result is not None, timeout=60_000)
+    result = lab.result
+    assert result.converged and lab.status.text().startswith("Converged")
+    assert lab.values.value_text("Electrons") == "4 on 4 ions"
+    views = lab.views
+    if views.timer.isActive():  # it plays when shown; the test moves it by hand
+        views.toggle()
+    assert len(views.left.points) == 4 and views.left._data is not None
+    before = views.walkers.positions.copy()
+    for _ in range(20):
+        views.tick()
+    assert not np.allclose(before, views.walkers.positions)
+    views.slider.setValue(0)
+    assert views.iteration_label.text() == "the first guess"
+    first = lab.cut.charts["v_hartree"].ys.copy()
+    views.slider.setValue(views.slider.maximum())
+    assert views.iteration_label.text() == "self-consistent"
+    assert not np.allclose(first, lab.cut.charts["v_hartree"].ys)  # the density moved, so V_H did
+    eff = lab.cut.charts["v_eff"].ys
+    parts = sum(lab.cut.charts[key].ys for key in ("v_ion", "v_hartree", "v_xc"))
+    assert np.allclose(eff, parts)  # V_eff = V_H + V_ion + V_xc, point by point
+    for index in range(views.show_box.count()):
+        views.show_box.setCurrentIndex(index)
+        assert views.right._data is not None
+    lab.convergence.state_chosen.emit(1)
+    assert views.show_box.currentData() == "state" and views.right.title.startswith("State 1")
+    views.left.set_camera(12.0, 40.0, 1.3, notify=True)
+    assert (views.right.azimuth, views.right.elevation) == (12.0, 40.0)  # the views turn together
+    assert lab.convergence.levels.rowCount() >= 2
+    lab.charge.setValue(2)
+    assert lab.status.text().startswith("Changed")
+    lab.charge.setValue(1)
+    folder = page.save("square lattice")
+    assert folder is not None
+    for name in ("fields.csv", "levels.csv", "convergence.csv", "lattice-3d.png"):
+        assert (folder / name).is_file(), name
+    saved = json.loads((folder / records.FILE).read_text(encoding="utf-8"))
+    assert saved["kind"] == "lattice" and saved["settings"]["setup"]["cells"] == 2
+    script = page.export_script(tmp_path / "lattice_sim.py")
+    assert "solve(SETUP" in script.read_text()
+    lab.cells.setValue(3)
+    page.open_saved("lattice", saved["settings"])  # reopening solves it again
+    assert lab.cells.value() == 2
+    qtbot.waitUntil(lambda: lab._job is None, timeout=60_000)
+    assert lab.result is not result and lab.result.converged
+
+
+def test_a_lattice_solve_can_be_stopped_and_impossible_set_ups_are_refused(page, qtbot) -> None:
+    lab = page.tools["lattice"]
+    lab.cells.setValue(6)
+    lab.spacing.setValue(8.0)
+    assert lab.size_note.text().startswith("Not possible") and not lab.solve_button.isEnabled()
+    lab.spacing.setValue(4.0)
+    lab.cutoff.setValue(4.0)
+    lab.solve()
+    assert lab.solve_button.text() == "Stop"
+    lab.solve()  # the same button stops it
+    qtbot.waitUntil(lambda: lab._job is None, timeout=60_000)
+    assert lab.solve_button.text() == "Solve"

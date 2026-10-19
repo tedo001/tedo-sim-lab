@@ -13,8 +13,8 @@ from pathlib import Path
 
 __all__ = ["KINDS", "SavedSimulation", "delete", "list_saved", "load", "save", "simulations_folder"]
 
-KINDS = {"circuit": "Quantum circuit", "waves": "Wave mechanics", "image": "Image pipeline",
-         "scenes": "Synthetic scenes", "camera": "Camera model"}
+KINDS = {"circuit": "Quantum circuit", "waves": "Wave mechanics", "lattice": "Electrons in a lattice",
+         "image": "Image pipeline", "scenes": "Synthetic scenes", "camera": "Camera model"}
 FILE = "simulation.json"
 
 

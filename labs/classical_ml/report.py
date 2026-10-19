@@ -1,5 +1,6 @@
 """What a fitted classical model is measured by: metrics, curves, feature importance, and a
-2-D view of clusters or projections. Everything is plain lists, ready for JSON."""
+2-D view of clusters or projections (and a 3-D one when there are three directions to show).
+Everything is plain lists, ready for JSON."""
 
 from __future__ import annotations
 
@@ -81,12 +82,17 @@ def importance(pipeline: Any, x_test: Any, y_test: Any, scoring: str | None, see
     return sorted(rows, key=lambda row: row[1], reverse=True)
 
 
-def _project(features: np.ndarray, seed: int) -> np.ndarray:
+def _project(features: np.ndarray, seed: int, dimensions: int = 2) -> np.ndarray:
     from sklearn.decomposition import PCA
 
-    if features.shape[1] <= 2:
-        return np.pad(features, ((0, 0), (0, 2 - features.shape[1])))
-    return PCA(n_components=2, random_state=seed).fit_transform(features)
+    if features.shape[1] <= dimensions:
+        return np.pad(features, ((0, 0), (0, dimensions - features.shape[1])))
+    return PCA(n_components=dimensions, random_state=seed).fit_transform(features)
+
+
+def _points3d(points: np.ndarray, groups: np.ndarray, order: np.ndarray) -> list[list[float]]:
+    """``[x, y, z, group]`` per shown row, for the 3-D view (the 2-D ``points`` keep their format)."""
+    return [[float(points[i, 0]), float(points[i, 1]), float(points[i, 2]), int(groups[i])] for i in order]
 
 
 def cluster_report(model: Any, features: np.ndarray, labels: np.ndarray, truth: np.ndarray | None,
@@ -100,10 +106,13 @@ def cluster_report(model: Any, features: np.ndarray, labels: np.ndarray, truth: 
         found["inertia"] = float(model.inertia_)
     if truth is not None:
         found["adjusted_rand"] = float(metrics.adjusted_rand_score(truth, labels))
-    points = _project(features, seed)
+    points = _project(features, seed, 3 if features.shape[1] >= 3 else 2)
     order = np.random.default_rng(seed).permutation(len(points))[:1000]
-    return {"metrics": found, "sizes": np.bincount(labels).tolist(),
-            "points": [[float(points[i, 0]), float(points[i, 1]), int(labels[i])] for i in order]}
+    report = {"metrics": found, "sizes": np.bincount(labels).tolist(),
+              "points": [[float(points[i, 0]), float(points[i, 1]), int(labels[i])] for i in order]}
+    if points.shape[1] >= 3:
+        report["points3d"] = _points3d(points, labels, order)
+    return report
 
 
 def projection_report(model: Any, projected: np.ndarray, truth: np.ndarray | None,
@@ -114,6 +123,10 @@ def projection_report(model: Any, projected: np.ndarray, truth: np.ndarray | Non
     found = {"components": int(projected.shape[1])}
     if ratio is not None:
         found["explained_variance"] = float(np.sum(ratio))
-    return {"metrics": found, "explained_variance_ratio": [] if ratio is None else [float(r) for r in ratio],
-            "points": [[float(projected[i, 0]), float(projected[i, 1] if projected.shape[1] > 1 else 0.0),
-                        int(group[i])] for i in order]}
+    report = {"metrics": found,
+              "explained_variance_ratio": [] if ratio is None else [float(r) for r in ratio],
+              "points": [[float(projected[i, 0]), float(projected[i, 1] if projected.shape[1] > 1 else 0.0),
+                          int(group[i])] for i in order]}
+    if projected.shape[1] >= 3:
+        report["points3d"] = _points3d(projected, group, order)
+    return report

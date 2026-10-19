@@ -38,6 +38,11 @@ class ClassicalMlPage(Page):
         datasets = Card("Datasets", "scikit-learn's bundled tables and your imported CSV files", padded=False)
         self.datasets = DataTable(("Dataset", "Size", "Tasks", "Licence", "Status"), mono_columns=(1,),
                                   stretch_column=0)
+        self.dataset_ids: list[str] = []
+        explore = QPushButton(icon("rotate-3d"), "Explore in 3-D")
+        explore.setToolTip("The chosen dataset's rows as points in 3-D (Dataset Hub)")
+        explore.clicked.connect(self.explore)
+        datasets.add_head_widget(explore)
         datasets.add(self.datasets)
         self.body.addWidget(datasets)
         models = Card("Models", padded=False)
@@ -79,9 +84,11 @@ class ClassicalMlPage(Page):
     def refresh(self) -> None:
         catalog = self.ctx.catalog
         self.datasets.clear_rows()
+        self.dataset_ids = []
         for card in catalog.datasets.all():
             if card.modality != Modality.TABULAR or not set(card.tasks) & TABULAR_TASKS:
                 continue
+            self.dataset_ids.append(card.id)
             text, tone = _DATASET_TONES.get(catalog.datasets.status(card.id), ("Unknown", "planned"))
             tasks = ", ".join(_SHORT.get(t, t) for t in card.tasks)
             self.datasets.add_row((card.name, card.size or "—", tasks,
@@ -100,6 +107,13 @@ class ClassicalMlPage(Page):
             problems = self.ctx.experiments.problems(preset.make())
             run.setEnabled(not problems)
             run.setToolTip("\n".join(problems))
+
+    def explore(self) -> None:
+        """The chosen dataset (or the first) in the Dataset Hub's 3-D explorer."""
+        rows = self.datasets.selectionModel().selectedRows()
+        if self.dataset_ids:
+            card_id = self.dataset_ids[rows[0].row()] if rows else self.dataset_ids[0]
+            self.ctx.show_page("dataset_hub").explore(card_id)
 
     def open_preset(self, preset: ClassicalPreset) -> None:
         self.ctx.experiments.open_in_builder(preset.make(), self.ctx.navigate)

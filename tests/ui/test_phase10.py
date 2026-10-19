@@ -38,3 +38,18 @@ def test_documentation_lists_the_guide_and_roadmap() -> None:
     for image in ("home", "training", "deep-learning", "plugin-store"):
         assert f"docs/images/{image}.png" in readme
         assert (CODE_ROOT / "docs" / "images" / f"{image}.png").is_file()
+
+
+def test_the_readme_gallery_shows_every_page() -> None:
+    """Every page in the sidebar has a screenshot in the README's gallery and every image the README
+    shows exists: the owner's rule is that the README is updated with every change."""
+    import re
+
+    from app.navigation import NAV
+
+    readme = (CODE_ROOT / "README.md").read_text(encoding="utf-8")
+    shown = set(re.findall(r"\(docs/images/([^)]+\.png)\)", readme))
+    assert all((CODE_ROOT / "docs" / "images" / name).is_file() for name in shown)
+    pages = [name for name in shown if name.startswith("pages/")]
+    missing = [spec.id for spec in NAV if not any(spec.id.replace("_", "-") in name for name in pages)]
+    assert not missing, f"no screenshot in the README gallery for {missing}"

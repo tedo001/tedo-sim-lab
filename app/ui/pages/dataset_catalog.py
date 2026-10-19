@@ -4,11 +4,12 @@ for datasets the lab can load and whose terms let it fetch them."""
 
 from __future__ import annotations
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QVBoxLayout, QWidget
 
 from core.common.vocab import Modality
+from labs.common.explore import explorable
 
 from ...services.context import AppContext
 from ..icons import icon
@@ -25,6 +26,9 @@ def _splits(splits: dict[str, int]) -> str:
 
 
 class DatasetCatalog(QWidget):
+    #: Draw this dataset's rows in 3-D (a card id).
+    explore_requested = Signal(str)
+
     def __init__(self, ctx: AppContext, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.ctx = ctx
@@ -65,8 +69,12 @@ class DatasetCatalog(QWidget):
         self.source_button.clicked.connect(lambda: self._open("source"))
         self.terms_button = QPushButton(icon("scale"), "Read the terms")
         self.terms_button.clicked.connect(lambda: self._open("terms"))
+        self.explore_button = QPushButton(icon("rotate-3d"), "Explore in 3-D")
+        self.explore_button.clicked.connect(
+            lambda: self.selected and self.explore_requested.emit(self.selected))
         buttons.addWidget(self.source_button)
         buttons.addWidget(self.terms_button)
+        buttons.addWidget(self.explore_button)
         buttons.addStretch(1)
         for widget in (self.description, self.values, self.notes, self.citation, self.loader, self.download):
             self.detail.add(widget)
@@ -146,6 +154,23 @@ class DatasetCatalog(QWidget):
             self.download.set_card(card.id)
         self.source_button.setEnabled(bool(card.source_url))
         self.terms_button.setVisible(bool(card.license.url))
+        self._show_explore(card.id)
+
+    def _show_explore(self, card_id: str) -> None:
+        """Rows can be drawn in 3-D for tables and MNIST-style image sets on this computer."""
+        registry = self.ctx.catalog.datasets
+        try:
+            adapter = registry.adapter(card_id)
+        except (ImportError, AttributeError, KeyError, NotImplementedError, TypeError, ValueError):
+            adapter = None
+        if adapter is None or not explorable(adapter):
+            self.explore_button.setVisible(False)
+            return
+        here = adapter.local_status(registry.root) == "present"
+        self.explore_button.setVisible(True)
+        self.explore_button.setEnabled(here)
+        self.explore_button.setToolTip("Its rows as points in 3-D, coloured by class" if here
+                                       else "Download it first")
 
     def _open(self, which: str) -> None:
         if self.selected is None:

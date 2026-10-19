@@ -102,8 +102,9 @@ def _exercise_layout(window: MainWindow, app: QApplication, screenshot_dir: Path
 
 def exercise_engines() -> None:
     """Run, small, what the window computes in its own process: the Simulation Lab's quantum,
-    wave and vision engines (numpy and scipy: every image operation, the stationary-state solver),
-    the PNG codec, reading logs and pdb's stops."""
+    wave, lattice and vision engines (numpy and scipy: every image operation, the stationary-state
+    and Kohn–Sham solvers), principal components and IDX files for the 3-D explorer, the PNG
+    codec, reading logs and pdb's stops."""
     import tempfile
 
     import numpy as np
@@ -111,7 +112,11 @@ def exercise_engines() -> None:
     from core.common.log_reader import parse_lines
     from core.terminal import Parser, Screen
     from core.terminal.debugger import find_stop
+    from labs.common.explore import principal_components, read_idx
     from labs.simulation.quantum import preset, sample, simulate
+    from labs.simulation.quantum.density_walk import DensityWalkers
+    from labs.simulation.quantum.kohn_sham import solve
+    from labs.simulation.quantum.lattice import LatticeSetup
     from labs.simulation.quantum.waves import WaveSetup, WaveSimulation, eigenstates
     from labs.simulation.vision import (
         OPERATIONS,
@@ -142,6 +147,16 @@ def exercise_engines() -> None:
             raise RuntimeError("PNG round trip changed the image")
     if not wireframe(Camera()) or result.size == 0:
         raise RuntimeError("the vision engines returned nothing")
+    lattice = solve(LatticeSetup(cells=2, spacing=4.0, cutoff=4.0))
+    if not lattice.converged or abs(lattice.electrons - 4) > 1e-6:
+        raise RuntimeError("the Kohn–Sham solver did not converge")
+    DensityWalkers(lattice.density, lattice.box, lattice.ions, 4).advance(3)
+    _scores, share = principal_components(np.random.default_rng(0).normal(size=(20, 4)))
+    with tempfile.TemporaryDirectory() as folder:
+        idx = Path(folder) / "t10k-labels-idx1-ubyte"
+        idx.write_bytes(b"\x00\x00\x08\x01" + (3).to_bytes(4, "big") + bytes([7, 2, 1]))
+        if read_idx(idx).tolist() != [7, 2, 1] or abs(float(share.sum()) - 1.0) > 1e-9:
+            raise RuntimeError("the 3-D explorer's readers failed")
     if parse_lines(["2026-01-01 00:00:00,000 ERROR   tedo.smoke: x"])[0].level != "ERROR":
         raise RuntimeError("log lines are not read")
     screen = Screen(60, 6, 10)

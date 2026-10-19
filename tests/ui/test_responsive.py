@@ -62,3 +62,30 @@ def test_every_page_fits_half_width(ctx, qapp, qtbot) -> None:
             too_wide.append(f"{page_id}: {width}px")
         page.close()
     assert not too_wide, too_wide
+
+
+def test_every_tool_and_view_fits_half_width(ctx, qapp, qtbot) -> None:
+    """Pages with several views fit half width in each one: the Simulation Lab's tools and the
+    Dataset Hub's views (the 3-D lattice and explorer among them)."""
+    from app.ui.pages.dataset_hub import DatasetHubPage
+    from app.ui.pages.simulation import TOOLS, SimulationLabPage
+    from app.ui.theme import apply_theme
+
+    apply_theme(qapp)
+    too_wide = []
+    for page_class, keys, show in ((SimulationLabPage, [key for key, _ in TOOLS], "show_tool"),
+                                   (DatasetHubPage, [key for key, _ in DatasetHubPage.VIEWS], "show_view")):
+        page = page_class(ctx)
+        qtbot.addWidget(page)
+        if hasattr(page, "tools"):
+            page.tools["lattice"]._asked = True  # only its layout matters here, not a solve
+        page.resize(600, 800)
+        page.show()
+        for key in keys:
+            getattr(page, show)(key)
+            body = page.findChild(QScrollArea, "PageScroll").widget()
+            width = max(page.minimumSizeHint().width(), body.minimumSizeHint().width())
+            if width > 600:
+                too_wide.append(f"{page_class.__name__} {key}: {width}px")
+        page.close()
+    assert not too_wide, too_wide

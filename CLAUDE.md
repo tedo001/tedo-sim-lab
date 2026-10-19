@@ -34,6 +34,12 @@ reason. Enforced in code and tests:
   "Generated with" line. Every push is the owner's.
 - Do not open pull requests unless asked.
 
+## Documentation rule (from the owner — always follow)
+
+- **After completing any work, always update `README.md`**: what is new or changed, with
+  screenshots of new or changed pages (`docs/images/`, every page in `docs/images/pages/`). Keep
+  `docs/guide.md`, `ROADMAP.md` and this file in step in the same commit.
+
 ## Commands
 
 ```bash
@@ -89,8 +95,10 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/services/downloads.py` | `DownloadService`: one background download per dataset, licence acknowledgement; `import_csv` (card + file into `datasets/imported/`, `imported` signal) |
 | `app/ui/pages/builder/` | Experiment Builder (`form.py` ⇄ `ExperimentSpec`, switching `torch_section.py` / `sklearn_section.py` by task; `fields.py` controls and YAML boxes; `choosers.py` dataset/model + downloads) |
 | `app/ui/pages/classical_ml.py` | Classical ML lab: presets (Run / Open in builder), `csv_import.py`, tabular datasets and models |
-| `app/ui/pages/sklearn_results.py` | `SklearnResults` from `results.json`, on the Training and Evaluation pages; charts in `app/ui/widgets/plots.py` (`CurveChart`, `ScatterChart`, `BarList`) |
-| `app/ui/pages/dataset_hub.py` | Dataset Hub: `Segmented` switch between `dataset_catalog.py` (every card, filters, licence/access/citation, downloads only where allowed), `ontology_view.py` and `coco_view.py` |
+| `app/ui/pages/sklearn_results.py` | `SklearnResults` from `results.json`, on the Training and Evaluation pages; charts in `app/ui/widgets/plots.py` (`CurveChart`, `ScatterChart`, `BarList`); clusters and projections also in 3-D (`points3d`, written when a run has three directions) |
+| `app/ui/pages/dataset_hub.py` | Dataset Hub: `Segmented` switch between `dataset_catalog.py` (every card, filters, licence/access/citation, downloads only where allowed, *Explore in 3-D*), `dataset_explorer.py`, `ontology_view.py` and `coco_view.py` |
+| `labs/common/explore.py` | A dataset as points: `tabular_points` (numeric columns, class or numeric target, sampled), `image_points` (MNIST-style IDX files via `read_idx`, no torch, no pickles), `principal_components` (SVD); drawn by `app/ui/pages/dataset_explorer.py` (*Explore in 3-D*, opened from the catalogue and the Classical ML page) |
+| `app/ui/widgets/view3d.py` | `OrbitView`: the QPainter 3-D camera (azimuth, elevation, zoom, mild perspective; drag, wheel, double-click; `camera_changed` so views turn together; fitted on data/resize, not while turning). `surface3d.py` `SurfaceView` (shaded mesh surface cached per view, spheres hidden behind hills drawn faint, hop arcs, legend, hover); `scatter3d.py` `ScatterView` (point cloud in a ruled box with ticks, groups by the scatter rule, numeric colour scale) |
 | `labs/ontology/` | `imagenet.py` (the 1000 ImageNet-1k classes: WordNet id, names, gloss from `data/imagenet1k_classes.tsv`; never images), `wordnet.py` (`WordNetAdapter` downloads WordNet into `datasets/nltk_data` on request; `WordNet.info()`: paths, hyponyms, ImageNet classes below) |
 | `labs/computer_vision/coco.py` | `CocoFile`: a local COCO annotation file's categories, per-image licences, annotations, RLE masks (pycocotools); drawn by `app/ui/widgets/annotated.py` |
 | `app/ui/pages/model_zoo.py` | Model Zoo: every model card, weights' own licences, hardware needs; `configs/excluded_tools.yaml` lists what the licence policy keeps out |
@@ -125,8 +133,8 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `core/terminal/` | A VT100/xterm terminal without Qt: `screen.py` (`Screen`: cells, scroll regions, alternate screen, scrollback with stable line numbers; + `editing.py`, `modes.py`, `cells.py`), `parser.py` (`Parser`: state kept across reads, unknown sequences skipped whole, replies to queries), `pty_process.py` (`spawn`: POSIX pty, Windows ConPTY through pywinpty), `profiles.py` (bash, zsh, fish, PowerShell, cmd, Git Bash, WSL, Python, vim, Neovim, Docker, a command of your own; install commands for missing editors), `debugger.py` (`pdb_command`; `find_stop` reads where pdb stopped off the screen) |
 | `app/services/pty_session.py` | `PtySession`: a program in a pty, read on a thread, parsed on the GUI thread, output masked, writes never block, bracketed paste; `terminals.py` `TerminalService` (sessions, profiles, the Code page's project); widget `terminal_view.py` (+ `terminal_keys.py`, `terminal_paint.py`, `terminal_mouse.py`); `TerminalTabs` (`app/ui/pages/terminal_tabs.py`) on the Terminal page, in the panel under every page (Ctrl+\`, `app/ui/shell/terminal_panel.py`) and in the Code page |
 | `core/vcs/` | `git.py` (`Git`: the git command line; porcelain v2 status, diffs, stage / commit / amend, history, branches, remotes, fetch / pull / push, init / clone; a GitHub token reaches git only as an HTTP header through `GIT_CONFIG_*`, prompts are off), `github.py` (`GitHub`: REST API with urllib: account, repositories, create, pull requests, issues, latest release); `app/services/source_control.py` (`SourceControl`: quiet background tasks; token in the keyring as `GITHUB_TOKEN`); page `app/ui/pages/source_control/` (changes, history, branches and remotes, GitHub) |
-| `labs/simulation/` | Simulation Lab engines (numpy/scipy, no Qt): `quantum/` (`gates.py`; `circuit.py`: `Circuit`, `Op`, presets, OpenQASM; `statevector.py`: simulate, sample, Bloch vectors, purity; `waves.py`: split-step Fourier wave packets, potentials, `eigenstates`), `vision/` (`filters.py` + `ops.py`: image operations as a pipeline of `Step`s; `png.py`: a standard-library PNG codec; `samples.py`; `scenes.py`: synthetic shapes as PNG + COCO, annotations of the visible parts; `camera.py`: pinhole camera with lens distortion), `records.py` (saved simulations in `results/simulations/`), `scripts.py` (`script_for`: a standalone script per tool) |
-| `app/ui/pages/simulation/` | Simulation Lab page: tools `circuits.py` (+ `circuit_canvas.py`), `waves.py`, `images.py` (+ `param_form.py`), `scenes.py` (datasets open in the Dataset Hub through `ctx.show_page`), `camera.py`, `saved.py`; save, export a script, open the folder; charts in `app/ui/widgets/sim_views.py` |
+| `labs/simulation/` | Simulation Lab engines (numpy/scipy, no Qt): `quantum/` (`gates.py`; `circuit.py`: `Circuit`, `Op`, presets, OpenQASM; `statevector.py`: simulate, sample, Bloch vectors, purity; `waves.py`: split-step Fourier wave packets, potentials, `eigenstates`), `vision/` (`filters.py` + `ops.py`: image operations as a pipeline of `Step`s; `png.py`: a standard-library PNG codec; `samples.py`; `scenes.py`: synthetic shapes as PNG + COCO, annotations of the visible parts; `camera.py`: pinhole camera with lens distortion), `records.py` (saved simulations in `results/simulations/`), `scripts.py` (`script_for`: a standalone script per tool); `quantum/lattice.py` (`LatticeSetup`, `PlaneWaves` basis at Γ, `ion_potential` −Z/√(r²+d²), `hartree_potential`, `xc_energy_potential`: 2-D LDA, exchange exact, correlation of Attaccalite et al. 2002, `ion_ion_energy`: Ewald + charge sheets), `quantum/kohn_sham.py` (`solve` → `KohnShamResult`: SCF with Pulay mixing and Fermi smearing, energies, every iteration's density, exact `cut`s), `quantum/density_walk.py` (`DensityWalkers`: Metropolis-adjusted Langevin samples of the density, `Hop`s) |
+| `app/ui/pages/simulation/` | Simulation Lab page: tools `circuits.py` (+ `circuit_canvas.py`), `waves.py`, `lattice.py` (+ `lattice_views.py`: `ElectronViews` two 3-D views turning together with moving electrons and an iteration slider, `PotentialCut` V_eff = V_H + V_ion + V_xc along a row of ions, `Convergence` with the levels), `images.py` (+ `param_form.py`), `scenes.py` (datasets open in the Dataset Hub through `ctx.show_page`), `camera.py`, `saved.py`; save, export a script, open the folder; charts in `app/ui/widgets/sim_views.py` |
 | `core/common/log_reader.py` | Reading log files: `parse_lines` (records with their tracebacks), `matches` (level, logger and those below it, text), `LogFollower` (new lines, through rotation and truncation; opens the file only while reading, so Windows can rotate it); `logging_setup.py` writes `app.log` and `errors.log` (warnings and errors only), `set_level` while running |
 | `app/services/logs.py` | `LogService`: the log files, errors counted since start (the top bar's red notice → Logs page on warnings and errors); page `app/ui/pages/logs.py` (`LogModel`: sources incl. each run's `run.log`, level/source/text filters, follow, details with traceback jumps, log level) |
 | `app/services/settings.py` | `SettingsService.update(**changes)`: checked together (`ConfigError`, nothing saved), written to `settings.yaml`, applied at once where possible (log level, concurrent runs, terminal profiles; `LATER` names the rest), `changed` signal; form `app/ui/pages/settings_form.py`; the builder's device follows `default_device` unless chosen there |
@@ -228,6 +236,11 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   tables stretch a text column, never a pill column.
 - **Qt names**: never give a widget an attribute named after a `QWidget` method (`metric`, `width`,
   `height`, `size`, `scroll`, …): it hides the method, and Qt calls virtual ones from C++.
+- **3-D views** are drawn with QPainter on `OrbitView` (`app/ui/widgets/view3d.py`): no OpenGL —
+  Qt's own 3-D modules (QtDataVisualization, QtGraphs) are GPL and PyOpenGL is not a dependency.
+  Paint the static scene into a cached image per camera and size; moving things (spheres, arcs,
+  hover) draw on top each frame. Surfaces use the `surface_*` and `density_*` tokens (one hue
+  each, OKLab ramps from `app/ui/theme/ramps.py`); point clouds follow the scatter rule above.
 - **Look**: dark, restrained, flat. Colours only from `tokens.py`; one accent (muted
   blue) for anything pressable; status shown with tinted pills. No gradients or glow.
 - **Workspace**: runtime folders (`models/ datasets/ experiments/ notebooks/ results/
@@ -323,3 +336,6 @@ Design for it now:
       model; saved simulations and exported scripts
 - [x] Logs page (live, filters, run logs, traceback jumps, log level), errors.log and a problem count
       in the title row; settings edited in the app (checked, saved, applied live); update check
+- [x] 3-D: electrons in a crystal lattice (self-consistent Kohn–Sham in a plane-wave basis, potential
+      and density surfaces, moving electrons, V_eff taken apart); datasets (Dataset Hub *Explore in
+      3-D*) and clusters/projections as point clouds; every page captured in `docs/images/pages/`

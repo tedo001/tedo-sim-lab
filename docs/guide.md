@@ -42,7 +42,11 @@ you import. Each preset runs in seconds. The results show:
 - ROC and precision-recall curves;
 - a confusion matrix;
 - feature importance;
-- SHAP values, when `shap` is installed.
+- SHAP values, when `shap` is installed;
+- clusters and projections, flat or in 3-D (the *2-D / 3-D* switch) when the run kept three
+  directions, as the Digits · PCA preset does.
+
+*Explore in 3-D* on the Datasets card opens the chosen table in the Dataset Hub's explorer.
 
 **Deep Learning.** Design a network layer by layer. As you edit, the page:
 
@@ -66,6 +70,23 @@ script that runs on its own (*Export script*).
   harmonic, double well), moving in time: watch it tunnel, reflect or oscillate, with its norm,
   position, momentum, energy and how much got through. *Compute* finds the potential's lowest
   energies and draws each stationary state.
+- **Lattice** (electrons in a crystal lattice, in 3-D). A real density-functional calculation: ions
+  of charge Z sit on a square, triangular or honeycomb lattice a height d above a plane of
+  electrons; *Solve* iterates the Kohn–Sham equations in a plane-wave basis until the electrons'
+  density makes the very potential it was computed in (self-consistency, usually in under a
+  second). Two 3-D views turn together (drag to turn, wheel to zoom, double-click to reset):
+  on the left the lattice potential V_ion with the electrons on it, drawn as samples of the
+  density that rattle around an ion and now and then hop to the next (an arrow marks each hop);
+  on the right the averaged electron density they make, or the effective potential
+  V_eff = V_H + V_ion + V_xc and each of its parts, or one Kohn–Sham state |ψₙ|² (click a level in
+  the table). The slider goes back through the iterations, from the first guess to the converged
+  density. A second card takes V_eff apart along a row of ions: the ions pull, the electrons'
+  own charge pushes back (Hartree), exchange-correlation pulls a little, and at every point the
+  three add up to V_eff. The ground-state card lists the total energy and its parts (kinetic,
+  electron–ion, Hartree, exchange-correlation, ion–ion), the Fermi level and the gap (none for a
+  metal). Things to try: Z = 2 with deep wells (d = 0.6) gives an insulator with a gap; a vacancy
+  leaves a hole the density flows around; *LDA exchange only* or *None (Hartree only)* shows
+  what exchange and correlation add. Raise the plane-wave cutoff until the energy stops changing.
 - **Images** (image processing). Build a pipeline of image operations (blur, sharpen, edges, corners, thresholds,
   morphology, colour, noise, geometry, Fourier filters, a kernel of your own) on a test pattern or
   your own PNG; every change runs again in the background, with timings and a histogram.
@@ -80,9 +101,16 @@ script that runs on its own (*Export script*).
 
 ## Data and models
 
-**Dataset Hub** has three views:
+**Dataset Hub** has four views:
 
 - **Catalogue:** every dataset with its licence (checked at the source), access requirements, citation and a download button where the terms allow one.
+- **Explore in 3-D:** a dataset's rows as points in a 3-D box, coloured by class. Choose three
+  columns, or the first three principal components (the bars below show how much of the variance
+  each holds). Up to three classes get their own colour and marker; with more, pick one to
+  highlight and the rest turn grey. A numeric target (Diabetes) colours the points on a scale.
+  It reads the built-in tables, your imported CSV files and, once downloaded, MNIST and
+  Fashion-MNIST (a sample of the test images, from their IDX files). *Explore in 3-D* on a
+  dataset in the Catalogue opens it here.
 - **Ontology:** the ImageNet-1k classes in WordNet. Names only, never images.
 - **COCO:** inspect an annotation file you already have.
 

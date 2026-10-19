@@ -1,6 +1,7 @@
 """What a scikit-learn run found, read from its ``results.json``: scores, ROC and
-precision-recall curves, predicted against actual, clusters or projections, permutation
-importance, SHAP values and the search. Shared by the Training and Evaluation pages; a card
+precision-recall curves, predicted against actual, clusters or projections (in 2-D, and in 3-D
+when the run kept three directions), permutation importance, SHAP values and the search. Shared
+by the Training and Evaluation pages; a card
 with nothing to show stays hidden."""
 
 from __future__ import annotations
@@ -11,8 +12,9 @@ from typing import Any
 
 from PySide6.QtWidgets import QComboBox, QVBoxLayout, QWidget
 
-from ..widgets import Card, DataTable, ResponsiveRow, label
+from ..widgets import Card, DataTable, ResponsiveRow, Segmented, label
 from ..widgets.plots import GROUP_COLOURS, BarList, CurveChart, ScatterChart
+from ..widgets.scatter3d import ScatterView
 
 __all__ = ["METRIC_TITLES", "SklearnResults", "read_results"]
 
@@ -56,6 +58,7 @@ class SklearnResults(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.results: dict[str, Any] | None = None
+        self._titles: tuple[str, str] | None = None  # the points card's title, flat and in 3-D
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
@@ -76,9 +79,16 @@ class SklearnResults(QWidget):
         self.highlight = _combo()
         self.highlight.currentIndexChanged.connect(self._highlight)
         self.scatter_card.add_head_widget(self.highlight)
+        self.dimensions = Segmented((("2d", "2-D"), ("3d", "3-D")))
+        self.dimensions.changed.connect(lambda _key: self._show_dimensions())
+        self.scatter_card.add_head_widget(self.dimensions)
         self.scatter = ScatterChart("", "", "")
         self.scatter.setMinimumHeight(340)
         self.scatter_card.add(self.scatter)
+        self.scatter3d = ScatterView("")
+        self.scatter3d.setMinimumHeight(400)
+        self.scatter3d.hide()
+        self.scatter_card.add(self.scatter3d)
         self.legend = label("", "CardCaption", wrap=True)
         self.scatter_card.add(self.legend)
 
@@ -172,6 +182,7 @@ class SklearnResults(QWidget):
             self.scatter_card.hide()
             return
         self.scatter_card.show()
+        self._titles = (title, "First three components" if task == "dimensionality_reduction" else title)
         self.scatter_card.title.setText(title)
         self.scatter.title, self.scatter.x_label, self.scatter.y_label = "", x_label, y_label
         self.scatter.identity = "predicted_vs_actual" in found
@@ -182,6 +193,13 @@ class SklearnResults(QWidget):
         self.highlight.blockSignals(False)
         self.highlight.setVisible(len(groups) > len(GROUP_COLOURS))
         self.scatter.set_points(points, groups)
+        cloud = found.get("points3d") if task in ("clustering", "dimensionality_reduction") else None
+        self.dimensions.setVisible(bool(cloud))
+        if cloud:
+            self.scatter3d.set_points([p[:3] for p in cloud],
+                                      groups=[int(p[3]) for p in cloud] if groups else None,
+                                      names=groups, axes=("component 1", "component 2", "component 3"))
+        self._show_dimensions()
         if 0 < len(groups) <= len(GROUP_COLOURS):
             names = ("blue", "orange", "green")
             caption += " " + ", ".join(f"{names[i]}: {name}" for i, name in enumerate(groups)) + "."
@@ -189,6 +207,14 @@ class SklearnResults(QWidget):
             caption += " One group at a time is coloured (choose above); the rest are grey."
         self.legend.setText(caption)
 
+    def _show_dimensions(self) -> None:
+        three = not self.dimensions.isHidden() and self.dimensions.current == "3d"
+        self.scatter.setVisible(not three)
+        self.scatter3d.setVisible(three)
+        if self._titles:
+            self.scatter_card.title.setText(self._titles[three])
+
     def _highlight(self, index: int) -> None:
         self.scatter.highlight = max(index, 0)
         self.scatter.update()
+        self.scatter3d.set_highlight(index)

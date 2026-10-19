@@ -1,8 +1,9 @@
 """The Simulation Lab: experiments you run freely, for research or practice.
 
 Quantum physics — circuits on a state-vector simulator (up to 10 qubits, textbook presets,
-Bloch spheres, sampled shots, OpenQASM) and wave mechanics (a wave packet tunnelling, reflecting
-and oscillating; stationary states). Computer vision — an image-processing pipeline, synthetic
+Bloch spheres, sampled shots, OpenQASM), wave mechanics (a wave packet tunnelling, reflecting
+and oscillating; stationary states) and electrons in a crystal lattice (a self-consistent
+Kohn–Sham calculation drawn in 3-D). Computer vision — an image-processing pipeline, synthetic
 datasets with COCO annotations, and a pinhole camera with lens distortion.
 
 Save keeps a simulation's settings and outputs in ``results/simulations``; Export script writes it
@@ -33,16 +34,19 @@ from ...widgets import Page, Segmented, label
 from .camera import CameraLab
 from .circuits import CircuitLab
 from .images import ImageLab
+from .lattice import LatticeLab
 from .saved import SavedView
 from .scenes import SceneLab
 from .waves import WaveLab
 
 __all__ = ["SimulationLabPage"]
 
-TOOLS = (("circuit", "Circuits"), ("waves", "Waves"), ("image", "Images"), ("scenes", "Scenes"),
-         ("camera", "Camera"), ("saved", "Saved"))
+TOOLS = (("circuit", "Circuits"), ("waves", "Waves"), ("lattice", "Lattice"), ("image", "Images"),
+         ("scenes", "Scenes"), ("camera", "Camera"), ("saved", "Saved"))
 #: The tabs' names in full (their tooltips).
-TITLES = {"circuit": "Quantum circuits", "waves": "Wave mechanics", "image": "Image processing",
+TITLES = {"circuit": "Quantum circuits", "waves": "Wave mechanics",
+          "lattice": "Electrons in a crystal lattice: the Kohn–Sham density in 3-D",
+          "image": "Image processing",
           "scenes": "Synthetic scenes for detection and segmentation", "camera": "Camera model",
           "saved": "Saved simulations"}
 
@@ -70,8 +74,8 @@ class SimulationLabPage(Page):
         self.message.hide()
         self.body.addWidget(self.message)
         self.stack = QStackedWidget()
-        self.tools = {"circuit": CircuitLab(), "waves": WaveLab(), "image": ImageLab(ctx.jobs),
-                      "scenes": SceneLab(ctx), "camera": CameraLab()}
+        self.tools = {"circuit": CircuitLab(), "waves": WaveLab(), "lattice": LatticeLab(ctx.jobs),
+                      "image": ImageLab(ctx.jobs), "scenes": SceneLab(ctx), "camera": CameraLab()}
         self.saved = SavedView(ctx)
         self.saved.open_requested.connect(self.open_saved)
         for widget in (*self.tools.values(), self.saved):
