@@ -1,7 +1,0 @@
-# LaTeX build products (paper.pdf is kept)
-*.aux
-*.bbl
-*.blg
-*.log
-*.out
-*.synctex.gz
