@@ -13,6 +13,11 @@ multimodal, quantum ML) say which release brings them. See [ROADMAP.md](ROADMAP.
 next, [docs/guide.md](docs/guide.md) for a tour of every page, and [CLAUDE.md](CLAUDE.md) for the
 architecture and the project's rules.
 
+**Next: a cleaner interface.** [design/ui-redesign.md](design/ui-redesign.md) proposes one system flow
+(project → data → design → run → analyze → ship), a sidebar of 15 rows instead of 28, a run page
+that gathers Training, Evaluation, Benchmarking and MLflow as tabs, a five-step New experiment with
+preflight fixes, and contrast fixes to four colour tokens. Nothing in the app has changed yet.
+
 ![Home](docs/images/home.png)
 
 ## What it does

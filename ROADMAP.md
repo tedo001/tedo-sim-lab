@@ -42,6 +42,11 @@ Ten build phases:
 
 ## Next
 
+- **UI redesign** ([design/ui-redesign.md](design/ui-redesign.md)): one system flow from project to
+  shipped model; the sidebar grouped as Workflow, Labs and Workspace (15 rows, planned labs folded
+  into "Coming soon"); a Library for datasets and models; New experiment in five steps with
+  preflight fixes; Runs with a run page whose tabs replace Training, Evaluation, Benchmarking and
+  MLflow; empty states with a next step; contrast fixes to `text_faint`, `accent` and `fail`.
 - **Code signing**, so Windows SmartScreen does not warn about the installer (needs a code-signing
   certificate from the owner).
 - **Projects:** the project's experiments and notebooks listed beside its files.
