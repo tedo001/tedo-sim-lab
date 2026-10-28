@@ -3,6 +3,9 @@
 runners:
   - labs.computer_vision.classification:TorchClassificationRunner
   - labs.classical_ml.runner:SklearnRunner
+  - labs.quantum_ml.runner:QuantumRunner
+  - labs.nlp.runner:TextClassifierRunner
+  - labs.nlp.transformer:TransformerTextRunner
   - labs.computer_vision.experimental:ObjectDetectionRunner
   - labs.computer_vision.experimental:SegmentationRunner
   - labs.computer_vision.experimental:OcrRunner

@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QWidget
 
 from ...navigation import page
 from ...services.context import AppContext
+from .audio import AudioPage
 from .benchmarking import BenchmarkingPage
 from .builder import ExperimentBuilderPage
 from .classical_ml import ClassicalMlPage
@@ -29,12 +30,16 @@ from .logs import LogsPage
 from .mlflow_page import MlflowPage
 from .model_registry import ModelRegistryPage
 from .model_zoo import ModelZooPage
+from .multimodal import MultimodalPage
+from .nlp import NlpLlmPage
 from .placeholder import PlaceholderPage
 from .plugin_store import PluginStorePage
+from .quantum_ml import QuantumMlPage
 from .settings import SettingsPage
 from .simulation import SimulationLabPage
 from .source_control import SourceControlPage
 from .terminal import TerminalPage
+from .testing import TestingPage
 from .training import TrainingPage
 
 __all__ = ["PAGE_FACTORIES", "build_page"]
@@ -65,6 +70,11 @@ PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "hardware": HardwarePage,
     "settings": SettingsPage,
     "training": TrainingPage,
+    "quantum_ml": QuantumMlPage,
+    "nlp_llm": NlpLlmPage,
+    "audio": AudioPage,
+    "multimodal": MultimodalPage,
+    "testing": TestingPage,
 }
 
 

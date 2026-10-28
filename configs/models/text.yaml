@@ -1,0 +1,45 @@
+# Text classifiers fitted from the data: TF-IDF word and bigram features with a linear model or
+# naive Bayes (labs/nlp/runner.py). Fast on a CPU; the words behind each class are in the results.
+_sklearn: &sklearn
+  category: open-source
+  name: BSD-3-Clause (scikit-learn)
+  spdx: BSD-3-Clause
+  url: https://github.com/scikit-learn/scikit-learn/blob/main/COPYING
+
+cards:
+  - id: tfidf_logistic
+    name: TF-IDF + Logistic Regression
+    description: Word and bigram TF-IDF features into a logistic regression; probabilities for every class.
+    architecture: TfidfVectorizer (1–2-grams, sublinear tf) + LogisticRegression (C = 10)
+    framework: sklearn
+    tasks: [text_classification]
+    source_url: https://scikit-learn.org/stable/modules/feature_extraction.html#text-feature-extraction
+    license: *sklearn
+    builder: labs.nlp.runner:build_tfidf_logistic
+    maturity: stable
+    tags: [nlp, linear, baseline, interpretable]
+
+  - id: tfidf_linear_svm
+    name: TF-IDF + Linear SVM
+    description: Word and bigram TF-IDF features into a linear support vector machine; often the strongest
+      classical text classifier.
+    architecture: TfidfVectorizer (1–2-grams, sublinear tf) + LinearSVC (C = 1)
+    framework: sklearn
+    tasks: [text_classification]
+    source_url: https://scikit-learn.org/stable/modules/svm.html#classification
+    license: *sklearn
+    builder: labs.nlp.runner:build_tfidf_linear_svm
+    maturity: stable
+    tags: [nlp, linear, svm, interpretable]
+
+  - id: tfidf_naive_bayes
+    name: TF-IDF + Complement Naive Bayes
+    description: Complement naive Bayes on TF-IDF features; quick and good on short or unbalanced texts.
+    architecture: TfidfVectorizer (1–2-grams, sublinear tf) + ComplementNB (alpha = 0.3)
+    framework: sklearn
+    tasks: [text_classification]
+    source_url: https://scikit-learn.org/stable/modules/naive_bayes.html#complement-naive-bayes
+    license: *sklearn
+    builder: labs.nlp.runner:build_tfidf_naive_bayes
+    maturity: stable
+    tags: [nlp, bayes, interpretable]

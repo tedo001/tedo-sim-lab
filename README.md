@@ -8,36 +8,30 @@ from its saved folder.
 **V0.1, and since then:** a Windows installer, a Simulation Lab for quantum physics and computer
 vision (including electrons in a crystal lattice, solved self-consistently and drawn in 3-D), 3-D
 views of datasets and clusters, real terminals, Git and GitHub, a debugger in the Code page, a
-Logs page and settings you edit in the app. Every page below works end to end; pages for later releases (NLP, audio,
-multimodal, quantum ML) say which release brings them. See [ROADMAP.md](ROADMAP.md) for what comes
-next, [docs/guide.md](docs/guide.md) for a tour of every page, and [CLAUDE.md](CLAUDE.md) for the
+Logs page and settings you edit in the app; and now every research lab: **NLP / LLM** (text
+classifiers, a local chat model, tokenizers, embeddings), **Audio** (spectrograms, filters, pitch,
+speech recognition, spoken-digit models), **Multimodal** (CLIP zero-shot labels and image search,
+BLIP captions), **Quantum ML** (variational circuits and quantum kernels, simulated exactly) and
+**Model Testing**, where any trained or pretrained model is used: one input, what-if sweeps, batch
+tests, object detection, and a look inside every layer of a trained network. Every page works end
+to end. See [ROADMAP.md](ROADMAP.md) for what comes next and [CLAUDE.md](CLAUDE.md) for the
 architecture and the project's rules.
-
-![Home](docs/images/home.png)
 
 ## What it does
 
 | Area | Pages | What you get |
 | --- | --- | --- |
-| Research labs | Computer Vision, CNN Explainer, Classical ML, Deep Learning, Simulation Lab | Presets for MNIST, Fashion-MNIST, CIFAR-10/100 with SimpleCNN, LeNet-5, ResNet-18 and TinyVGG; a layer-by-layer explainer of a trained TinyVGG; eleven scikit-learn/XGBoost models on built-in tables or your CSV (CV, search, ROC/PR, permutation importance, SHAP); a layer-stack network designer with live shapes and generated PyTorch code; quantum circuits you build by clicking (exact states, shots, Bloch spheres, OpenQASM), wave packets that tunnel and oscillate, electrons in a crystal lattice (a Kohn–Sham density-functional calculation: the lattice potential, the electrons moving on it and the density they average to, in 3-D, with V_eff = V_H + V_ion + V_xc taken apart), an image-processing pipeline, synthetic COCO datasets and a camera model, each saved and exported as a script |
-| Data & models | Dataset Hub, Model Zoo, Model Registry | 23 datasets and 28 models with licences checked at their sources and downloads only where the terms allow; any table or MNIST-style image set explored in 3-D (three columns or the first three principal components, coloured by class); the ImageNet-1k classes in WordNet (names only); a COCO annotation inspector; versions of your trained models, mirrored into MLflow's registry |
-| Experimentation | Experiment Builder, Training, Evaluation, Benchmarking, Compare, MLflow | An experiment is an `experiment.yaml`; it runs in a background worker (cancel, resume, early stopping, AMP, checkpoints), is tracked in SQLite and MLflow, snapshotted for reproduction, re-scored on any split, timed by batch size, compared eight at a time and exported as CSV, JSON, Markdown or PDF |
+| Research labs | Computer Vision, CNN Explainer, Classical ML, Deep Learning, NLP / LLM, Audio, Multimodal, Quantum ML, Simulation Lab | Text classification with TF-IDF models (seconds on a CPU, the telling words listed) or a fine-tuned DistilBERT/BERT/MiniLM; chat with SmolLM2 or Qwen2.5 on your own computer, streamed token by token; tokenizers and embeddings (similarity, a 3-D map of texts); sounds as waveforms, spectrograms, mel spectrograms and MFCCs, Butterworth filters, pitch, Whisper or wav2vec 2.0 transcription, spoken digits trained as spectrogram images; CLIP zero-shot labels and folder search by sentence (with a 3-D map), BLIP captions; variational quantum classifiers (angle or ZZ encoding, parameter-shift gradients) and quantum-kernel SVMs with their decision boundaries, circuits and kernel matrices; presets for MNIST, Fashion-MNIST, CIFAR-10/100 with SimpleCNN, LeNet-5, ResNet-18 and TinyVGG; a layer-by-layer explainer of a trained TinyVGG; eleven scikit-learn/XGBoost models on built-in tables or your CSV (CV, search, ROC/PR, permutation importance, SHAP); a layer-stack network designer with live shapes and generated PyTorch code; quantum circuits you build by clicking (exact states, shots, Bloch spheres, OpenQASM), wave packets that tunnel and oscillate, electrons in a crystal lattice (a Kohn–Sham density-functional calculation: the lattice potential, the electrons moving on it and the density they average to, in 3-D, with V_eff = V_H + V_ion + V_xc taken apart), an image-processing pipeline, synthetic COCO datasets and a camera model, each saved and exported as a script |
+| Data & models | Dataset Hub, Model Zoo, Model Registry | 39 datasets of every kind (images, audio, text, tables, synthetic sets, image–text pairs) and 40 models with licences checked at their sources and downloads only where the terms allow; a downloaded dataset shows examples, opens in its lab and starts an experiment in the builder; pretrained models download from the Model Zoo or their lab (licence first, gated ones refused); any table, MNIST-style image set or spoken-digit set explored in 3-D (three columns or the first three principal components, coloured by class); the ImageNet-1k classes in WordNet (names only); a COCO annotation inspector; versions of your trained models, mirrored into MLflow's registry |
+| Experimentation | Experiment Builder, Training, Evaluation, Model Testing, Benchmarking, Compare, MLflow | Image, audio, text, tabular and quantum tasks in one builder; Model Testing uses any finished run or downloaded model (an image or drawing, a WAV file, a text, a row of values; what-if sweeps; batches from a folder or CSV, scored and exported; detection, captions, transcripts) and shows inside a trained network layer by layer with Grad-CAM and saliency. An experiment is an `experiment.yaml`; it runs in a background worker (cancel, resume, early stopping, AMP, checkpoints), is tracked in SQLite and MLflow, snapshotted for reproduction, re-scored on any split, timed by batch size, compared eight at a time and exported as CSV, JSON, Markdown or PDF |
 | Tools | Code (an IDE for a project folder), Terminal, Git & GitHub, Jupyter Notebook, Google Colab, Plugin Store, Hardware Monitor, Logs, Documentation | Edit, run and debug a whole project (pdb with breakpoints in the gutter; the editor follows); real terminals in tabs: bash, PowerShell, Command Prompt, Python, vim, Neovim, Docker; commits, history, branches, sync and your GitHub repositories; notebooks started from runs and Jupyter Lab on request; Colab notebooks whose results import back as runs; Kaggle, Hugging Face and Roboflow with keyring credentials and licence-first downloads; live CPU/RAM/GPU use; the lab's logs, live and filtered |
 
-| | |
-| --- | --- |
-| ![Classical ML](docs/images/classical-ml.png) | ![Training](docs/images/training.png) |
-| ![Deep Learning](docs/images/deep-learning.png) | ![CNN Explainer](docs/images/cnn-explainer.png) |
-| ![Simulation Lab: quantum circuits](docs/images/simulation-lab.png) | ![Simulation Lab: wave mechanics](docs/images/wave-mechanics.png) |
-| ![Code: debugging with pdb](docs/images/code.png) | ![Terminal](docs/images/terminal.png) |
-| ![Git & GitHub](docs/images/git.png) | ![Logs](docs/images/logs.png) |
-| ![Plugin Store](docs/images/plugin-store.png) | ![Split view](docs/images/split-view.png) |
-| ![Settings](docs/images/settings.png) | ![Training: clusters in 3-D](docs/images/clusters-3d.png) |
-| ![Simulation Lab: electrons in a lattice, in 3-D](docs/images/lattice-3d.png) | ![Dataset Hub: a dataset in 3-D](docs/images/dataset-3d.png) |
-
 The 3-D views are drawn by the lab itself (Qt's painter; no OpenGL and no GPL 3-D module): drag to
-turn, the wheel zooms, a double-click resets, and two views side by side turn together. Every page,
-as it looks today, is in the [gallery below](#every-page).
+turn, the wheel zooms, a double-click resets, and two views side by side turn together.
+
+Language, speech and vision-language models run in an *inference worker*: one background process
+under the experiment Python that loads a model once and keeps it (two at most, so a 4 GB GPU does not
+fill up), streams its answers and never touches the window's process.
 
 Everything long runs outside the window: training, evaluation and benchmarks in a worker process,
 downloads and searches on background threads. The UI never waits.
@@ -86,8 +80,9 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install -e ".[dev]"
 ```
 
-Optional extras: `[cv]` (ONNX, ONNX Runtime, Transformers for RT-DETR), `[ocr]` (PaddleOCR, EasyOCR,
-Tesseract), `[nlp]` (Transformers, Hugging Face Hub), `[integrations]` (Jupyter Lab, nbformat,
+Transformers (Apache-2.0) is installed with the lab for the pretrained models; the installed app keeps
+it in the experiment Python. Optional extras: `[cv]` (ONNX, ONNX Runtime), `[ocr]` (PaddleOCR,
+EasyOCR, Tesseract), `[nlp]` (Hugging Face Hub client), `[integrations]` (Jupyter Lab, nbformat,
 SHAP). The app starts without any of them; the Jupyter page installs Jupyter Lab when you ask.
 
 On Linux, Qt also needs: `libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3`.
@@ -125,43 +120,39 @@ pytest
 QT_QPA_PLATFORM=offscreen python -m app.main --smoke-test
 ```
 
-## Paper
-
-A three-page paper in IEEE conference format describes the lab's design, the Kohn–Sham lattice
-model and how both are verified: [docs/paper/paper.pdf](docs/paper/paper.pdf). Its LaTeX source
-uses the IEEEtran class and IEEE reference style (`docs/paper/paper.tex`, `references.bib`);
-build it with `pdflatex paper && bibtex paper && pdflatex paper && pdflatex paper`, or upload the
-folder to Overleaf.
-
 ## Every page
 
-Every page and view as it looks today, at the window's default size, with a few real runs in it (a
-contact sheet of them all: [docs/images/pages/overview.png](docs/images/pages/overview.png)). The
-pages for later releases (NLP / LLM, Audio, Multimodal, Quantum ML) say which release brings them.
-
-| | |
+| Page | What it does |
 | --- | --- |
-| **Home**<br>![Home](docs/images/pages/01-home.png) | **Computer Vision**<br>![Computer Vision](docs/images/pages/02-computer-vision.png) |
-| **CNN Explainer**<br>![CNN Explainer](docs/images/pages/03-cnn-explainer.png) | **Classical ML**<br>![Classical ML](docs/images/pages/04-classical-ml.png) |
-| **Deep Learning**<br>![Deep Learning](docs/images/pages/05-deep-learning.png) | **NLP / LLM**<br>![NLP / LLM](docs/images/pages/06-nlp-llm.png) |
-| **Audio**<br>![Audio](docs/images/pages/07-audio.png) | **Multimodal**<br>![Multimodal](docs/images/pages/08-multimodal.png) |
-| **Quantum ML**<br>![Quantum ML](docs/images/pages/09-quantum-ml.png) | **Simulation Lab**<br>![Simulation Lab](docs/images/pages/10-simulation-lab.png) |
-| **Dataset Hub**<br>![Dataset Hub](docs/images/pages/11-dataset-hub.png) | **Model Zoo**<br>![Model Zoo](docs/images/pages/12-model-zoo.png) |
-| **Model Registry**<br>![Model Registry](docs/images/pages/13-model-registry.png) | **Experiment Builder**<br>![Experiment Builder](docs/images/pages/14-experiment-builder.png) |
-| **Training**<br>![Training](docs/images/pages/15-training.png) | **Evaluation**<br>![Evaluation](docs/images/pages/16-evaluation.png) |
-| **Benchmarking**<br>![Benchmarking](docs/images/pages/17-benchmarking.png) | **Compare Experiments**<br>![Compare Experiments](docs/images/pages/18-compare.png) |
-| **MLflow**<br>![MLflow](docs/images/pages/19-mlflow.png) | **Code**<br>![Code](docs/images/pages/20-code.png) |
-| **Terminal**<br>![Terminal](docs/images/pages/21-terminal.png) | **Git & GitHub**<br>![Git & GitHub](docs/images/pages/22-source-control.png) |
-| **Jupyter Notebook**<br>![Jupyter Notebook](docs/images/pages/23-jupyter.png) | **Google Colab**<br>![Google Colab](docs/images/pages/24-colab.png) |
-| **Plugin Store**<br>![Plugin Store](docs/images/pages/25-plugin-store.png) | **Hardware Monitor**<br>![Hardware Monitor](docs/images/pages/26-hardware.png) |
-| **Logs**<br>![Logs](docs/images/pages/27-logs.png) | **Documentation**<br>![Documentation](docs/images/pages/28-documentation.png) |
-| **Settings**<br>![Settings](docs/images/pages/29-settings.png) | **Simulation Lab · Circuits**<br>![Simulation Lab · Circuits](docs/images/pages/simulation-circuit.png) |
-| **Simulation Lab · Waves**<br>![Simulation Lab · Waves](docs/images/pages/simulation-waves.png) | **Simulation Lab · Lattice**<br>![Simulation Lab · Lattice](docs/images/pages/simulation-lattice.png) |
-| **Simulation Lab · Images**<br>![Simulation Lab · Images](docs/images/pages/simulation-image.png) | **Simulation Lab · Scenes**<br>![Simulation Lab · Scenes](docs/images/pages/simulation-scenes.png) |
-| **Simulation Lab · Camera**<br>![Simulation Lab · Camera](docs/images/pages/simulation-camera.png) | **Dataset Hub · Catalogue**<br>![Dataset Hub · Catalogue](docs/images/pages/dataset-hub-catalogue.png) |
-| **Dataset Hub · Explore in 3-D**<br>![Dataset Hub · Explore in 3-D](docs/images/pages/dataset-hub-explore.png) | **Dataset Hub · Ontology Explorer**<br>![Dataset Hub · Ontology Explorer](docs/images/pages/dataset-hub-ontology.png) |
-| **Dataset Hub · COCO inspector**<br>![Dataset Hub · COCO inspector](docs/images/pages/dataset-hub-coco.png) | **Training · clusters in 3-D**<br>![Training · clusters in 3-D](docs/images/pages/training-clusters-3d.png) |
-| **Evaluation · digits PCA in 3-D**<br>![Evaluation · digits PCA in 3-D](docs/images/pages/evaluation-pca-3d.png) |  |
+| Home | Live resources, the active job, recent work and the state of this workspace. |
+| Computer Vision | Pick a vision task and start from a preset experiment. |
+| CNN Explainer | See how a convolutional network turns an image into a prediction, layer by layer. |
+| Classical ML | Classical models on tabular data, tracked like neural networks. |
+| Deep Learning | Design a network layer by layer and train it like any other model. |
+| NLP / LLM | Text classifiers (TF-IDF or a fine-tuned transformer), a local chat model, tokenizers and embeddings. |
+| Audio | Sounds as waveforms, spectrograms and MFCCs; filters, pitch, speech recognition and spoken-digit models. |
+| Multimodal | CLIP zero-shot labels and image search by sentence, BLIP captions. |
+| Quantum ML | Variational quantum classifiers and quantum-kernel SVMs, simulated exactly; boundaries, circuits, kernels. |
+| Simulation Lab | Quantum circuits and wave mechanics; image processing, synthetic datasets and a camera model. |
+| Dataset Hub | Find datasets, check their licences, download the ones that allow it; explore ImageNet classes in WordNet; inspect COCO annotations. |
+| Model Zoo | Models with their licence, weights' terms, size and hardware needs; copyleft ones are kept out. |
+| Model Registry | Models trained in this lab and the runs they came from. |
+| Experiment Builder | Describe an experiment as a reproducible experiment.yaml and queue it. |
+| Training | Queued, running and finished runs, live. |
+| Evaluation | Scores, confusion matrix and per-class report; re-score a checkpoint on a split. |
+| Model Testing | Use trained and pretrained models: try an input, what-if sweeps, batch tests, detection, captions, speech, and a look inside every layer. |
+| Benchmarking | Inference latency and throughput by batch size and device. |
+| Compare Experiments | Runs side by side, curves overlaid, exported as CSV, JSON, Markdown or PDF. |
+| MLflow | Runs tracked in MLflow, and the MLflow UI. |
+| Code | A project folder as an IDE: files, editor, run, terminal and git. |
+| Terminal | Real terminals: bash, PowerShell, Command Prompt, Python, vim, Neovim and Docker. |
+| Git & GitHub | Changes, commits, history, branches and sync for a project; your GitHub repositories. |
+| Jupyter Notebook | Notebooks in the workspace, started from runs and linked to them; Jupyter Lab on request. |
+| Google Colab | Write an experiment as a Colab notebook; import its results as a run. |
+| Plugin Store | Integrations: licence, status, install, account; browse Kaggle, Hugging Face and Roboflow. |
+| Hardware Monitor | CPU, memory and GPU: what this machine has and how busy it is. |
+| Logs | What the lab records, live: the app log, warnings and errors, each run's log. |
+| Documentation | The lab's own documentation. |
 
 ## Licences
 
@@ -192,4 +183,12 @@ electron gas and the correlation energy fitted by Attaccalite, Moroni, Gori-Gior
 
 Datasets: the Classical ML lab reads Iris, Wine, Breast Cancer and Digits (UCI, CC BY 4.0) and
 Diabetes (Efron et al. 2004, no licence published) from scikit-learn's own copies; nothing is
-downloaded. An imported CSV file keeps the licence category `unspecified`.
+downloaded. An imported CSV file keeps the licence category `unspecified`. Downloads happen only
+when you ask, each with its licence shown: Palmer Penguins (CC0), the Free Spoken Digit Dataset
+(CC BY-SA 4.0), Movie Review Data and 20 Newsgroups (no licence published), the SMS Spam Collection
+(CC BY 4.0). The synthetic sets (two moons, circles, XOR) are made on your computer.
+
+Pretrained models (downloaded on request into `models/huggingface/`): SmolLM2, Qwen2.5,
+all-MiniLM-L6-v2, DistilBERT, BERT, Whisper, wav2vec 2.0, RT-DETR and YOLOS (Apache-2.0), CLIP
+(MIT) and BLIP (BSD-3-Clause). Detectors and BLIP were trained on COCO, whose images keep their own
+Flickr licences.

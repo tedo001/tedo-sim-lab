@@ -1,0 +1,62 @@
+# Vision-language models for the Multimodal lab, downloaded on request from the Hugging Face Hub.
+cards:
+  - id: clip_vit_b32
+    name: CLIP ViT-B/32
+    description: OpenAI's image–text model; classifies images into labels you type (zero-shot) and finds
+      images that match a sentence.
+    architecture: ViT-B/32 image encoder + 12-layer text Transformer, 512-d shared space
+    framework: huggingface
+    tasks: [zero_shot_classification]
+    source_url: https://github.com/openai/CLIP
+    license:
+      category: open-source
+      name: MIT
+      spdx: MIT
+      url: https://github.com/openai/CLIP/blob/main/LICENSE
+      notes: OpenAI released the code and the weights under MIT; its model card asks that deployed uses
+        be tested for the domain first.
+    params: 151277313
+    input_spec: Images (224×224) and texts (up to 77 tokens)
+    weights:
+      - id: openai
+        description: openai/clip-vit-base-patch32 (safetensors).
+        license:
+          category: open-source
+          name: MIT
+          spdx: MIT
+          url: https://github.com/openai/CLIP/blob/main/LICENSE
+        size_mb: 605
+        auto_download_allowed: true
+        hub_repo: openai/clip-vit-base-patch32
+    maturity: stable
+    tags: [multimodal, zero-shot, retrieval]
+
+  - id: blip_captioning_base
+    name: BLIP captioning (base)
+    description: Salesforce's BLIP, fine-tuned on COCO to write a sentence describing an image; can
+      continue a caption you start.
+    architecture: ViT-B/16 image encoder + BERT-style text decoder
+    framework: huggingface
+    tasks: [image_captioning]
+    source_url: https://huggingface.co/Salesforce/blip-image-captioning-base
+    license:
+      category: open-source
+      name: BSD-3-Clause
+      spdx: BSD-3-Clause
+      url: https://github.com/salesforce/BLIP/blob/main/LICENSE.txt
+    params: 247414076
+    input_spec: Images (384×384), optional text prompt
+    weights:
+      - id: coco
+        description: Salesforce/blip-image-captioning-base (safetensors). Captions were trained on COCO.
+        license:
+          category: open-source
+          name: BSD-3-Clause
+          spdx: BSD-3-Clause
+          url: https://huggingface.co/Salesforce/blip-image-captioning-base
+          notes: Fine-tuned on COCO captions; COCO's images keep their own Flickr licences.
+        size_mb: 990
+        auto_download_allowed: true
+        hub_repo: Salesforce/blip-image-captioning-base
+    maturity: stable
+    tags: [multimodal, captions]

@@ -79,8 +79,10 @@ class ModelRegistryPage(Page):
         self.delete_button = QPushButton(icon("x"), "Remove version")
         self.delete_button.setToolTip("Forget this version; the checkpoint stays in its run folder")
         self.delete_button.clicked.connect(lambda: self.delete())
+        self.test_button = QPushButton(icon("test-tube"), "Test & visualise")
+        self.test_button.clicked.connect(self._test)
         pairs = []
-        for pair in ((save, self.run_button), (self.folder_button, self.delete_button)):
+        for pair in ((save, self.run_button), (self.test_button, self.folder_button), (self.delete_button,)):
             holder = QWidget()
             row = QHBoxLayout(holder)
             row.setContentsMargins(0, 0, 0, 0)
@@ -153,6 +155,7 @@ class ModelRegistryPage(Page):
         self.stage.blockSignals(False)
         self.notes.setPlainText(model.notes)
         self.run_button.setEnabled(model.source_run_id is not None)
+        self.test_button.setEnabled(model.source_run_id is not None)
         self.folder_button.setEnabled(model.checkpoint is not None and model.checkpoint.parent.is_dir())
 
     # Actions --------------------------------------------------------------------------
@@ -168,6 +171,11 @@ class ModelRegistryPage(Page):
         model = self._model()
         if model is not None and model.source_run_id:
             self.ctx.experiments.show(model.source_run_id, self.ctx.navigate)
+
+    def _test(self) -> None:
+        model = self._model()
+        if model is not None and model.source_run_id:
+            self.ctx.show_page("testing").open_run(model.source_run_id)
 
     def _open_folder(self) -> None:
         model = self._model()

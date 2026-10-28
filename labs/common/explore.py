@@ -19,8 +19,8 @@ import numpy as np
 
 from core.dataset_registry.adapter import DatasetAdapter, TabularAdapter
 
-__all__ = ["IDX_SETS", "PointTable", "explorable", "image_points", "principal_components", "read_idx",
-           "tabular_points"]
+__all__ = ["IDX_SETS", "SPECTROGRAM_SETS", "PointTable", "explorable", "image_points", "principal_components",
+           "read_idx", "tabular_points"]
 
 #: Image sets read from IDX files: adapter class name → the folder holding the test files.
 IDX_SETS = {"MnistAdapter": "MNIST/raw", "FashionMnistAdapter": "FashionMNIST/raw"}
@@ -49,9 +49,14 @@ class PointTable:
         return len(self.values)
 
 
+#: Sets whose clips are kept as spectrogram images (``adapter.features``): adapter class names.
+SPECTROGRAM_SETS = {"SpokenDigitsAdapter"}
+
+
 def explorable(adapter: DatasetAdapter) -> bool:
-    """Tables and MNIST-style image sets can be drawn as points."""
-    return isinstance(adapter, TabularAdapter) or type(adapter).__name__ in IDX_SETS
+    """Tables, MNIST-style image sets and spectrogram sets can be drawn as points."""
+    name = type(adapter).__name__
+    return isinstance(adapter, TabularAdapter) or name in IDX_SETS or name in SPECTROGRAM_SETS
 
 
 def _sample(count: int, limit: int, seed: int) -> np.ndarray:
@@ -121,18 +126,23 @@ def _file(folder: Path, stem: str) -> Path:
 
 
 def image_points(adapter: DatasetAdapter, root: Path, *, limit: int = 3000, seed: int = 0) -> PointTable:
-    """The test images of an MNIST-style set as rows of pixels (0..1)."""
-    folder = adapter.data_dir(root) / IDX_SETS[type(adapter).__name__]
-    images = read_idx(_file(folder, "t10k-images-idx3-ubyte"))
-    labels = read_idx(_file(folder, "t10k-labels-idx1-ubyte")).astype(int)
+    """The test images of an MNIST-style set (or every spectrogram of a spoken-digit set) as rows of
+    pixels (0..1)."""
+    if type(adapter).__name__ in SPECTROGRAM_SETS:
+        found = adapter.features(root)  # type: ignore[attr-defined]
+        images, labels, what = found["images"], found["digits"].astype(int), "spectrograms"
+    else:
+        folder = adapter.data_dir(root) / IDX_SETS[type(adapter).__name__]
+        images = read_idx(_file(folder, "t10k-images-idx3-ubyte"))
+        labels = read_idx(_file(folder, "t10k-labels-idx1-ubyte")).astype(int)
+        what = "test images"
     rows = _sample(len(images), limit, seed)
     classes: Any = getattr(adapter, "classes", ())
     names = list(classes) if len(classes) else [str(i) for i in range(int(labels.max()) + 1)]
     return PointTable(adapter.card.name, [], images[rows].reshape(len(rows), -1).astype(float) / 255.0,
                       labels[rows], names, total=len(images), standardize=False,
-                      note=f"{len(rows):,} of the {len(images):,} test images, sampled; each is "
-                           f"{images.shape[1]} × {images.shape[2]} = "
-                           f"{images.shape[1] * images.shape[2]} pixels")
+                      note=f"{len(rows):,} of the {len(images):,} {what}, sampled; each is {images.shape[1]} "
+                           f"× {images.shape[2]} = {images.shape[1] * images.shape[2]} pixels")
 
 
 def principal_components(values: np.ndarray, count: int = 3, *,

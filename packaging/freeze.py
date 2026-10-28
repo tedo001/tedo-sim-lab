@@ -53,7 +53,8 @@ if sys.platform == "win32":
 EXCLUDES = ["torch", "torchvision", "torchaudio", "xgboost", "shap", "cv2", "tensorflow", "jax",
             "numba", "llvmlite", "onnxruntime", "pyarrow", "matplotlib", "IPython", "jupyterlab",
             "notebook", "tkinter", "PyQt5", "PyQt6", "pytest", "_pytest", "ruff", "cx_Freeze",
-            "sympy", "debugpy", "cuda", "claude_agent_sdk"]
+            "sympy", "debugpy", "cuda", "claude_agent_sdk", "transformers", "tokenizers",
+            "safetensors"]
 
 
 def tree(source: Path, target: str, *, data_only: bool = False) -> list[tuple[str, str]]:

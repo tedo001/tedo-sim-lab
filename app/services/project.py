@@ -1,6 +1,6 @@
 """The Code page's engine: a project is a folder. Run a file in it (Python with the experiment
-Python, the project and then the lab's code on ``PYTHONPATH``; shell, PowerShell and batch
-scripts with their own
+Python, from the file's source root, as a module when it sits in a package; the source root, the
+project and then the lab's code on ``PYTHONPATH``; shell, PowerShell and batch scripts with their own
 interpreters), make, rename and delete files safely inside it, read its git state, check
 Python syntax, and remember recent projects (per person, in ``QSettings``)."""
 
@@ -20,8 +20,9 @@ from core.common import AppConfig, experiment_python
 from core.common.masking import mask_text
 from core.common.paths import CODE_ROOT, WORKSPACE_ENV
 
-__all__ = ["ProjectRunner", "RecentProjects", "TRACEBACK_LINE", "check_python_syntax", "git_status",
-           "project_environment", "run_command", "safe_child", "trash"]
+__all__ = ["Launch", "ProjectRunner", "RecentProjects", "TRACEBACK_LINE", "check_python_syntax", "git_status",
+           "lab_packages", "project_environment", "python_launch", "run_command", "safe_child", "server_hint",
+           "trash"]
 
 #: ``File "C:\\p\\x.py", line 12`` in a Python traceback.
 TRACEBACK_LINE = re.compile(r'File "(?P<path>[^"]+)", line (?P<line>\d+)')
@@ -29,13 +30,78 @@ RUNNABLE = {".py": "Python", ".pyw": "Python", ".sh": "shell", ".bash": "shell",
             ".bat": "batch", ".cmd": "batch"}
 
 
-def run_command(path: Path, args: list[str], python: str) -> list[str]:
-    """The command that runs ``path`` (``ValueError`` for a file the IDE cannot run)."""
+#: Files that mark the folder a project's imports start from.
+SOURCE_MARKERS = ("pyproject.toml", "setup.py", "setup.cfg", "requirements.txt")
+
+
+@dataclass(frozen=True)
+class Launch:
+    """How a Python file runs: what follows the interpreter (``-m package.module`` or the path),
+    the working folder, and the folders its imports start from (first on ``PYTHONPATH``)."""
+    target: tuple[str, ...]
+    folder: Path
+    paths: tuple[Path, ...] = ()
+
+
+def _dotted(path: Path, source: Path) -> str | None:
+    parts = [*path.relative_to(source).parent.parts, path.stem]
+    return ".".join(parts) if all(part.isidentifier() for part in parts) else None
+
+
+def python_launch(path: Path, root: Path) -> Launch:
+    """Run a file the way its imports expect. Inside a package (folders with ``__init__.py``) it runs
+    as ``-m package.module`` from the folder above the outermost package, so ``from app.config
+    import x`` in ``backend/app/main.py`` finds ``backend/app``. Otherwise, below a folder holding
+    ``requirements.txt``, ``pyproject.toml``, ``setup.py`` or ``setup.cfg`` (namespace packages), it
+    runs from that folder. A plain script runs by path from the project folder."""
+    path, root = Path(path).resolve(), Path(root).resolve()
+    top = path.parent
+    while (top / "__init__.py").is_file() and top != root and top.parent != top:
+        top = top.parent
+    source = top if top != path.parent else None
+    if source is None and root in path.parents:
+        for folder in path.parents:
+            if folder == root:
+                break
+            if folder != path.parent and any((folder / name).is_file() for name in SOURCE_MARKERS):
+                source = folder
+                break
+    if source is None:
+        return Launch((str(path),), root)
+    module = _dotted(path, source)
+    return Launch(("-m", module) if module else (str(path),), source, (source,))
+
+
+def server_hint(path: Path, launch: Launch) -> str:
+    """A note for a web app module that only defines an app (FastAPI, Starlette, Flask) and starts no
+    server, so running it ends at once; empty for anything else."""
+    try:
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    if "__main__" in text:
+        return ""
+    found = re.search(r"^(\w+)\s*=\s*(FastAPI|Starlette|Flask)\(", text, re.M)
+    if not found:
+        return ""
+    name, kind = found.groups()
+    module = launch.target[1] if launch.target[0] == "-m" else Path(path).stem
+    if kind == "Flask":
+        return (f"{Path(path).name} defines a Flask app but starts no server, so it ends at once. To serve "
+                f"it, run in the terminal (in {launch.folder}): python -m flask --app {module}:{name} run")
+    return (f"{Path(path).name} defines an ASGI app ({kind}) but starts no server, so it ends at once. To "
+            f"serve it, run in the terminal (in {launch.folder}): python -m uvicorn {module}:{name} --reload")
+
+
+def run_command(path: Path, args: list[str], python: str, root: Path | None = None) -> list[str]:
+    """The command that runs ``path`` (``ValueError`` for a file the IDE cannot run). Python files
+    run as :func:`python_launch` decides when the project folder ``root`` is given."""
     kind = RUNNABLE.get(path.suffix.lower())
     if kind == "Python":
         if not python:
             raise ValueError("No experiment Python is set up yet: Settings → Experiment Python.")
-        return [python, "-u", str(path), *args]
+        target = python_launch(path, root).target if root is not None else (str(path),)
+        return [python, "-u", *target, *args]
     if kind == "shell":
         shell = shutil.which("bash") or shutil.which("sh")
         if shell is None:
@@ -54,11 +120,44 @@ def run_command(path: Path, args: list[str], python: str) -> list[str]:
                      "(it runs Python, shell, PowerShell and batch scripts).")
 
 
-def project_environment(root: Path, workspace: Path, python: str, base: dict[str, str]) -> dict[str, str]:
-    """What a project's programs run with, on top of ``base``: the project's own modules first on
-    ``PYTHONPATH``, then the lab's (exported simulations import them); unbuffered UTF-8 output;
-    the workspace; the experiment Python's folder first on ``PATH``."""
-    paths = [str(root), str(CODE_ROOT), base.get("PYTHONPATH", "")]
+#: The lab's packages that programs run from the Code page may import (exported simulation
+#: scripts use them). The rest of the lab folder, its ``app`` above all, stays off their path.
+SHARED_PACKAGES = ("labs", "core")
+_SHIM = '''"""Forwards to the lab's own `{name}` package (written by TEDO AI Research Lab, so that programs
+run from the Code page can import it without the whole lab folder on their path)."""
+import os as _os
+
+__path__ = [{folder!r}]
+_init = _os.path.join(__path__[0], "__init__.py")
+with open(_init, encoding="utf-8") as _file:
+    exec(compile(_file.read(), _init, "exec"))
+'''
+
+
+def lab_packages(workspace: Path) -> Path:
+    """A folder holding forwarding packages for :data:`SHARED_PACKAGES` (rewritten only when the
+    lab moved). Putting the lab folder itself on ``PYTHONPATH`` would let its regular ``app``
+    package win over a project's namespace package of the same name."""
+    folder = Path(workspace) / ".tedo" / "python"
+    for name in SHARED_PACKAGES:
+        text = _SHIM.format(name=name, folder=str(CODE_ROOT / name))
+        init = folder / name / "__init__.py"
+        try:
+            if not init.is_file() or init.read_text(encoding="utf-8") != text:
+                init.parent.mkdir(parents=True, exist_ok=True)
+                init.write_text(text, encoding="utf-8")
+        except OSError:
+            continue
+    return folder
+
+
+def project_environment(root: Path, workspace: Path, python: str, base: dict[str, str],
+                        sources: tuple[Path, ...] = ()) -> dict[str, str]:
+    """What a project's programs run with, on top of ``base``: the file's source root and the
+    project's own modules first on ``PYTHONPATH``, then the lab's ``labs`` and ``core`` packages
+    (exported simulations import them) through :func:`lab_packages`, never the lab folder itself;
+    unbuffered UTF-8 output; the workspace; the experiment Python's folder first on ``PATH``."""
+    paths = [*map(str, sources), str(root), base.get("PYTHONPATH", ""), str(lab_packages(workspace))]
     extra = {"PYTHONPATH": os.pathsep.join(filter(None, paths)), "PYTHONUNBUFFERED": "1",
              "PYTHONIOENCODING": "utf-8", WORKSPACE_ENV: str(workspace)}
     if python:
@@ -87,15 +186,18 @@ class ProjectRunner(QObject):
         if self.running:
             raise ValueError("Something is still running: stop it first.")
         python = experiment_python(self.config)
-        command = run_command(path, list(args or []), python)
+        command = run_command(path, list(args or []), python, root)
+        launch = python_launch(path, root) if RUNNABLE.get(path.suffix.lower()) == "Python" else Launch((),
+                                                                                                        root)
         env = QProcessEnvironment.systemEnvironment()
-        for key, value in project_environment(root, self.workspace, python, dict(os.environ)).items():
+        for key, value in project_environment(root, self.workspace, python, dict(os.environ),
+                                              launch.paths).items():
             env.insert(key, value)
         process = QProcess()  # no parent: kept alive from Python until the event loop is back
         self.destroyed.connect(process.kill)
         process.setProgram(command[0])
         process.setArguments(command[1:])
-        process.setWorkingDirectory(str(root))
+        process.setWorkingDirectory(str(launch.folder))
         process.setProcessEnvironment(env)
         process.readyReadStandardOutput.connect(lambda: self._read(process, "stdout"))
         process.readyReadStandardError.connect(lambda: self._read(process, "stderr"))
@@ -103,6 +205,11 @@ class ProjectRunner(QObject):
         process.errorOccurred.connect(lambda error: self._error(process, error))
         self._process, self._stopping = process, False
         self.started.emit(" ".join(command))
+        if launch.paths:
+            self.output.emit(f"Running from {launch.folder} (its imports start there)\n", "info")
+        hint = server_hint(path, launch) if RUNNABLE.get(path.suffix.lower()) == "Python" else ""
+        if hint:
+            self.output.emit(hint + "\n", "info")
         process.start()
         process.closeWriteChannel()  # nothing can be typed into it (input() sees end of file)
 

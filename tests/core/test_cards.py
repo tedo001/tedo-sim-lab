@@ -203,9 +203,9 @@ def test_every_card_has_a_licence_and_source(datasets, models) -> None:
 
 
 def test_planned_models_cannot_be_built(models) -> None:
-    assert models.status("rt_detr") == "planned" and models.status("resnet18") == "ready"
+    assert models.status("sam") == "planned" and models.status("resnet18") == "ready"
     with pytest.raises(NotImplementedError, match="v0.5"):
-        models.builder("rt_detr")
+        models.builder("sam")
     assert [c.id for c in models.search(framework=Framework.XGBOOST)] == ["xgboost"]
 
 
@@ -216,4 +216,6 @@ def test_stable_cards_resolve(datasets, models) -> None:
             assert datasets.status(card.id) in ("ready", "not_downloaded"), card.id
     for card in models.all():
         if card.maturity == "stable":
-            assert models.status(card.id) in ("ready", "not_installed"), card.id
+            # Pretrained models from the Hub are stable once listed; they wait to be downloaded.
+            allowed = ("ready", "not_installed") + (("not_downloaded",) if card.hub_weights else ())
+            assert models.status(card.id) in allowed, card.id

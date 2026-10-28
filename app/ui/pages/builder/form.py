@@ -1,8 +1,9 @@
 """The Experiment Builder's numbered steps, turned into an :class:`ExperimentSpec` and back.
 
-Every control maps to one field of ``experiment.yaml``; nothing here runs anything. Image
-tasks show the PyTorch settings (:mod:`.torch_section`), tabular tasks the scikit-learn ones
-(:mod:`.sklearn_section`).
+Every control maps to one field of ``experiment.yaml``; nothing here runs anything. Image and audio
+tasks, and fine-tuned transformers for text, show the PyTorch settings (:mod:`.torch_section`);
+tabular tasks the scikit-learn ones (:mod:`.sklearn_section`); TF-IDF text classifiers and quantum
+classifiers their own (:mod:`.other_sections`).
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from ....services.context import AppContext
 from ...widgets import Card, label
 from .choosers import DatasetChooser, ModelChooser
 from .fields import form, yaml_box, yaml_mapping, yaml_text
+from .other_sections import QuantumSection, TextSection
 from .sklearn_section import SklearnSection
 from .torch_section import MONITORS, TorchSection
 
@@ -67,18 +69,23 @@ class SpecForm(QWidget):
             if state != "stable":
                 self.task.model().item(self.task.count() - 1).setEnabled(False)
         task_card.add(self.task)
-        task_card.add(label("Image classification trains PyTorch networks; tabular classification, "
-                            "regression, clustering and dimensionality reduction fit scikit-learn and "
-                            "XGBoost models. Detection, segmentation, OCR, pose and tracking are listed as "
-                            "Experimental (planned for v0.5).", "CardCaption", wrap=True))
+        task_card.add(label("Image and audio classification train PyTorch networks (spoken digits as "
+                            "spectrograms); text classification fits TF-IDF models or fine-tunes a "
+                            "downloaded transformer; tabular tasks fit scikit-learn and XGBoost models; "
+                            "quantum classification trains simulated circuits. Detection, segmentation, OCR, "
+                            "pose and tracking are listed as Experimental (planned for v0.5); pretrained "
+                            "detectors run on Model Testing.",
+                            "CardCaption", wrap=True))
 
         self.torch = TorchSection(ctx)
         self.sklearn = SklearnSection(ctx)
+        self.quantum = QuantumSection()
+        self.text = TextSection()
         data_card = Card("2 · Data")
         self.dataset = DatasetChooser(ctx)
         data_card.add(self.dataset)
-        data_card.add(self.torch.data)
-        data_card.add(self.sklearn.data)
+        for section in (self.torch, self.sklearn, self.quantum, self.text):
+            data_card.add(section.data)
 
         model_card = Card("3 · Model")
         self.model = ModelChooser(ctx)
@@ -89,9 +96,10 @@ class SpecForm(QWidget):
 
         for card in (about, task_card, data_card, model_card):
             layout.addWidget(card)
-        layout.addWidget(self.torch.cards)
-        layout.addWidget(self.sklearn.cards)
+        for section in (self.torch, self.sklearn, self.quantum, self.text):
+            layout.addWidget(section.cards)
         self.task.currentIndexChanged.connect(self._task_changed)
+        self.model.changed.connect(self._show_sections)
         self.dataset.changed.connect(self._dataset_changed)
         ctx.downloads.imported.connect(lambda *_: self._task_changed())
         self._connect_changes()
@@ -123,21 +131,47 @@ class SpecForm(QWidget):
     def tabular(self) -> bool:
         return self.current_task in TABULAR_TASKS
 
+    @property
+    def kind(self) -> str:
+        """Which settings apply: "torch", "sklearn" (tables), "text" (TF-IDF) or "quantum"."""
+        task = self.current_task
+        if self.tabular:
+            return "sklearn"
+        if task == Task.QUANTUM_CLASSIFICATION:
+            return "quantum"
+        if task == Task.TEXT_CLASSIFICATION:
+            card_id = self.model.card_id
+            framework = self.ctx.catalog.models.get(card_id).framework.value if card_id else "sklearn"
+            return "torch" if framework == "huggingface" else "text"
+        return "torch"
+
     def _task_changed(self) -> None:
         task = self.current_task
         self.dataset.set_task(task)
         self.model.set_task(task)
         self.sklearn.set_task(task)
-        for widget in (self.torch.data, self.torch.cards):
-            widget.setVisible(not self.tabular)
-        for widget in (self.sklearn.data, self.sklearn.cards):
-            widget.setVisible(self.tabular)
+        self._show_sections()
         self._dataset_changed()
+
+    def _show_sections(self) -> None:
+        kind = self.kind
+        sections = {"torch": self.torch, "sklearn": self.sklearn, "quantum": self.quantum, "text": self.text}
+        for name, section in sections.items():
+            section.data.setVisible(name == kind)
+            section.cards.setVisible(name == kind)
+        self.torch.set_images(self.current_task in (Task.IMAGE_CLASSIFICATION, Task.AUDIO_CLASSIFICATION))
+        hints = {"quantum": QuantumSection.OPTIONS, "text": TextSection.OPTIONS}
+        self.params.setPlaceholderText(hints.get(kind, "max_length: 256" if kind == "torch" and
+                                                 self.current_task == Task.TEXT_CLASSIFICATION
+                                                 else "one option per line, e.g.\nn_estimators: 300"))
 
     def _dataset_changed(self) -> None:
         if self.tabular and self.dataset.card_id != getattr(self, "_columns_of", None):
             self._columns_of = self.dataset.card_id
             self.sklearn.set_dataset(self.dataset.card_id)
+        card_id = self.dataset.card_id
+        if self.current_task == Task.TEXT_CLASSIFICATION and card_id:
+            self.text.set_own_split("test" in self.ctx.catalog.datasets.get(card_id).splits)
 
     # Spec ⇄ controls ---------------------------------------------------------------
     def spec(self) -> ExperimentSpec:
@@ -145,9 +179,14 @@ class SpecForm(QWidget):
         the YAML boxes) if it is invalid."""
         task = self.current_task
         params = yaml_mapping(self.params.toPlainText(), "Model options")
-        if self.tabular:
+        kind = self.kind
+        if kind == "sklearn":
             data, training = self.sklearn.data_fields(), self.sklearn.training(task)
             runtime, seed = RuntimeSpec(device="cpu"), self.sklearn.seed.value()
+        elif kind in ("quantum", "text"):
+            section = self.quantum if kind == "quantum" else self.text
+            data, training = section.data_fields(), section.training()
+            runtime, seed = RuntimeSpec(device="cpu"), section.seed.value()
         else:
             data, training = self.torch.data_fields(), self.torch.training()
             runtime, seed = self.torch.runtime(), self.torch.seed.value()
@@ -166,8 +205,7 @@ class SpecForm(QWidget):
         self.dataset.select(spec.data.dataset)
         self._dataset_changed()
         self.model.select(spec.model.model, spec.model.pretrained)
+        self._show_sections()
         self.params.setPlainText(yaml_text(dict(spec.model.params)))
-        if spec.task in TABULAR_TASKS:
-            self.sklearn.load(spec)
-        else:
-            self.torch.load(spec)
+        sections = {"sklearn": self.sklearn, "quantum": self.quantum, "text": self.text, "torch": self.torch}
+        sections[self.kind].load(spec)

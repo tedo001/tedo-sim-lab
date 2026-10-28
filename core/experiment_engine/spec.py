@@ -18,9 +18,9 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 from core.common.vocab import TABULAR_TASKS, Task
 
 __all__ = ["CheckpointSpec", "DataSpec", "EarlyStoppingSpec", "ExperimentSpec", "ModelSpec",
-           "OptimizerSpec", "RuntimeSpec", "SchedulerSpec", "SearchSpec", "SklearnTrainingSpec",
-           "SpecError", "SplitSpec", "TorchTrainingSpec", "TransformSpec", "dump_spec",
-           "dump_spec_text", "load_spec", "load_spec_text", "spec_hash"]
+           "OptimizerSpec", "QuantumTrainingSpec", "RuntimeSpec", "SchedulerSpec", "SearchSpec",
+           "SklearnTrainingSpec", "SpecError", "SplitSpec", "TRAINING_KINDS", "TorchTrainingSpec",
+           "TransformSpec", "dump_spec", "dump_spec_text", "load_spec", "load_spec_text", "spec_hash"]
 
 SCHEMA_VERSION = 1
 
@@ -126,6 +126,16 @@ class SklearnTrainingSpec(_Strict):
     search: SearchSpec | None = None
 
 
+class QuantumTrainingSpec(_Strict):
+    """Quantum classifiers: a variational circuit trained for ``epochs`` with Adam (``lr``, batches
+    of ``batch_size``), or a quantum-kernel SVM fitted once (which ignores the three)."""
+    kind: Literal["quantum"] = "quantum"
+    epochs: int = Field(default=30, gt=0, le=1000)
+    batch_size: int = Field(default=16, gt=0)
+    lr: float = Field(default=0.1, gt=0)
+    test_fraction: float = Field(default=0.25, gt=0, lt=1)
+
+
 class RuntimeSpec(_Strict):
     #: ``auto`` picks CUDA, then MPS, then CPU.
     device: str = Field(default="auto", pattern=r"^(auto|cpu|cuda(:\d+)?|mps)$")
@@ -134,7 +144,15 @@ class RuntimeSpec(_Strict):
     deterministic: bool = False
 
 
-TrainingSpec = Annotated[TorchTrainingSpec | SklearnTrainingSpec, Field(discriminator="kind")]
+TrainingSpec = Annotated[TorchTrainingSpec | SklearnTrainingSpec | QuantumTrainingSpec,
+                         Field(discriminator="kind")]
+
+#: The training kinds each task can use; every other task trains with ``torch``.
+TRAINING_KINDS: dict[Task, frozenset[str]] = {
+    **{task: frozenset({"sklearn"}) for task in TABULAR_TASKS},
+    Task.TEXT_CLASSIFICATION: frozenset({"sklearn", "torch"}),
+    Task.QUANTUM_CLASSIFICATION: frozenset({"quantum"}),
+}
 
 
 class ExperimentSpec(_Strict):
@@ -151,10 +169,11 @@ class ExperimentSpec(_Strict):
 
     @model_validator(mode="after")
     def _training_fits_task(self) -> ExperimentSpec:
-        wanted = "sklearn" if self.task in TABULAR_TASKS else "torch"
-        if self.training.kind != wanted:
-            raise ValueError(f"task {self.task.value!r} trains with training.kind {wanted!r}, "
-                             f"not {self.training.kind!r}")
+        wanted = TRAINING_KINDS.get(self.task, frozenset({"torch"}))
+        if self.training.kind not in wanted:
+            kinds = " or ".join(repr(kind) for kind in sorted(wanted))
+            raise ValueError(f"task {self.task.value!r} trains with training.kind {kinds}, not "
+                             f"{self.training.kind!r}")
         return self
 
 

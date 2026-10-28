@@ -107,12 +107,15 @@ class ExperimentService(QObject):
         return new_id_
 
     def evaluate(self, run_id: str, checkpoint: str = "best", split: str = "test") -> str:
-        """Queue scoring ``checkpoints/<checkpoint>.pt`` (``.joblib`` for scikit-learn) on ``split``;
+        """Queue scoring ``checkpoints/<checkpoint>.pt`` (``.joblib`` for scikit-learn, ``.npz`` for
+        quantum classifiers, a folder for a fine-tuned transformer) on ``split``;
         returns the job id. The result lands in ``evaluations/<split>-<checkpoint>.json``."""
         view = self.view(run_id)
         folder = view.run_dir / "checkpoints"
-        path = next((folder / f"{checkpoint}{suffix}" for suffix in (".pt", ".joblib")
+        path = next((folder / f"{checkpoint}{suffix}" for suffix in (".pt", ".joblib", ".npz")
                      if (folder / f"{checkpoint}{suffix}").is_file()), None)
+        if path is None and (folder / checkpoint / "config.json").is_file():  # a fine-tuned transformer
+            path = folder / checkpoint
         if path is None:
             raise FileNotFoundError(f"run {run_id} has no {checkpoint} checkpoint")
         return self.jobs.submit_run(view.run_dir, title=f"Evaluate {view.name} ({checkpoint}, {split})",

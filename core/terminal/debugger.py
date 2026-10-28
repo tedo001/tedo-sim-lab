@@ -27,16 +27,18 @@ class Stop(NamedTuple):
 
 
 def pdb_command(python: str, script: Path, args: list[str] | tuple[str, ...] = (),
-                breakpoints: dict[Path, set[int] | list[int]] | None = None) -> list[str]:
+                breakpoints: dict[Path, set[int] | list[int]] | None = None, *,
+                module: str | None = None) -> list[str]:
     """``python -m pdb`` with ``break file:line`` for each breakpoint; with breakpoints it runs on
-    to the first one, without any it stops at the script's first line."""
+    to the first one, without any it stops at the script's first line. With ``module`` the file is
+    debugged as that module (``pdb -m package.module``), so its package imports work."""
     command = [python, "-m", "pdb"]
     marks = {Path(path): sorted(set(lines)) for path, lines in (breakpoints or {}).items() if lines}
     for path in sorted(marks):
         command += [arg for line in marks[path] for arg in ("-c", f"break {path}:{line}")]
     if marks:
         command += ["-c", "continue"]
-    return [*command, str(script), *args]
+    return [*command, *(["-m", module] if module else [str(script)]), *args]
 
 
 def find_stop(screen: Screen) -> Stop | None:

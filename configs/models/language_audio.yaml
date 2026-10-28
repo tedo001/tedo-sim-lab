@@ -1,20 +1,199 @@
-# Language and audio models, listed for later releases (catalogue entries).
+# Pretrained language and speech models from the Hugging Face Hub. Each is downloaded on request
+# (Model Zoo or its lab) through the Hugging Face plugin into <workspace>/models/huggingface/, and
+# runs in the inference worker (transformers in the experiment Python). Encoders also fine-tune
+# for text classification (labs/nlp/transformer.py). Only permissively licensed models are listed.
+_apache: &apache
+  category: open-source
+  name: Apache-2.0
+  spdx: Apache-2.0
+  url: https://www.apache.org/licenses/LICENSE-2.0
+
 cards:
-  - id: whisper
-    name: Whisper
-    description: OpenAI's multilingual speech recognition model.
-    architecture: Encoder-decoder Transformer (Radford et al., 2022)
-    framework: pytorch
-    tasks: [speech_recognition]
-    source_url: https://github.com/openai/whisper
+  # ── Chat (text generation) ─────────────────────────────────────────
+  - id: smollm2_135m_instruct
+    name: SmolLM2 135M Instruct
+    description: Hugging Face's smallest chat model; answers in a second on a CPU. Good for trying the
+      chat, sampling settings and the tokenizer.
+    architecture: Llama-style decoder, 30 layers, 576 hidden, 8k context
+    framework: huggingface
+    tasks: [text_generation]
+    source_url: https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct
+    license: *apache
+    params: 134515008
+    input_spec: Text (chat template), up to 8,192 tokens
+    weights:
+      - id: instruct
+        description: The instruction-tuned checkpoint (safetensors).
+        license: *apache
+        size_mb: 270
+        auto_download_allowed: true
+        hub_repo: HuggingFaceTB/SmolLM2-135M-Instruct
+    maturity: stable
+    tags: [llm, chat, small, cpu]
+
+  - id: smollm2_360m_instruct
+    name: SmolLM2 360M Instruct
+    description: A larger SmolLM2; better answers, still comfortable on a CPU or a 4 GB GPU.
+    architecture: Llama-style decoder, 32 layers, 960 hidden, 8k context
+    framework: huggingface
+    tasks: [text_generation]
+    source_url: https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct
+    license: *apache
+    params: 361821120
+    input_spec: Text (chat template), up to 8,192 tokens
+    weights:
+      - id: instruct
+        description: The instruction-tuned checkpoint (safetensors).
+        license: *apache
+        size_mb: 724
+        auto_download_allowed: true
+        hub_repo: HuggingFaceTB/SmolLM2-360M-Instruct
+    maturity: stable
+    tags: [llm, chat, small]
+
+  - id: qwen2_5_0_5b_instruct
+    name: Qwen2.5 0.5B Instruct
+    description: Alibaba's smallest Qwen2.5 chat model; multilingual, follows instructions well for its size.
+    architecture: Decoder with grouped-query attention, 24 layers, 896 hidden, 32k context
+    framework: huggingface
+    tasks: [text_generation]
+    source_url: https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct
+    license: *apache
+    params: 494032768
+    input_spec: Text (chat template), up to 32,768 tokens
+    min_vram_gb: 2
+    weights:
+      - id: instruct
+        description: The instruction-tuned checkpoint (safetensors).
+        license: *apache
+        size_mb: 988
+        auto_download_allowed: true
+        hub_repo: Qwen/Qwen2.5-0.5B-Instruct
+    maturity: stable
+    tags: [llm, chat, multilingual]
+
+  # ── Encoders (embeddings, fine-tuning) ─────────────────────────────
+  - id: minilm_l6_v2
+    name: all-MiniLM-L6-v2
+    description: A small sentence encoder trained for semantic similarity; the NLP lab's embeddings and
+      a quick model to fine-tune.
+    architecture: 6-layer BERT, 384 hidden, mean pooling
+    framework: huggingface
+    tasks: [text_classification]
+    source_url: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+    license: *apache
+    params: 22713216
+    input_spec: Text, up to 256 word pieces
+    weights:
+      - id: sentence_transformers
+        description: The sentence-transformers checkpoint (safetensors).
+        license: *apache
+        size_mb: 91
+        auto_download_allowed: true
+        hub_repo: sentence-transformers/all-MiniLM-L6-v2
+    maturity: stable
+    tags: [nlp, embeddings, small, cpu]
+
+  - id: distilbert_base_uncased
+    name: DistilBERT base (uncased)
+    description: A distilled 6-layer BERT, smaller and faster with most of BERT-base's accuracy; a good
+      first model to fine-tune for text classification.
+    architecture: Transformer encoder, 6 layers, 768 hidden
+    framework: huggingface
+    tasks: [text_classification]
+    source_url: https://huggingface.co/distilbert/distilbert-base-uncased
     license:
       category: open-source
-      name: MIT (code and weights)
-      spdx: MIT
-      url: https://github.com/openai/whisper/blob/main/LICENSE
-    maturity: planned
-    planned_for: v0.2
-    tags: [speech, multilingual]
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://huggingface.co/distilbert/distilbert-base-uncased/blob/main/LICENSE
+    params: 66362880
+    input_spec: Text, up to 512 word pieces
+    weights:
+      - id: pretrained
+        description: The pretrained encoder; the run adds a new classification head.
+        license: *apache
+        size_mb: 268
+        auto_download_allowed: true
+        hub_repo: distilbert/distilbert-base-uncased
+    maturity: stable
+    tags: [nlp, fine-tuning]
+
+  - id: bert_base_uncased
+    name: BERT base (uncased)
+    description: Google's English BERT-base, pretrained with masked language modelling, for fine-tuning.
+    architecture: Transformer encoder, 12 layers, 768 hidden
+    framework: huggingface
+    tasks: [text_classification]
+    source_url: https://huggingface.co/google-bert/bert-base-uncased
+    license:
+      category: open-source
+      name: Apache-2.0
+      spdx: Apache-2.0
+      url: https://github.com/google-research/bert/blob/master/LICENSE
+      notes: Google released the models under the same licence as the code (Apache-2.0).
+    params: 109482240
+    input_spec: Text, up to 512 word pieces
+    min_vram_gb: 4
+    weights:
+      - id: pretrained
+        description: The pretrained encoder; the run adds a new classification head.
+        license: *apache
+        size_mb: 440
+        auto_download_allowed: true
+        hub_repo: google-bert/bert-base-uncased
+    maturity: stable
+    tags: [nlp, fine-tuning]
+
+  # ── Speech recognition ─────────────────────────────────────────────
+  - id: whisper
+    name: Whisper tiny
+    description: OpenAI's multilingual speech recognition model, smallest size; transcribes and translates
+      to English.
+    architecture: Encoder-decoder Transformer (Radford et al., 2022), 4 + 4 layers
+    framework: huggingface
+    tasks: [speech_recognition]
+    source_url: https://huggingface.co/openai/whisper-tiny
+    license:
+      category: open-source
+      name: Apache-2.0 (Hub checkpoints); MIT (original code and weights)
+      spdx: Apache-2.0
+      url: https://huggingface.co/openai/whisper-tiny
+    params: 37760640
+    input_spec: Audio, 16 kHz, in 30-second windows
+    weights:
+      - id: tiny
+        description: whisper-tiny, multilingual (safetensors).
+        license: *apache
+        size_mb: 151
+        auto_download_allowed: true
+        hub_repo: openai/whisper-tiny
+    maturity: stable
+    tags: [speech, multilingual, asr, cpu]
+
+  - id: whisper_base
+    name: Whisper base
+    description: A larger Whisper; noticeably fewer mistakes than tiny, still fine on a CPU.
+    architecture: Encoder-decoder Transformer, 6 + 6 layers
+    framework: huggingface
+    tasks: [speech_recognition]
+    source_url: https://huggingface.co/openai/whisper-base
+    license:
+      category: open-source
+      name: Apache-2.0 (Hub checkpoints); MIT (original code and weights)
+      spdx: Apache-2.0
+      url: https://huggingface.co/openai/whisper-base
+    params: 72593920
+    input_spec: Audio, 16 kHz, in 30-second windows
+    weights:
+      - id: base
+        description: whisper-base, multilingual (safetensors).
+        license: *apache
+        size_mb: 290
+        auto_download_allowed: true
+        hub_repo: openai/whisper-base
+    maturity: stable
+    tags: [speech, multilingual, asr]
 
   - id: wav2vec2_base_960h
     name: wav2vec 2.0 base (960 h)
@@ -30,42 +209,14 @@ cards:
       spdx: Apache-2.0
       url: https://huggingface.co/facebook/wav2vec2-base-960h
       notes: The model card states Apache-2.0; the original fairseq checkpoint is MIT. Both are permissive.
-    requires: ["transformers>=4.42"]
-    maturity: planned
-    planned_for: v0.2
-    tags: [speech, english]
-
-  - id: distilbert_base_uncased
-    name: DistilBERT base (uncased)
-    description: A distilled 6-layer BERT, smaller and faster with most of BERT-base's accuracy.
-    architecture: Transformer encoder, 6 layers, 768 hidden
-    framework: huggingface
-    tasks: [text_classification]
-    source_url: https://huggingface.co/distilbert/distilbert-base-uncased
-    license:
-      category: open-source
-      name: Apache-2.0
-      spdx: Apache-2.0
-      url: https://huggingface.co/distilbert/distilbert-base-uncased/blob/main/LICENSE
-    requires: ["transformers>=4.42"]
-    maturity: planned
-    planned_for: v0.3
-    tags: [nlp, small]
-
-  - id: bert_base_uncased
-    name: BERT base (uncased)
-    description: Google's English BERT-base, pretrained with masked language modelling, for fine-tuning.
-    architecture: Transformer encoder, 12 layers, 768 hidden
-    framework: huggingface
-    tasks: [text_classification]
-    source_url: https://huggingface.co/google-bert/bert-base-uncased
-    license:
-      category: open-source
-      name: Apache-2.0
-      spdx: Apache-2.0
-      url: https://github.com/google-research/bert/blob/master/LICENSE
-      notes: Google released the models under the same licence as the code (Apache-2.0).
-    requires: ["transformers>=4.42"]
-    maturity: planned
-    planned_for: v0.3
-    tags: [nlp]
+    params: 94396320
+    input_spec: Audio, 16 kHz
+    weights:
+      - id: base_960h
+        description: The LibriSpeech fine-tuned checkpoint.
+        license: *apache
+        size_mb: 378
+        auto_download_allowed: true
+        hub_repo: facebook/wav2vec2-base-960h
+    maturity: stable
+    tags: [speech, english, asr]

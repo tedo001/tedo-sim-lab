@@ -12,7 +12,7 @@ from pathlib import Path
 from core.common.paths import CODE_ROOT
 
 PACKAGING = CODE_ROOT / "packaging"
-TRAINING_ONLY = {"torch", "torchvision", "xgboost", "opencv-python-headless", "matplotlib"}
+TRAINING_ONLY = {"torch", "torchvision", "xgboost", "opencv-python-headless", "matplotlib", "transformers"}
 
 
 def _names(lines) -> set[str]:
@@ -28,7 +28,7 @@ def test_window_requirements_follow_pyproject() -> None:
 def test_the_build_leaves_training_to_the_experiment_python() -> None:
     script = (PACKAGING / "freeze.py").read_text(encoding="utf-8")
     excludes = re.search(r"EXCLUDES = \[(.*?)\]", script, re.S).group(1)
-    for name in ("torch", "torchvision", "xgboost", "cv2", "shap"):
+    for name in ("torch", "torchvision", "xgboost", "cv2", "shap", "transformers"):
         assert f'"{name}"' in excludes
     assert 'f"lab-code/{folder}"' in script and '"configs"' in script and 'base="gui"' in script
     assert '"zip_exclude_packages": ["*"]' in script  # modules stay files: they read beside themselves

@@ -7,8 +7,10 @@ from .adapter import (
     DownloadNotAllowed,
     ImageClassificationAdapter,
     TabularAdapter,
+    TextAdapter,
 )
 from .cards import DatasetCard, DatasetRegistry
 
 __all__ = ["AcknowledgementRequired", "DatasetAdapter", "DatasetCard", "DatasetRegistry",
-           "DatasetStats", "DownloadNotAllowed", "ImageClassificationAdapter", "TabularAdapter"]
+           "DatasetStats", "DownloadNotAllowed", "ImageClassificationAdapter", "TabularAdapter",
+           "TextAdapter"]

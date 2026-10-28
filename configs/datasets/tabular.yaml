@@ -93,3 +93,32 @@ cards:
     citation: B. Efron, T. Hastie, I. Johnstone, R. Tibshirani. Least Angle Regression. Annals of
       Statistics, 2004.
     tags: [sklearn, builtin, regression]
+
+  - id: penguins
+    name: Palmer Penguins
+    description: Three penguin species on three islands, with bill, flipper and body measurements, sex and
+      year; some values are missing and two columns are text, so it exercises imputation and one-hot encoding.
+    tasks: [tabular_classification, clustering]
+    modality: tabular
+    source_url: https://allisonhorst.github.io/palmerpenguins/
+    license:
+      category: open-source
+      name: CC0 1.0
+      spdx: CC0-1.0
+      url: https://github.com/allisonhorst/palmerpenguins/blob/main/LICENSE.md
+    size: 344 rows × 7 features
+    num_classes: 3
+    class_names: [Adelie, Chinstrap, Gentoo]
+    splits: {all: 344}
+    auto_download_allowed: true
+    adapter: labs.classical_ml.datasets:RemoteCsvAdapter
+    options:
+      url: https://raw.githubusercontent.com/allisonhorst/palmerpenguins/v0.1.0/inst/extdata/penguins.csv
+      md5: a06a0210251465a86fb970018292304d
+      file: penguins.csv
+      target: species
+      task: tabular_classification
+    maturity: stable
+    citation: A. M. Horst, A. P. Hill, K. B. Gorman. palmerpenguins - Palmer Archipelago (Antarctica)
+      penguin data, 2020. doi:10.5281/zenodo.3960218.
+    tags: [biology, missing-values, beginner]

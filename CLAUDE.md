@@ -36,9 +36,10 @@ reason. Enforced in code and tests:
 
 ## Documentation rule (from the owner — always follow)
 
-- **After completing any work, always update `README.md`**: what is new or changed, with
-  screenshots of new or changed pages (`docs/images/`, every page in `docs/images/pages/`). Keep
-  `docs/guide.md`, `ROADMAP.md` and this file in step in the same commit.
+- **After completing any work, always update `README.md`**: what is new or changed, and the table of
+  every page. Keep `ROADMAP.md` and this file in step in the same commit. The owner removed `docs/`
+  and asked that no documents be committed: screenshots and papers go to the owner directly, not
+  into the repository.
 
 ## Commands
 
@@ -134,7 +135,6 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/services/pty_session.py` | `PtySession`: a program in a pty, read on a thread, parsed on the GUI thread, output masked, writes never block, bracketed paste; `terminals.py` `TerminalService` (sessions, profiles, the Code page's project); widget `terminal_view.py` (+ `terminal_keys.py`, `terminal_paint.py`, `terminal_mouse.py`); `TerminalTabs` (`app/ui/pages/terminal_tabs.py`) on the Terminal page, in the panel under every page (Ctrl+\`, `app/ui/shell/terminal_panel.py`) and in the Code page |
 | `core/vcs/` | `git.py` (`Git`: the git command line; porcelain v2 status, diffs, stage / commit / amend, history, branches, remotes, fetch / pull / push, init / clone; a GitHub token reaches git only as an HTTP header through `GIT_CONFIG_*`, prompts are off), `github.py` (`GitHub`: REST API with urllib: account, repositories, create, pull requests, issues, latest release); `app/services/source_control.py` (`SourceControl`: quiet background tasks; token in the keyring as `GITHUB_TOKEN`); page `app/ui/pages/source_control/` (changes, history, branches and remotes, GitHub) |
 | `labs/simulation/` | Simulation Lab engines (numpy/scipy, no Qt): `quantum/` (`gates.py`; `circuit.py`: `Circuit`, `Op`, presets, OpenQASM; `statevector.py`: simulate, sample, Bloch vectors, purity; `waves.py`: split-step Fourier wave packets, potentials, `eigenstates`), `vision/` (`filters.py` + `ops.py`: image operations as a pipeline of `Step`s; `png.py`: a standard-library PNG codec; `samples.py`; `scenes.py`: synthetic shapes as PNG + COCO, annotations of the visible parts; `camera.py`: pinhole camera with lens distortion), `records.py` (saved simulations in `results/simulations/`), `scripts.py` (`script_for`: a standalone script per tool); `quantum/lattice.py` (`LatticeSetup`, `PlaneWaves` basis at Γ, `ion_potential` −Z/√(r²+d²), `hartree_potential`, `xc_energy_potential`: 2-D LDA, exchange exact, correlation of Attaccalite et al. 2002, `ion_ion_energy`: Ewald + charge sheets), `quantum/kohn_sham.py` (`solve` → `KohnShamResult`: SCF with Pulay mixing and Fermi smearing, energies, every iteration's density, exact `cut`s), `quantum/density_walk.py` (`DensityWalkers`: Metropolis-adjusted Langevin samples of the density, `Hop`s) |
-| `docs/paper/` | A three-page IEEE conference paper about the lab (`paper.tex` with IEEEtran, `references.bib` with IEEEtran.bst, `figures/` rendered by the app at 2×, `paper.pdf`); keep its numbers in step with the code when they change |
 | `app/ui/pages/simulation/` | Simulation Lab page: tools `circuits.py` (+ `circuit_canvas.py`), `waves.py`, `lattice.py` (+ `lattice_views.py`: `ElectronViews` two 3-D views turning together with moving electrons and an iteration slider, `PotentialCut` V_eff = V_H + V_ion + V_xc along a row of ions, `Convergence` with the levels), `images.py` (+ `param_form.py`), `scenes.py` (datasets open in the Dataset Hub through `ctx.show_page`), `camera.py`, `saved.py`; save, export a script, open the folder; charts in `app/ui/widgets/sim_views.py` |
 | `core/common/log_reader.py` | Reading log files: `parse_lines` (records with their tracebacks), `matches` (level, logger and those below it, text), `LogFollower` (new lines, through rotation and truncation; opens the file only while reading, so Windows can rotate it); `logging_setup.py` writes `app.log` and `errors.log` (warnings and errors only), `set_level` while running |
 | `app/services/logs.py` | `LogService`: the log files, errors counted since start (the top bar's red notice → Logs page on warnings and errors); page `app/ui/pages/logs.py` (`LogModel`: sources incl. each run's `run.log`, level/source/text filters, follow, details with traceback jumps, log level) |
@@ -142,6 +142,13 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `core/common/updates.py` | `is_newer` / `version_key` (tags compared as numbers), `RELEASES`; `app/services/updates.py` `UpdateCheck` asks GitHub for the latest release in a quiet task (on request, or at start with `check_updates`); shown in Settings → About and the top bar; nothing is downloaded |
 | `app/services/jupyter.py` | `Notebooks` (list, create from a run with relative paths, link via `notebook_links`, `notebook_markdown` viewer) and `JupyterLab` (a `LocalWebUi`, like `MlflowUi`: 127.0.0.1, fresh masked token); page `jupyter_page.py` |
 | `plugins/colab/notebook.py` | `build_notebook` (clone at the commit, `experiment.yaml`, licence-checked dataset cell, worker → `events.jsonl`, zip) and `read_results`; `app/services/colab.py` `ColabService` exports into `notebooks/colab/` and imports a zip through `ExperimentService.import_run` (replays the events); page `colab_page.py` |
+| `labs/inference/` | The inference worker (`python -m labs.inference.worker --workspace W`: one JSON request per stdin line, `partial`/`result`/`error` answers on a private stdout, `cancel`, LRU of two loaded models, CUDA only here): `text.py` (generate streamed, embed, tokenize), `speech.py` (Whisper, wav2vec 2.0 CTC), `vision.py` (CLIP zero-shot and folder search, BLIP captions, detection), `runs.py` (`kind_of`, `RunModel`: predict / sweep with any finished run), `visualize.py` (per-layer maps, Grad-CAM, saliency), `hub.py` (`needed_files`: one set of safetensors weights); app side `app/services/inference.py` `InferenceService` (`ctx.inference.request(task, args, on_partial=, on_done=, on_error=)`) |
+| `labs/quantum_ml/` | `sim.py` (batched state vectors, angle/ZZ feature maps, ansatz), `vqc.py` (`VariationalClassifier`, parameter shift + Adam), `kernel.py` (fidelity kernel), `data.py` (`SyntheticAdapter`, `prepare`: PCA to the qubits, angles 0…π), `runner.py` `QuantumRunner` (training kind `quantum`; `checkpoints/{last,best}.npz`, `results.json` with circuit, boundary, kernel), `presets.py`; page `app/ui/pages/quantum_ml.py` (+ `quantum_views.py`) |
+| `labs/nlp/` | `datasets.py` (`TextAdapter`s: movie reviews, SMS spam, 20 Newsgroups, read from the published archives), `text_data.py` (splits), `runner.py` `TextClassifierRunner` (TF-IDF, kind `sklearn`, results like the scikit-learn runner's plus `words`), `transformer.py` `TransformerTextRunner` (kind `torch`, the shared training loop, `checkpoints/best/` in Hugging Face format), `presets.py`; page `app/ui/pages/nlp/` (chat, tokenizer, embeddings, classifiers) |
+| `labs/audio/` | `dsp.py` (WAV, resample, generators, STFT, mel, MFCC, filters, pitch, `log_mel_image`), `datasets.py` `SpokenDigitsAdapter` (FSDD as 64×64 spectrogram images, a `VisionAdapter`, so the PyTorch runner trains `audio_classification`), `presets.py`; page `app/ui/pages/audio/` |
+| `app/ui/pages/testing/` | Model Testing: `subjects.py` (finished runs and downloaded pretrained models), `inputs.py`, `outputs.py`, `batch.py` (folder / CSV, scored, CSV export to `reports/`), `visualise.py` (layer maps on the `heat_*` scale, Grad-CAM, saliency); `open_run(run_id)` / `open_model(card_id)` from Training, the Model Registry and the labs |
+| `app/ui/pages/multimodal.py` | Multimodal lab (CLIP zero-shot, image search with a 3-D map, BLIP captions) |
+| `app/ui/pages/lab_parts.py` | Shared by the labs: `PresetGrid`, `LabDatasets`, `PretrainedModels` (Hub downloads through the Hugging Face plugin), `DownloadedModels`; `app/services/starters.py` (`lab_for`, `starter_spec` for the Dataset Hub's *Use in Experiment Builder*); `app/ui/pages/dataset_samples.py` (examples of a downloaded dataset, `labs/common/samples.py`) |
 
 ### Adding a page
 
@@ -169,6 +176,15 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   1 failed, 2 cancelled. Short tasks use `QThreadPool`. Cancel is cooperative ("cancel" on
   stdin, `CancelToken`), then kill after a grace period. Runner discovery is by
   `configs/runners.yaml` strings, so `core` never imports `labs`.
+- **Pretrained models**: model cards name their Hub repository in `weights[].hub_repo`; they download
+  only on request through the Hugging Face plugin (licence shown, gated refused) into
+  `<workspace>/models/huggingface/<owner>__<name>/` (`core.model_registry.cards.hub_folder`), and
+  `ModelRegistry.status` reads `ready` once there. They run only in the inference worker
+  (`HF_HUB_OFFLINE=1`; transformers lives in the experiment Python and is excluded from the frozen
+  window); never import transformers or torch in the app process.
+- **Training kinds**: `TRAINING_KINDS` in `core/experiment_engine/spec.py` says which `training.kind`
+  each task takes (tabular → `sklearn`, text → `sklearn` or `torch`, quantum → `quantum`, the rest
+  `torch`); a runner that shares a task says so in `supports(spec)`.
 - **Experiment Python**: workers run under `config.python_executable` (empty = the app's own
   interpreter) with the code root on `PYTHONPATH` and `TEDO_LAB_WORKSPACE` set to the workspace
   (the app process sets it too, so runner checks and workers see the same datasets); plugin
@@ -337,6 +353,10 @@ Design for it now:
       model; saved simulations and exported scripts
 - [x] Logs page (live, filters, run logs, traceback jumps, log level), errors.log and a problem count
       in the title row; settings edited in the app (checked, saved, applied live); update check
+- [x] Every research lab: NLP / LLM, Audio, Multimodal, Quantum ML; Model Testing (inputs, what-if,
+      batches, detection, layer views with Grad-CAM) over an inference worker; 39 dataset cards of every
+      kind with loaders for spoken digits, three text sets, penguins and synthetic sets; pretrained
+      models downloadable from the Model Zoo
 - [x] 3-D: electrons in a crystal lattice (self-consistent Kohn–Sham in a plane-wave basis, potential
       and density surfaces, moving electrons, V_eff taken apart); datasets (Dataset Hub *Explore in
       3-D*) and clusters/projections as point clouds; every page captured in `docs/images/pages/`

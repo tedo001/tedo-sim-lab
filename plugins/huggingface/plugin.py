@@ -13,6 +13,7 @@ from core.common.cancel import CancelToken, ProgressFn
 from core.plugin_api import ActionSpec, ConnectionResult, PluginError
 from labs.common.download import DownloadError, download_file
 from labs.common.remote import RemoteError, RemoteItem, get_json
+from labs.inference.hub import needed_files
 from plugins.sources import SourcePlugin
 
 __all__ = ["HuggingFacePlugin", "hub_item"]
@@ -93,6 +94,8 @@ class HuggingFacePlugin(SourcePlugin):
             raise PluginError(f"{item.id} holds {checked.size_text}; download what you need from {item.url}")
         prefix = "datasets/" if item.kind == "dataset" else ""
         files = checked.details["files"]
+        if item.kind == "model":  # one set of weights in a format PyTorch reads, not every export
+            files = needed_files(files) or files
         for index, name in enumerate(files, start=1):
             parts = Path(name).parts
             if Path(name).is_absolute() or ".." in parts:

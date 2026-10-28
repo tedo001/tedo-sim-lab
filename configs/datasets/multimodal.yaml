@@ -1,0 +1,38 @@
+# Image–text datasets, for the Multimodal lab's models (CLIP, BLIP). Catalogue entries: the lab
+# works on your own image folders; these are listed with their licences and access terms.
+cards:
+  - id: coco_captions
+    name: COCO Captions 2017
+    description: Five human-written captions for each of 123,287 COCO images.
+    tasks: [image_captioning]
+    modality: multimodal
+    source_url: https://cocodataset.org/#captions-2015
+    license:
+      category: non-commercial
+      name: CC BY 4.0 (captions); per-image Flickr licences (images)
+      url: https://cocodataset.org/#termsofuse
+      notes: The captions are CC BY 4.0; the images keep their Flickr licences, several of them
+        non-commercial.
+    size: ~19 GB images, 20 MB captions
+    splits: {train: 118287, val: 5000}
+    citation: X. Chen et al. Microsoft COCO Captions - Data Collection and Evaluation Server.
+      arXiv:1504.00325, 2015.
+    tags: [captions, retrieval]
+
+  - id: flickr30k
+    name: Flickr30k
+    description: 31,783 Flickr photos of everyday scenes with five captions each.
+    tasks: [image_captioning, zero_shot_classification]
+    modality: multimodal
+    source_url: https://shannon.cs.illinois.edu/DenotationGraph/
+    license:
+      category: research-only
+      name: Flickr terms of use (images); request form
+      url: https://shannon.cs.illinois.edu/DenotationGraph/
+      notes: The images are under Flickr's terms; the captions are given for research use after a request.
+    size: ~4.4 GB
+    splits: {}
+    access_requirements: Fill in the request form on the dataset page
+    citation: P. Young, A. Lai, M. Hodosh, J. Hockenmaier. From image descriptions to visual denotations.
+      TACL, 2014.
+    tags: [captions, retrieval]

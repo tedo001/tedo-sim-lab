@@ -55,7 +55,7 @@ def config_roots(paths: AppPaths) -> list[Path]:
 def load_cards(paths: AppPaths) -> tuple[DatasetRegistry, ModelRegistry]:
     """Just the dataset and model cards (what a worker process needs)."""
     datasets = DatasetRegistry(paths.datasets)
-    models = ModelRegistry()
+    models = ModelRegistry(paths.workspace)
     for root in config_roots(paths):
         datasets.load_dir(root / "datasets")
         models.load_dir(root / "models")

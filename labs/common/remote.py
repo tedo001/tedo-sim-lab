@@ -15,6 +15,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from core.common.masking import mask_text
+from core.common.naming import safe_folder_name
 
 __all__ = ["RemoteError", "RemoteItem", "get_json", "safe_folder_name", "unpack_zip", "write_source"]
 
@@ -74,15 +75,6 @@ def get_json(url: str, *, headers: Mapping[str, str] | None = None, timeout: flo
         raise RemoteError(mask_text(f"could not reach the source: {reason}")) from None
     except ValueError:
         raise RemoteError("the source answered with something that is not JSON") from None
-
-
-def safe_folder_name(identifier: str) -> str:
-    """``owner/name`` → ``owner__name``: one folder, nothing that climbs out of it."""
-    cleaned = "".join(c if c.isalnum() or c in "-_." else "_" for c in identifier.replace("/", "__"))
-    cleaned = cleaned.strip(".")
-    if not cleaned:
-        raise ValueError(f"{identifier!r} cannot be used as a folder name")
-    return cleaned
 
 
 def unpack_zip(archive: Path, destination: Path) -> list[Path]:

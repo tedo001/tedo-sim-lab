@@ -35,14 +35,16 @@ dependencies = [
     "matplotlib>=3.8",
     "nltk>=3.8",
     "pycocotools>=2.0.7",
+    "scipy>=1.11",                   # audio signal processing (filters, STFT, WAV files)
+    "transformers>=4.56",            # pretrained language, speech and vision models (inference worker)
 ]
 
 [project.optional-dependencies]
 # Owner policy: permissive licences only (see configs/dependency_licences.yaml). No AGPL/GPL,
 # so no Ultralytics; RT-DETR comes from Hugging Face Transformers (Apache-2.0).
-cv = ["onnx>=1.15", "onnxruntime>=1.17", "transformers>=4.42"]
+cv = ["onnx>=1.15", "onnxruntime>=1.17"]
 ocr = ["paddleocr>=2.7", "paddlepaddle>=2.6", "easyocr>=1.7", "pytesseract>=0.3.10"]
-nlp = ["transformers>=4.40", "huggingface_hub>=0.23"]
+nlp = ["huggingface_hub>=0.23"]
 integrations = [
     "huggingface_hub>=0.23",
     "jupyterlab>=4.1",

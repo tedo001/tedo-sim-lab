@@ -14,7 +14,7 @@ from core.common import experiment_python
 from core.terminal.debugger import Stop, find_stop, pdb_command
 
 from ....services.context import AppContext
-from ....services.project import project_environment, run_command
+from ....services.project import Launch, project_environment, python_launch, run_command
 from ...widgets.terminal_view import TerminalView
 from .console import BottomPanel
 from .editors import EditorTabs
@@ -48,22 +48,25 @@ class Debugger(QObject):
         """Debug ``path`` (or just run it, ``debug=False``) in a terminal tab in ``root``,
         replacing the previous one of the same kind."""
         python = experiment_python(self.ctx.config)
+        launch = python_launch(path, root) if path.suffix.lower() in (".py", ".pyw") else Launch((), root)
         try:
             if debug:
                 if path.suffix.lower() not in (".py", ".pyw"):
                     raise ValueError("Debug runs Python files; open a .py file.")
                 if not python:
                     raise ValueError("No experiment Python is set up yet: Settings → Experiment Python.")
-                argv = pdb_command(python, path, args, self.tabs.breakpoints())
+                module = launch.target[1] if launch.target[:1] == ("-m",) else None
+                argv = pdb_command(python, path, args, self.tabs.breakpoints(), module=module)
             else:
-                argv = run_command(path, args, python)
+                argv = run_command(path, args, python, root)
         except ValueError as exc:
             self.message.emit(str(exc))
             return False
-        env = project_environment(root, self.ctx.paths.workspace, python, self.ctx.terminals.environment())
+        env = project_environment(root, self.ctx.paths.workspace, python, self.ctx.terminals.environment(),
+                                  launch.paths)
         self._close(self.view if debug else self.run_view)
         title = f"{'Debug' if debug else 'Run'} {path.name}"
-        view = self.panel.terminals.open_command(argv, title, folder=root, shell=False, env=env)
+        view = self.panel.terminals.open_command(argv, title, folder=launch.folder, shell=False, env=env)
         if view is None:
             self.message.emit(self.panel.terminals.status.text() or f"Could not start {argv[0]}")
             return False

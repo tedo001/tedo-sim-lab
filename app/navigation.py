@@ -62,18 +62,16 @@ NAV: tuple[PageSpec, ...] = (
     _p("deep_learning", "Deep Learning", "labs", "network",
        "Design a network layer by layer and train it like any other model."),
     _p("nlp_llm", "NLP / LLM", "labs", "message-square-text",
-       "Text and language-model experiments.", "v0.3", None,
-       "Text classification and tokenization experiments",
-       "Hugging Face models and datasets; gated models need your token and accepted terms"),
+       "Text classifiers (TF-IDF or a fine-tuned transformer), a local chat model, tokenizers and "
+       "embeddings."),
     _p("audio", "Audio", "labs", "audio-lines",
-       "Speech and audio experiments.", "v0.2", None,
-       "Audio datasets, spectrogram pipelines and speech-recognition models"),
+       "Sounds as waveforms, spectrograms and MFCCs; filters, pitch, speech recognition and "
+       "spoken-digit models."),
     _p("multimodal", "Multimodal", "labs", "layers",
-       "Vision-language experiments.", "v0.4", None,
-       "Zero-shot classification and captioning with CLIP-style models"),
+       "CLIP zero-shot labels and image search by sentence, BLIP captions."),
     _p("quantum_ml", "Quantum ML", "labs", "atom",
-       "Quantum machine-learning experiments.", "TBD", None,
-       "Scope not decided yet (quantum circuits and wave mechanics are in the Simulation Lab)"),
+       "Variational quantum classifiers and quantum-kernel SVMs, simulated exactly; boundaries, circuits, "
+       "kernels."),
     _p("simulation_lab", "Simulation Lab", "labs", "flask-conical",
        "Quantum circuits and wave mechanics; image processing, synthetic datasets and a camera model."),
 
@@ -93,6 +91,9 @@ NAV: tuple[PageSpec, ...] = (
        "Queued, running and finished runs, live."),
     _p("evaluation", "Evaluation", "experiments", "target",
        "Scores, confusion matrix and per-class report; re-score a checkpoint on a split."),
+    _p("testing", "Model Testing", "experiments", "test-tube",
+       "Use trained and pretrained models: try an input, what-if sweeps, batch tests, detection, captions, "
+       "speech, and a look inside every layer."),
     _p("benchmarking", "Benchmarking", "experiments", "timer",
        "Inference latency and throughput by batch size and device."),
     _p("compare", "Compare Experiments", "experiments", "git-compare",

@@ -97,14 +97,19 @@ def test_model_zoo(ctx, qtbot) -> None:
     assert page.table.rowCount() == len(ctx.catalog.models)
     assert page.excluded.rowCount() >= 1 and "AGPL" in page.excluded.item(0, 1).text()
     page.filters.search.setText("resnet")
-    assert set(page.ids) == {"resnet18", "detr_resnet50"}
-    page.filters.search.setText("resnet-18")
+    assert set(page.ids) == {"resnet18", "detr_resnet50", "rt_detr"}  # RT-DETR's backbone is a ResNet-18
+    page.filters.search.setText("torchvision")
     assert page.ids == ["resnet18"]
     assert page.weights.rowCount() == 1 and page.values.value_text("Code licence").startswith("BSD")
     page.filters.search.setText("")
     page.filters.first.setCurrentIndex(page.filters.first.findData(page.filters.first.itemData(2)))
     frameworks = {ctx.catalog.models.get(i).framework for i in page.ids}
     assert len(frameworks) <= 1
+    page.select("whisper")
+    assert page.download_button.isVisibleTo(page) and not page.use_button.isVisibleTo(page)
+    assert "transformers" in page.values.value_text("Extra packages")
+    page.select("simple_cnn")
+    assert not page.download_button.isVisibleTo(page) and page.use_button.isVisibleTo(page)
 
 
 def _finished_classical_run(ctx, qtbot) -> str:

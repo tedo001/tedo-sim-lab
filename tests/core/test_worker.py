@@ -91,10 +91,10 @@ def test_closed_stdin_cancels_only_when_asked(tmp_path: Path) -> None:
 
 
 def test_task_with_no_runner_fails_clearly(tmp_path: Path) -> None:
-    process = worker(make_run_dir(tmp_path, SPEC.replace("image_classification", "text_classification")))
+    process = worker(make_run_dir(tmp_path, SPEC.replace("image_classification", "image_generation")))
     stdout, _ = process.communicate(timeout=60)
     assert process.returncode == EXIT_FAILED
-    assert "no runner handles 'text_classification'" in events_of(stdout)[-1].payload["error"]
+    assert "no runner handles 'image_generation'" in events_of(stdout)[-1].payload["error"]
 
 
 def test_missing_dataset_is_explained_before_training(tmp_path: Path) -> None:
@@ -134,7 +134,8 @@ def test_registry_loads_entries_and_prefers_stable_runners() -> None:
     assert {runner.id for runner in registry.all()} >= {"object_detection", "segmentation", "ocr"}
     assert registry.task_maturity()["object_detection"] == "experimental"
     assert registry.for_spec(load_spec_text(SPEC)).id == "torch_classification"
+    assert registry.task_maturity()["text_classification"] == "stable"
     with pytest.raises(NoRunnerError):
-        registry.for_spec(load_spec_text(SPEC.replace("image_classification", "text_classification")))
+        registry.for_spec(load_spec_text(SPEC.replace("image_classification", "image_generation")))
     problems = registry.load_entries(["labs.nowhere:Runner", "core.common.paths:AppPaths"])
     assert len(problems) == 2 and "not an ExperimentRunner" in problems[1]

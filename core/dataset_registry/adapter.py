@@ -22,7 +22,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from .cards import DatasetCard
 
 __all__ = ["AcknowledgementRequired", "DatasetAdapter", "DatasetStats", "DownloadNotAllowed",
-           "ImageClassificationAdapter", "LocalState", "TabularAdapter"]
+           "ImageClassificationAdapter", "LocalState", "TabularAdapter", "TextAdapter"]
 
 LocalState = Literal["present", "partial", "absent"]
 
@@ -95,3 +95,20 @@ class TabularAdapter(DatasetAdapter):
 
     @abstractmethod
     def load_frame(self, root: Path) -> tuple[pd.DataFrame, pd.Series | None]: ...
+
+
+class TextAdapter(DatasetAdapter):
+    """Texts with one label each. ``load_texts`` returns (texts, labels) for a split; ``"all"``
+    when the dataset has no split of its own (the runner then holds out a test share)."""
+
+    @property
+    @abstractmethod
+    def classes(self) -> tuple[str, ...]: ...
+
+    @property
+    def has_test_split(self) -> bool:
+        return "test" in self.card.splits
+
+    @abstractmethod
+    def load_texts(self, root: Path, split: Literal["train", "test", "all"]) -> tuple[list[str],
+                                                                                      list[int]]: ...

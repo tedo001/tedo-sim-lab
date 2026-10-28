@@ -1,5 +1,5 @@
-"""The PyTorch image-classification runner: MNIST, Fashion-MNIST and CIFAR-10 with
-SimpleCNN, LeNet-5, ResNet-18 or TinyVGG.
+"""The PyTorch image-classification runner: MNIST, Fashion-MNIST, CIFAR-10/100 and spoken digits
+(as spectrogram images) with SimpleCNN, LeNet-5, ResNet-18, TinyVGG or a layer stack.
 
 Runs inside the worker process. Each epoch trains, validates, saves ``last.pt`` (the
 resume point) and, when the monitored metric improves, ``best.pt``. At the end the best
@@ -67,8 +67,8 @@ def _append_jsonl(path: Path, record: dict[str, Any]) -> None:
 
 class TorchClassificationRunner(ExperimentRunner):
     id = "torch_classification"
-    title = "PyTorch image classification"
-    tasks = frozenset({Task.IMAGE_CLASSIFICATION})
+    title = "PyTorch image and spectrogram classification"
+    tasks = frozenset({Task.IMAGE_CLASSIFICATION, Task.AUDIO_CLASSIFICATION})
 
     # Checks --------------------------------------------------------------------
     def _parts(self, spec: ExperimentSpec) -> tuple[AppPaths, VisionAdapter, Any, Any]:
@@ -83,8 +83,10 @@ class TorchClassificationRunner(ExperimentRunner):
         if spec.model.model not in models:
             raise LookupError(f"no model card {spec.model.model!r}")
         card = models.get(spec.model.model)
-        if Task.IMAGE_CLASSIFICATION not in card.tasks:
-            raise ValueError(f"{card.name} is not an image-classification model")
+        if spec.task not in adapter.card.tasks:
+            raise ValueError(f"{adapter.card.name} is not a {spec.task.value.replace('_', ' ')} dataset")
+        if spec.task not in card.tasks:
+            raise ValueError(f"{card.name} is not a {spec.task.value.replace('_', ' ')} model")
         if spec.model.pretrained:
             card.weights_by_id(spec.model.pretrained)
         return paths, adapter, card, models.builder(spec.model.model)

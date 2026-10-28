@@ -32,6 +32,8 @@ class Task(StrEnum):
     SPEECH_RECOGNITION = "speech_recognition"
     AUDIO_CLASSIFICATION = "audio_classification"
     ZERO_SHOT_CLASSIFICATION = "zero_shot_classification"
+    # Quantum
+    QUANTUM_CLASSIFICATION = "quantum_classification"
 
 
 #: Tasks trained with scikit-learn-style estimators rather than a PyTorch loop.
@@ -52,6 +54,7 @@ class Framework(StrEnum):
     SKLEARN = "sklearn"
     XGBOOST = "xgboost"
     PADDLE = "paddle"
+    NUMPY = "numpy"
     HUGGINGFACE = "huggingface"
 
 

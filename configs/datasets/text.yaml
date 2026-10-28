@@ -1,0 +1,105 @@
+# Text-classification datasets, read straight from the archives their authors (or nltk)
+# publish. Movie reviews, SMS spam and 20 Newsgroups have loaders; the rest are catalogue
+# entries. Where no licence is published the category is "unspecified".
+cards:
+  - id: movie_reviews
+    name: Movie Review Data (polarity 2.0)
+    description: 2,000 film reviews from IMDb's archive, 1,000 positive and 1,000 negative.
+    tasks: [text_classification]
+    modality: text
+    source_url: https://www.cs.cornell.edu/people/pabo/movie-review-data/
+    license:
+      category: unspecified
+      name: No licence published
+      notes: Distributed by the authors and by nltk's data repository; cite Pang and Lee.
+    size: ~4 MB
+    num_classes: 2
+    class_names: [neg, pos]
+    splits: {all: 2000}
+    auto_download_allowed: true
+    adapter: labs.nlp.datasets:MovieReviewsAdapter
+    maturity: stable
+    citation: B. Pang, L. Lee. A Sentimental Education - Sentiment Analysis Using Subjectivity
+      Summarization Based on Minimum Cuts. ACL, 2004.
+    tags: [sentiment, reviews, beginner, nltk]
+
+  - id: sms_spam
+    name: SMS Spam Collection
+    description: 5,574 English text messages labelled ham (legitimate) or spam.
+    tasks: [text_classification]
+    modality: text
+    source_url: https://archive.ics.uci.edu/dataset/228/sms+spam+collection
+    license:
+      category: open-source
+      name: CC BY 4.0
+      spdx: CC-BY-4.0
+      url: https://creativecommons.org/licenses/by/4.0/
+      notes: Attribution required; cite the dataset and the UCI Machine Learning Repository.
+    size: ~200 KB
+    num_classes: 2
+    class_names: [ham, spam]
+    splits: {all: 5574}
+    auto_download_allowed: true
+    adapter: labs.nlp.datasets:SmsSpamAdapter
+    maturity: stable
+    citation: T. A. Almeida, J. M. G. Hidalgo. SMS Spam Collection. UCI Machine Learning Repository, 2011.
+    tags: [spam, short-text, beginner]
+
+  - id: twenty_newsgroups
+    name: 20 Newsgroups (by date)
+    description: About 18,800 Usenet posts in 20 topics, split into train and test by date; headers,
+      signatures and quotes removed.
+    tasks: [text_classification]
+    modality: text
+    source_url: http://qwone.com/~jason/20Newsgroups/
+    license:
+      category: unspecified
+      name: No licence published
+      notes: Posts are by their Usenet authors; the archive is the one scikit-learn downloads.
+    size: ~14 MB
+    num_classes: 20
+    class_names: [alt.atheism, comp.graphics, comp.os.ms-windows.misc, comp.sys.ibm.pc.hardware,
+                  comp.sys.mac.hardware, comp.windows.x, misc.forsale, rec.autos, rec.motorcycles,
+                  rec.sport.baseball, rec.sport.hockey, sci.crypt, sci.electronics, sci.med, sci.space,
+                  soc.religion.christian, talk.politics.guns, talk.politics.mideast, talk.politics.misc,
+                  talk.religion.misc]
+    splits: {train: 11314, test: 7532}
+    auto_download_allowed: true
+    adapter: labs.nlp.datasets:NewsgroupsAdapter
+    maturity: stable
+    citation: K. Lang. NewsWeeder - Learning to Filter Netnews. ICML, 1995.
+    tags: [topics, news]
+
+  - id: imdb_reviews
+    name: Large Movie Review Dataset (IMDB)
+    description: 50,000 polar IMDb reviews for binary sentiment, plus 50,000 unlabelled ones.
+    tasks: [text_classification]
+    modality: text
+    source_url: https://ai.stanford.edu/~amaas/data/sentiment/
+    license:
+      category: unspecified
+      name: No licence published
+      notes: The authors ask that you cite the paper.
+    size: ~84 MB
+    num_classes: 2
+    splits: {train: 25000, test: 25000}
+    citation: A. L. Maas et al. Learning Word Vectors for Sentiment Analysis. ACL, 2011.
+    tags: [sentiment, reviews]
+
+  - id: ag_news
+    name: AG News
+    description: 127,600 news titles and descriptions in four topics (World, Sports, Business, Sci/Tech).
+    tasks: [text_classification]
+    modality: text
+    source_url: http://groups.di.unipi.it/~gulli/AG_corpus_of_news_articles.html
+    license:
+      category: non-commercial
+      name: AG's corpus terms (non-commercial)
+      url: http://groups.di.unipi.it/~gulli/AG_corpus_of_news_articles.html
+      notes: The corpus is provided to the academic community for non-commercial use.
+    size: ~30 MB
+    num_classes: 4
+    splits: {train: 120000, test: 7600}
+    citation: X. Zhang, J. Zhao, Y. LeCun. Character-level Convolutional Networks for Text Classification.
+      NeurIPS, 2015.
+    tags: [topics, news]

@@ -154,7 +154,8 @@ def run_evaluation(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelTo
         else:
             registry.load_config(CODE_ROOT / "configs" / "runners.yaml")
         runner = registry.for_spec(spec)
-        if not checkpoint.is_file():
+        if not (checkpoint.is_file()
+                or (checkpoint / "config.json").is_file()):  # a file, or a saved transformer
             raise SpecError(f"no checkpoint at {checkpoint}")
         ctx = RunContext(run_id, run_dir, resolve_device(spec.runtime.device), token)
         callbacks.emit("run_start", device=ctx.device, run_dir=str(run_dir), evaluation=True)

@@ -102,8 +102,14 @@ class RunDetail(QWidget):
         self.explain_button = QPushButton(icon("brain-circuit"), "Open in CNN Explainer")
         self.explain_button.clicked.connect(lambda: self.view and ctx.experiments.explain(self.view.id,
                                                                                         ctx.navigate))
-        for button in (self.cancel_button, self.resume_button, self.reproduce_button, self.register_button,
-                       self.report_button, self.folder_button, self.again_button, self.explain_button):
+        self.test_button = QPushButton(icon("test-tube"), "Test & visualise")
+        self.test_button.setToolTip("Use the trained model on Model Testing: inputs, what-if, batches and "
+                                    "layers")
+        self.test_button.clicked.connect(lambda: self.view
+                                         and ctx.show_page("testing").open_run(self.view.id))
+        for button in (self.cancel_button, self.resume_button, self.test_button, self.reproduce_button,
+                       self.register_button, self.report_button, self.folder_button, self.again_button,
+                       self.explain_button):
             buttons.addWidget(button)
         buttons.addStretch(1)
         self.summary.add(buttons)
@@ -185,6 +191,8 @@ class RunDetail(QWidget):
         self.resume_button.setVisible(view.resumable)
         self.explain_button.setVisible(view.status in ("completed", "early_stopped")
                                        and (view.run_dir / "explainer.npz").is_file())
+        self.test_button.setVisible(view.status in ("completed", "early_stopped")
+                                    and view.task not in ("clustering", "dimensionality_reduction"))
         history = self.ctx.experiments.history(view.id, tuple(key for key, _, _ in CURVES))
         for key, chart in self.charts.items():
             epochs = view.epochs or 0

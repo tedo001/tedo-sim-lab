@@ -23,6 +23,7 @@ from .downloads import DownloadService
 from .experiment_setup import ExperimentSetup
 from .experiments import ExperimentService
 from .hardware import HardwareService
+from .inference import InferenceService
 from .jobs import JobQueue, worker_command
 from .jupyter import JupyterLab, Notebooks
 from .logs import LogService
@@ -67,6 +68,7 @@ class AppContext:
     settings: SettingsService
     logs: LogService
     updates: UpdateCheck
+    inference: InferenceService
     #: Switch the main window to another page; set by :class:`app.main_window.MainWindow`.
     navigate: Callable[[str], None] = field(default=_nowhere)
     #: Open a file at a line in the Code page; set by the main window.
@@ -83,10 +85,12 @@ class AppContext:
         current = experiment_python(self.config)
         self.catalog.plugins.set_python(current)
         self.hardware.set_python(current)
+        self.inference.stop()  # the next request starts it under the new Python
 
     def close(self) -> None:
         """Stop background work and close the database (app exit)."""
         self.terminals.shutdown()
+        self.inference.stop()
         self.logs.close()
         self.hardware.stop()
         self.mlflow_ui.stop()
@@ -127,4 +131,5 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
                       ColabService(paths, experiments, jobs),
                       PluginService(paths, catalog, credentials, jobs), JupyterLab(paths, config),
                       Notebooks(paths, store), ExperimentSetup(jobs), terminals,
-                      SettingsService(paths, config, jobs, terminals), LogService(paths), UpdateCheck(jobs))
+                      SettingsService(paths, config, jobs, terminals), LogService(paths), UpdateCheck(jobs),
+                      InferenceService(paths, config))

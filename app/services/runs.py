@@ -76,7 +76,10 @@ class RunView:
 
     @property
     def last_checkpoint(self) -> Path:
-        return self.run_dir / "checkpoints" / "last.pt"
+        """The resume point: ``last.pt`` (PyTorch) or ``last.npz`` (quantum classifiers)."""
+        folder = self.run_dir / "checkpoints"
+        return next((folder / name for name in ("last.pt", "last.npz") if (folder / name).is_file()),
+                    folder / "last.pt")
 
     @property
     def finished_ok(self) -> bool:

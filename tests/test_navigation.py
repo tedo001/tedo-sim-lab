@@ -46,12 +46,10 @@ def test_unbuilt_pages_say_when_and_what() -> None:
             assert spec.build_phase in range(2, 11), spec.id
 
 
-def test_future_domains_are_placeholders() -> None:
-    assert page("audio").planned_for == "v0.2"
-    assert page("nlp_llm").planned_for == "v0.3"
-    assert page("multimodal").planned_for == "v0.4"
-    assert page("quantum_ml").planned_for == "TBD"
-    assert page("simulation_lab").built
+def test_every_research_lab_is_built() -> None:
+    for page_id in ("audio", "nlp_llm", "multimodal", "quantum_ml", "simulation_lab", "testing"):
+        assert page(page_id).built, page_id
+    assert not [spec.id for spec in NAV if not spec.built]
 
 
 def test_built_pages_have_factories_and_icons_exist() -> None:

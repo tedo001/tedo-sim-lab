@@ -31,25 +31,22 @@ def test_markdown_images_are_found_and_fitted(qtbot, tmp_path) -> None:
     assert "[image: gone]" in view.toPlainText()
 
 
-def test_documentation_lists_the_guide_and_roadmap() -> None:
+def test_documentation_lists_the_readme_first() -> None:
     names = [path.name for path in find_documents(CODE_ROOT)]
-    assert names[:3] == ["README.md", "CLAUDE.md", "ROADMAP.md"] and "guide.md" in names
+    assert names[:3] == ["README.md", "CLAUDE.md", "ROADMAP.md"]
     readme = (CODE_ROOT / "README.md").read_text(encoding="utf-8")
-    for image in ("home", "training", "deep-learning", "plugin-store"):
-        assert f"docs/images/{image}.png" in readme
-        assert (CODE_ROOT / "docs" / "images" / f"{image}.png").is_file()
+    assert "ROADMAP.md" in readme and "CLAUDE.md" in readme
 
 
-def test_the_readme_gallery_shows_every_page() -> None:
-    """Every page in the sidebar has a screenshot in the README's gallery and every image the README
-    shows exists: the owner's rule is that the README is updated with every change."""
+def test_the_readme_lists_every_page() -> None:
+    """Every page in the sidebar is in the README, and every image it shows exists: the owner's rule is
+    that the README is updated with every change."""
     import re
 
     from app.navigation import NAV
 
     readme = (CODE_ROOT / "README.md").read_text(encoding="utf-8")
-    shown = set(re.findall(r"\(docs/images/([^)]+\.png)\)", readme))
-    assert all((CODE_ROOT / "docs" / "images" / name).is_file() for name in shown)
-    pages = [name for name in shown if name.startswith("pages/")]
-    missing = [spec.id for spec in NAV if not any(spec.id.replace("_", "-") in name for name in pages)]
-    assert not missing, f"no screenshot in the README gallery for {missing}"
+    shown = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", readme)
+    assert all((CODE_ROOT / name).is_file() for name in shown)
+    missing = [spec.id for spec in NAV if spec.in_sidebar and f"| {spec.title} |" not in readme]
+    assert not missing, f"the README does not list {missing}"

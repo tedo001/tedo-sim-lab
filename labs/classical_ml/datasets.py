@@ -18,7 +18,8 @@ from core.common.cancel import CancelToken, ProgressFn
 from core.common.optional import is_installed
 from core.dataset_registry.adapter import DatasetStats, LocalState, TabularAdapter
 
-__all__ = ["CsvAdapter", "CsvPreview", "SklearnBuiltinAdapter", "columns_of", "import_csv", "preview_csv"]
+__all__ = ["CsvAdapter", "CsvPreview", "RemoteCsvAdapter", "SklearnBuiltinAdapter", "columns_of",
+           "import_csv", "preview_csv"]
 
 
 class SklearnBuiltinAdapter(TabularAdapter):
@@ -86,6 +87,21 @@ class CsvAdapter(TabularAdapter):
         return DatasetStats({"all": len(data)}, len(classes) or None, classes,
                             {"features": list(data.columns),
                              "target": None if target is None else target.name})
+
+
+class RemoteCsvAdapter(CsvAdapter):
+    """A CSV file published at ``options.url``, downloaded on request into the dataset's folder;
+    ``options.target`` and ``options.task`` as for an imported file."""
+
+    def file(self, root: Path) -> Path:
+        return self.data_dir(root) / str(self.card.options.get("file") or f"{self.card.id}.csv")
+
+    def _download(self, root: Path, progress: ProgressFn, cancel: CancelToken) -> None:
+        from ..common.download import download_file
+
+        download_file([str(self.card.options["url"])], self.file(root), md5=self.card.options.get("md5"),
+                      progress=progress, cancel=cancel)
+        progress(1.0, f"{self.card.name} is ready")
 
 
 class CsvPreview:

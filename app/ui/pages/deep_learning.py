@@ -48,7 +48,8 @@ class DeepLearningPage(Page):
         row = QHBoxLayout()
         self.dataset = QComboBox()
         for card in ctx.catalog.datasets.all():
-            if (card.modality == Modality.IMAGE and Task.IMAGE_CLASSIFICATION in card.tasks and card.adapter
+            if ((Task.IMAGE_CLASSIFICATION in card.tasks or Task.AUDIO_CLASSIFICATION in card.tasks)
+                    and card.modality in (Modality.IMAGE, Modality.AUDIO) and card.adapter
                     and card.maturity != "planned"):
                 self.dataset.addItem(f"{card.name} · {card.num_classes} classes", card.id)
         self.dataset.currentIndexChanged.connect(lambda _: self.refresh())
@@ -180,8 +181,11 @@ class DeepLearningPage(Page):
     # Actions ----------------------------------------------------------------------------------
     def spec(self):
         name = self.name.text().strip() or "my-network"
-        return image_spec(name, self.dataset.currentData(), "layer_stack", self.epochs.value(),
-                          params={"layers": [dict(layer) for layer in self.editor.layers]})
+        dataset = self.dataset.currentData()
+        audio = self.ctx.catalog.datasets.get(dataset).modality == Modality.AUDIO
+        return image_spec(name, dataset, "layer_stack", self.epochs.value(),
+                          params={"layers": [dict(layer) for layer in self.editor.layers]},
+                          task=Task.AUDIO_CLASSIFICATION if audio else Task.IMAGE_CLASSIFICATION)
 
     def open_in_builder(self) -> None:
         if self.steps:

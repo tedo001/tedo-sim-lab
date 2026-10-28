@@ -14,11 +14,19 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from core.common.cards import Card, CardError, CardRegistry
 from core.common.licensing import LicenseInfo, tool_licence_problem
+from core.common.naming import safe_folder_name
 from core.common.optional import missing_requirements
 from core.common.references import UnresolvedReference, is_reference, resolve
 from core.common.vocab import Framework, InstallStatus, Maturity
 
-__all__ = ["ModelBuilder", "ModelCard", "ModelRegistry", "WeightsInfo"]
+__all__ = ["HUB_FOLDER", "ModelBuilder", "ModelCard", "ModelRegistry", "WeightsInfo", "hub_folder"]
+
+HUB_FOLDER = ("models", "huggingface")
+
+
+def hub_folder(workspace: Path, repo: str) -> Path:
+    """Where a Hub repository's files are kept in a workspace."""
+    return Path(workspace).joinpath(*HUB_FOLDER, safe_folder_name(repo))
 
 
 class ModelBuilder(Protocol):
@@ -37,6 +45,9 @@ class WeightsInfo(BaseModel):
     size_mb: float | None = None
     auto_download_allowed: bool = False
     access_requirements: str = ""
+    #: A Hugging Face Hub repository (``owner/name``) the weights are downloaded from, through the
+    #: Hugging Face plugin, into ``<workspace>/models/huggingface/<owner>__<name>/``.
+    hub_repo: str | None = None
 
 
 class ModelCard(Card):
@@ -66,6 +77,11 @@ class ModelCard(Card):
             raise ValueError("builder must look like 'package.module:function'")
         return value
 
+    @property
+    def hub_weights(self) -> tuple[WeightsInfo, ...]:
+        """Weights the lab can download from the Hugging Face Hub."""
+        return tuple(weights for weights in self.weights if weights.hub_repo)
+
     def weights_by_id(self, weights_id: str) -> WeightsInfo:
         for weights in self.weights:
             if weights.id == weights_id:
@@ -75,6 +91,19 @@ class ModelCard(Card):
 
 class ModelRegistry(CardRegistry[ModelCard]):
     card_type = ModelCard
+
+    def __init__(self, workspace: Path | None = None) -> None:
+        super().__init__()
+        #: Where downloaded pretrained models are looked for (``None``: never downloaded).
+        self.workspace = workspace
+
+    def downloaded(self, card_id: str) -> bool:
+        """Whether any of the card's Hub weights is in the workspace."""
+        if self.workspace is None:
+            return False
+        return any((hub_folder(self.workspace, w.hub_repo) / name).is_file()
+                   for w in self.get(card_id).hub_weights
+                   for name in ("config.json", "preprocessor_config.json"))
 
     def add(self, card: ModelCard, source: Path) -> CardError | None:
         """Refuse third-party models whose code licence breaks the permissive-only policy."""
@@ -103,6 +132,11 @@ class ModelRegistry(CardRegistry[ModelCard]):
         missing = missing_requirements(card.requires)
         if missing:
             return "not_installed", f"Needs {', '.join(missing)}."
+        if card.builder is None and card.hub_weights:
+            if self.downloaded(card_id):
+                return "ready", "Downloaded: use it in its lab and on the Model Testing page."
+            return "not_downloaded", ("Pretrained: download it here, then use it in its lab and on Model "
+                                      "Testing.")
         if card.builder is None:
             return "catalog_only", "Listed for reference; the lab cannot build it."
         try:

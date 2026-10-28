@@ -1,4 +1,5 @@
-"""The Experiment Builder's PyTorch settings: image data options, training and device."""
+"""The Experiment Builder's PyTorch settings: image data options (also for spectrograms; hidden for
+text), training and device."""
 
 from __future__ import annotations
 
@@ -42,8 +43,9 @@ class TorchSection:
         self.normalize = QCheckBox("Normalise the images")
         self.normalize.setToolTip("Subtract the dataset's mean and divide by its standard deviation")
         self.normalize.setChecked(True)
+        self._rows = rows
         rows.addRow("Validation share", self.val_fraction)
-        rows.addRow("Images per split", self.subset)
+        rows.addRow("Items per split", self.subset)
         rows.addRow("", self.normalize)
         self.augment: dict[str, QCheckBox] = {}
         for name, text in AUGMENTATIONS.items():
@@ -109,12 +111,20 @@ class TorchSection:
         stack.addWidget(training_card)
         stack.addWidget(runtime_card)
 
+    def set_images(self, images: bool) -> None:
+        """Image options (normalising, augmenting) only for image and spectrogram data, not for text."""
+        self.images = images
+        for widget in (self.normalize, *self.augment.values()):
+            self._rows.setRowVisible(widget, images)
+
     # Spec ⇄ controls ---------------------------------------------------------------
     def data_fields(self) -> dict[str, Any]:
+        images = getattr(self, "images", True)
         return {"split": SplitSpec(val_fraction=self.val_fraction.value()),
-                "preprocessing": (TransformSpec(name="normalize"),) if self.normalize.isChecked() else (),
+                "preprocessing": (TransformSpec(name="normalize"),)
+                if images and self.normalize.isChecked() else (),
                 "augmentation": tuple(TransformSpec(name=name) for name, box in self.augment.items()
-                                      if box.isChecked()),
+                                      if images and box.isChecked()),
                 "subset": self.subset.value() or None}
 
     def training(self) -> TorchTrainingSpec:

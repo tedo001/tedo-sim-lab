@@ -1,0 +1,98 @@
+# Audio datasets. Spoken digits have a loader: each clip becomes a 64×64 log mel spectrogram,
+# so the lab's image networks train on sound. The others are catalogue entries with their
+# licences as the sources state them.
+cards:
+  - id: spoken_digits
+    name: Free Spoken Digit Dataset
+    description: 3,000 recordings of the digits 0–9 by six speakers (50 of each digit per speaker), 8 kHz
+      WAV; trained as log mel spectrograms.
+    tasks: [audio_classification]
+    modality: audio
+    source_url: https://github.com/Jakobovski/free-spoken-digit-dataset
+    license:
+      category: open-source
+      name: CC BY-SA 4.0
+      spdx: CC-BY-SA-4.0
+      url: https://github.com/Jakobovski/free-spoken-digit-dataset/blob/master/README.md
+      notes: Attribution and share-alike; cite the dataset.
+    size: ~18 MB (3,000 WAV files)
+    num_classes: 10
+    class_names: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    splits: {train: 2700, test: 300}
+    auto_download_allowed: true
+    adapter: labs.audio.datasets:SpokenDigitsAdapter
+    maturity: stable
+    citation: Z. Jackson et al. Free Spoken Digit Dataset (FSDD), v1.0.10. Zenodo, 2018.
+    tags: [speech, digits, beginner, spectrogram]
+
+  - id: speech_commands_v2
+    name: Speech Commands v0.02
+    description: 105,829 one-second utterances of 35 short words by 2,618 speakers, for keyword spotting.
+    tasks: [audio_classification]
+    modality: audio
+    source_url: https://www.tensorflow.org/datasets/catalog/speech_commands
+    license:
+      category: open-source
+      name: CC BY 4.0
+      spdx: CC-BY-4.0
+      url: https://creativecommons.org/licenses/by/4.0/
+    size: ~2.3 GB
+    num_classes: 35
+    splits: {}
+    citation: P. Warden. Speech Commands - A Dataset for Limited-Vocabulary Speech Recognition.
+      arXiv:1804.03209, 2018.
+    tags: [speech, keywords]
+
+  - id: librispeech
+    name: LibriSpeech ASR corpus
+    description: About 1,000 hours of read English speech from LibriVox audiobooks, segmented and aligned.
+    tasks: [speech_recognition]
+    modality: audio
+    source_url: https://www.openslr.org/12
+    license:
+      category: open-source
+      name: CC BY 4.0
+      spdx: CC-BY-4.0
+      url: https://www.openslr.org/12
+    size: ~60 GB
+    splits: {}
+    citation: V. Panayotov, G. Chen, D. Povey, S. Khudanpur. LibriSpeech - an ASR corpus based on public
+      domain audio books. ICASSP, 2015.
+    tags: [speech, english, asr]
+
+  - id: esc50
+    name: ESC-50
+    description: 2,000 five-second environmental recordings in 50 classes (animals, nature, human,
+      domestic and urban sounds).
+    tasks: [audio_classification]
+    modality: audio
+    source_url: https://github.com/karolpiczak/ESC-50
+    license:
+      category: non-commercial
+      name: CC BY-NC 3.0
+      spdx: CC-BY-NC-3.0
+      url: https://github.com/karolpiczak/ESC-50#license
+      notes: The dataset as a whole is CC BY-NC; individual clips keep their Freesound licences.
+    size: ~600 MB
+    num_classes: 50
+    splits: {}
+    citation: K. J. Piczak. ESC - Dataset for Environmental Sound Classification. ACM Multimedia, 2015.
+    tags: [environmental, sounds]
+
+  - id: common_voice
+    name: Mozilla Common Voice
+    description: Crowd-sourced read speech in more than 100 languages, with transcripts.
+    tasks: [speech_recognition]
+    modality: audio
+    source_url: https://commonvoice.mozilla.org/datasets
+    license:
+      category: open-source
+      name: CC0 1.0
+      spdx: CC0-1.0
+      url: https://commonvoice.mozilla.org/datasets
+      notes: You must not try to identify the speakers.
+    size: from a few hundred MB to tens of GB per language
+    splits: {}
+    access_requirements: Enter an email address and agree to the terms on the download page
+    citation: R. Ardila et al. Common Voice - A Massively-Multilingual Speech Corpus. LREC, 2020.
+    tags: [speech, multilingual, asr]

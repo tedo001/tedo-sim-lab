@@ -1,6 +1,8 @@
-"""The Dataset Hub's catalogue: every dataset card (shipped, project and imported) with its
-licence, source, size, classes and access requirements; the download controls appear only
-for datasets the lab can load and whose terms let it fetch them."""
+"""The Dataset Hub's catalogue: every dataset card (images, audio, text, tables, synthetic sets,
+image–text pairs; shipped, project and imported) with its licence, source, size, classes and access
+requirements; the download controls appear only for datasets the lab can load and whose terms let
+it fetch them. A downloaded dataset shows a few examples, opens in the lab for its kind of data and
+starts an experiment in the Experiment Builder."""
 
 from __future__ import annotations
 
@@ -11,12 +13,15 @@ from PySide6.QtWidgets import QHBoxLayout, QPushButton, QVBoxLayout, QWidget
 from core.common.vocab import Modality
 from labs.common.explore import explorable
 
+from ...navigation import page
 from ...services.context import AppContext
+from ...services.starters import lab_for, starter_spec, trainable_tasks
 from ..icons import icon
-from ..widgets import Card, DataTable, KeyValues, label
+from ..widgets import Card, DataTable, FlowGrid, KeyValues, label
 from .builder.choosers import DatasetDownload
 from .builder.form import task_title
 from .catalog_common import FilterRow, licence_pill, status_pill
+from .dataset_samples import DatasetSamples
 
 __all__ = ["DatasetCatalog"]
 
@@ -64,7 +69,6 @@ class DatasetCatalog(QWidget):
         self.citation = label("", "CardCaption", wrap=True, selectable=True)
         self.loader = label("", "CardCaption", wrap=True)
         self.download = DatasetDownload(ctx, show_status=False)
-        buttons = QHBoxLayout()
         self.source_button = QPushButton(icon("external-link"), "Open source page")
         self.source_button.clicked.connect(lambda: self._open("source"))
         self.terms_button = QPushButton(icon("scale"), "Read the terms")
@@ -72,14 +76,21 @@ class DatasetCatalog(QWidget):
         self.explore_button = QPushButton(icon("rotate-3d"), "Explore in 3-D")
         self.explore_button.clicked.connect(
             lambda: self.selected and self.explore_requested.emit(self.selected))
-        buttons.addWidget(self.source_button)
-        buttons.addWidget(self.terms_button)
-        buttons.addWidget(self.explore_button)
-        buttons.addStretch(1)
+        self.lab_button = QPushButton(icon("flask-conical"), "Open lab")
+        self.lab_button.clicked.connect(self._open_lab)
+        self.builder_button = QPushButton(icon("sliders-horizontal"), "Use in Experiment Builder")
+        self.builder_button.setObjectName("Primary")
+        self.builder_button.clicked.connect(self._use_in_builder)
+        self.builder_note = label("", "CardCaption", wrap=True)
+        row = [self.builder_button, self.lab_button, self.explore_button, self.source_button,
+               self.terms_button]
         for widget in (self.description, self.values, self.notes, self.citation, self.loader, self.download):
             self.detail.add(widget)
-        self.detail.add(buttons)
+        self.detail.add(FlowGrid(row, 210, fewest=2))
+        self.detail.add(self.builder_note)
         layout.addWidget(self.detail)
+        self.samples = DatasetSamples(ctx)
+        layout.addWidget(self.samples)
         ctx.downloads.finished.connect(lambda *_: self.refresh())
         ctx.downloads.imported.connect(lambda *_: self.refresh())
         self.refresh()
@@ -155,6 +166,8 @@ class DatasetCatalog(QWidget):
         self.source_button.setEnabled(bool(card.source_url))
         self.terms_button.setVisible(bool(card.license.url))
         self._show_explore(card.id)
+        self._show_next(card, status)
+        self.samples.set_card(card.id if status == "ready" else None)
 
     def _show_explore(self, card_id: str) -> None:
         """Rows can be drawn in 3-D for tables and MNIST-style image sets on this computer."""
@@ -171,6 +184,41 @@ class DatasetCatalog(QWidget):
         self.explore_button.setEnabled(here)
         self.explore_button.setToolTip("Its rows as points in 3-D, coloured by class" if here
                                        else "Download it first")
+
+    def _stable_tasks(self) -> set:
+        return {task for task, state in self.ctx.catalog.runners.task_maturity().items() if state == "stable"}
+
+    def _show_next(self, card, status: str) -> None:  # noqa: ANN001 (a DatasetCard)
+        """Open lab, and Use in Experiment Builder for datasets a stable runner trains."""
+        lab = lab_for(card)
+        self.lab_button.setText(f"Open {page(lab).title}" if lab != "dataset_hub" else "Open lab")
+        self.lab_button.setVisible(lab != "dataset_hub")
+        tasks = trainable_tasks(card, self._stable_tasks())
+        self.builder_button.setVisible(bool(tasks))
+        ready = status == "ready"
+        self.builder_button.setEnabled(ready)
+        self.builder_button.setToolTip("" if ready else "Download it first")
+        self.builder_note.setText(
+            f"Trains as {', '.join(task_title(t).lower() for t in tasks)}." if tasks else
+            "No model in this release trains on it yet; it is listed with its licence and source." if
+            status != "catalog_only" else "")
+        self.builder_note.setVisible(bool(self.builder_note.text()))
+
+    def _open_lab(self) -> None:
+        if self.selected is not None:
+            self.ctx.navigate(lab_for(self.ctx.catalog.datasets.get(self.selected)))
+
+    def _use_in_builder(self) -> None:
+        if self.selected is None:
+            return
+        card = self.ctx.catalog.datasets.get(self.selected)
+        tasks = trainable_tasks(card, self._stable_tasks())
+        try:
+            spec = starter_spec(card, tasks[0], self.ctx.catalog.models)
+        except (IndexError, LookupError, ValueError) as exc:
+            self.builder_note.setText(str(exc).strip("'\""))
+            return
+        self.ctx.experiments.open_in_builder(spec, self.ctx.navigate)
 
     def _open(self, which: str) -> None:
         if self.selected is None:

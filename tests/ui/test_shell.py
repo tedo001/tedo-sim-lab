@@ -76,27 +76,25 @@ def test_ambiguous_search_stays_put(window, qtbot) -> None:
     assert window.current_page_id() == "home"
 
 
-def test_placeholders_are_honest(window) -> None:
-    for page_id in ("nlp_llm", "audio", "quantum_ml"):
-        window.navigate(page_id)
-        widget = window.stack.currentWidget()
-        assert isinstance(widget, PlaceholderPage)
-        assert widget.pill.text() == status_text(page(page_id))
-        assert not widget.findChildren(QAbstractButton)  # nothing to press that would do nothing
+def test_placeholders_are_honest(ctx, qtbot) -> None:
+    """Every page is built now; a page added to NAV before it is built still gets an honest placeholder."""
+    spec = PageSpec("later", "Later", "labs", "puzzle", "Something for later.", "v0.9", None, "One feature")
+    widget = PlaceholderPage(ctx, spec)
+    qtbot.addWidget(widget)
+    assert widget.pill.text() == status_text(spec) == "Planned for v0.9"
+    assert not widget.findChildren(QAbstractButton)  # nothing to press that would do nothing
 
 
 def test_status_text() -> None:
     in_build = PageSpec("x", "X", "tools", "puzzle", "", "v0.1", 9)
     assert status_text(in_build) == "Planned for v0.1 · build phase 9"
-    assert status_text(page("audio")) == "Planned for v0.2"
-    assert status_text(page("quantum_ml")) == "Planned · scope not decided"
-    assert status_text(page("home")) == "Available"
+    assert status_text(PageSpec("x", "X", "labs", "puzzle", "", "v0.2")) == "Planned for v0.2"
+    assert status_text(PageSpec("x", "X", "labs", "puzzle", "", "TBD")) == "Planned · scope not decided"
+    assert status_text(page("audio")) == status_text(page("home")) == "Available"
 
 
 def test_future_releases_are_tagged_in_the_sidebar(window) -> None:
     from PySide6.QtWidgets import QLabel
     tags = {item_id: [w.text() for w in item.findChildren(QLabel) if w.objectName() == "NavTag"]
             for item_id, item in window.sidebar.items.items()}
-    assert tags["audio"] == ["v0.2"]
-    assert tags["quantum_ml"] == ["TBD"] and tags["simulation_lab"] == []
-    assert tags["training"] == []
+    assert tags["audio"] == tags["quantum_ml"] == tags["testing"] == tags["training"] == []  # all built

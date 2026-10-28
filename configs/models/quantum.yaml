@@ -1,0 +1,32 @@
+# Quantum classifiers, simulated exactly on the CPU by labs/quantum_ml (numpy). Written for this lab.
+_own: &own
+  category: open-source
+  name: This project's own code
+  notes: Written for TEDO AI Research Lab; no third-party weights.
+
+cards:
+  - id: vqc
+    name: Variational quantum classifier
+    architecture: Feature map (angle or ZZ) + RY/RZ layers with a CNOT ring; ⟨Z⟩ per class; parameter-shift gradients
+    framework: numpy
+    tasks: [quantum_classification]
+    source_url: https://doi.org/10.1038/s41586-019-0980-2
+    license: *own
+    input_spec: one feature per qubit, scaled to [0, π]
+    builder: labs.quantum_ml.runner:build_vqc
+    maturity: stable
+    origin: builtin
+    tags: [quantum, variational, simulated]
+
+  - id: quantum_kernel_svm
+    name: Quantum-kernel SVM
+    architecture: Fidelity kernel |⟨φ(x)|φ(x')⟩|² of a feature map, support-vector machine on the precomputed kernel
+    framework: numpy
+    tasks: [quantum_classification]
+    source_url: https://doi.org/10.1038/s41586-019-0980-2
+    license: *own
+    input_spec: one feature per qubit, scaled to [0, π]
+    builder: labs.quantum_ml.runner:build_kernel_svm
+    maturity: stable
+    origin: builtin
+    tags: [quantum, kernel, simulated]

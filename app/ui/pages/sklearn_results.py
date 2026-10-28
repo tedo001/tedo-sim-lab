@@ -135,6 +135,12 @@ class SklearnResults(QWidget):
         self._show_scatter(found)
 
         rows = found.get("importance", [])
+        words = found.get("importance_kind") == "words"
+        self.importance_card.set_title("Most telling words" if words else "Permutation importance")
+        self.importance_card.caption.setText("the words with the largest weight towards each class (top 5 "
+                                             "each)"
+                                             if words else "how much the test score drops when a column is "
+                                             "shuffled (5 repeats)")
         helpful = [row for row in rows if row[1] > 0]
         self.importance.set_rows(helpful)
         self.importance_note.setText(f"{len(rows) - len(helpful)} more columns made no measurable difference."

@@ -13,6 +13,7 @@ from ..icons import icon
 from ..widgets import Card, DataTable, Page, Pill, ResponsiveRow, label
 from .builder.choosers import DatasetDownload
 from .builder.form import task_title
+from .lab_parts import PretrainedModels
 
 __all__ = ["ComputerVisionPage"]
 
@@ -24,13 +25,17 @@ _MODEL_TONES = {"ready": ("Ready", "ok"), "planned": ("Planned", "planned"), "ex
 
 class ComputerVisionPage(Page):
     def __init__(self, ctx: AppContext, parent: QWidget | None = None) -> None:
-        super().__init__("Computer Vision", "image classification now; detection and more from v0.5", parent)
+        super().__init__("Computer Vision", "train image classifiers; test pretrained detectors", parent)
         self.ctx = ctx
+        testing = QPushButton(icon("test-tube"), "Model Testing")
+        testing.clicked.connect(lambda: ctx.navigate("testing"))
         explainer = QPushButton(icon("brain-circuit"), "CNN Explainer")
         explainer.clicked.connect(lambda: ctx.navigate("cnn_explainer"))
+        self.head.add_action(testing)
         self.head.add_action(explainer)
 
         self.body.addWidget(self._presets_card())
+        self.body.addWidget(self._detection_card())
         self.dataset_panels: dict[str, DatasetDownload] = {}
         self.body.addWidget(self._datasets_card())
         row = ResponsiveRow([(self._tasks_card(), 1), (self._models_card(), 2)], breakpoint=900)
@@ -62,6 +67,30 @@ class ComputerVisionPage(Page):
             grid.addWidget(tile, index // 2, index % 2)
         card.add(grid)
         return card
+
+    def _detection_card(self) -> Card:
+        card = Card("Object detection test", "pretrained COCO detectors (Apache-2.0) on your own images")
+        self.detectors = PretrainedModels(self.ctx, {Task.OBJECT_DETECTION},
+                                          "80 COCO classes; boxes with scores")
+        card.add(self.detectors)
+        self.detect_button = QPushButton(icon("scan-search"), "Open the detection test")
+        self.detect_button.clicked.connect(self.open_detection)
+        self.detectors.changed.connect(self._detectors_changed)
+        card.add(self.detect_button)
+        card.add(label("Training detectors in the lab is planned for v0.5; these pretrained ones work now on "
+                       "Model Testing.", "CardCaption", wrap=True))
+        self._detectors_changed()
+        return card
+
+    def _detectors_changed(self) -> None:
+        here = [c.id for c in self.detectors.cards() if self.ctx.catalog.models.downloaded(c.id)]
+        self.detect_button.setEnabled(bool(here))
+        self.detect_button.setToolTip("" if here else "Download a detector first")
+
+    def open_detection(self) -> None:
+        here = [c.id for c in self.detectors.cards() if self.ctx.catalog.models.downloaded(c.id)]
+        if here:
+            self.ctx.show_page("testing").open_model(here[0])
 
     def _datasets_card(self) -> Card:
         card = Card("Datasets", "downloaded into this workspace's datasets/ folder")

@@ -37,9 +37,9 @@ class CvPreset:
 
 def image_spec(name: str, dataset: str, model: str, epochs: int, *, augmentation: tuple[str, ...] = (),
                lr: float = 1e-3, scheduler: str = "none", patience: int | None = None,
-               params: dict | None = None) -> ExperimentSpec:
+               params: dict | None = None, task: Task = Task.IMAGE_CLASSIFICATION) -> ExperimentSpec:
     return ExperimentSpec(
-        name=name, task=Task.IMAGE_CLASSIFICATION,
+        name=name, task=task,
         data=DataSpec(dataset=dataset, preprocessing=_NORMALIZE,
                       augmentation=tuple(TransformSpec(name=step) for step in augmentation)),
         model=ModelSpec(model=model, params=params or {}),
