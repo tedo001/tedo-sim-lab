@@ -24,6 +24,8 @@ from importlib import metadata
 from pathlib import Path
 from typing import Any
 
+from core.common.isolation import child_environment
+
 from .spec import ExperimentSpec, spec_hash
 
 __all__ = ["LOCK_FILE", "PACKAGES", "compare", "dataset_fingerprint", "environment", "environment_of",
@@ -146,8 +148,7 @@ def environment_of(python: str, code_root: Path, timeout: float = 90) -> dict[st
     """The environment of another interpreter (the experiment Python), asked in a subprocess; this
     process's own when ``python`` is empty or cannot answer."""
     if python:
-        env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(code_root),
-                                                                         os.environ.get("PYTHONPATH", "")]))}
+        env = child_environment(code_root=code_root)  # what a worker would see, not this process
         try:
             result = subprocess.run([python, "-m", "core.experiment_engine.snapshot", str(code_root)],
                                     capture_output=True, text=True, timeout=timeout, env=env,

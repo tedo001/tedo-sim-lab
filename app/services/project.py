@@ -14,15 +14,20 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import QFile, QObject, QProcess, QProcessEnvironment, QSettings, QTimer, Signal
+from PySide6.QtCore import QFile, QObject, QProcess, QSettings, QTimer, Signal
 
 from core.common import AppConfig, experiment_python
+from core.common.experiment_env import env_python
+from core.common.isolation import user_environment
 from core.common.masking import mask_text
 from core.common.paths import CODE_ROOT, WORKSPACE_ENV
 
+from .jobs import qt_environment
+
 __all__ = ["Launch", "ProjectRunner", "RecentProjects", "TRACEBACK_LINE", "check_python_syntax", "git_status",
-           "lab_packages", "project_environment", "python_launch", "run_command", "safe_child", "server_hint",
-           "trash"]
+           "lab_packages", "project_environment", "project_python", "python_launch", "run_command",
+           "safe_child",
+           "server_hint", "trash"]
 
 #: ``File "C:\\p\\x.py", line 12`` in a Python traceback.
 TRACEBACK_LINE = re.compile(r'File "(?P<path>[^"]+)", line (?P<line>\d+)')
@@ -165,6 +170,18 @@ def project_environment(root: Path, workspace: Path, python: str, base: dict[str
     return extra
 
 
+def project_python(root: Path, fallback: str) -> str:
+    """The project's own virtual environment (``.venv``, ``venv`` or ``env`` with a
+    ``pyvenv.cfg``) when it has one, so its packages stay its own; else ``fallback`` (the
+    experiment Python)."""
+    for name in (".venv", "venv", "env"):
+        folder = Path(root) / name
+        python = env_python(folder)
+        if (folder / "pyvenv.cfg").is_file() and python.is_file():
+            return str(python)
+    return fallback
+
+
 class ProjectRunner(QObject):
     output = Signal(str, str)      # text, stream: "stdout" | "stderr" | "info"
     started = Signal(str)          # what runs
@@ -185,14 +202,13 @@ class ProjectRunner(QObject):
         """Run ``path`` with ``root`` as working folder; ``ValueError`` says why it cannot."""
         if self.running:
             raise ValueError("Something is still running: stop it first.")
-        python = experiment_python(self.config)
+        python = project_python(root, experiment_python(self.config))
         command = run_command(path, list(args or []), python, root)
         launch = python_launch(path, root) if RUNNABLE.get(path.suffix.lower()) == "Python" else Launch((),
                                                                                                         root)
-        env = QProcessEnvironment.systemEnvironment()
-        for key, value in project_environment(root, self.workspace, python, dict(os.environ),
-                                              launch.paths).items():
-            env.insert(key, value)
+        base = user_environment()  # the person's program: their variables, not the host's Python settings
+        extra = project_environment(root, self.workspace, python, base, launch.paths)
+        env = qt_environment({**base, **extra})
         process = QProcess()  # no parent: kept alive from Python until the event loop is back
         self.destroyed.connect(process.kill)
         process.setProgram(command[0])

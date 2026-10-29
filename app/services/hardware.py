@@ -9,13 +9,15 @@ and NVML only, a few hundred microseconds per tick, so it runs on the UI timer.
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, Signal
+from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 
+from core.common.isolation import child_environment
 from core.hardware.info import HardwareInfo
 from core.hardware.sampler import ResourceSample, ResourceSampler, SampleHistory
+
+from .jobs import qt_environment
 
 __all__ = ["HardwareService"]
 
@@ -108,11 +110,7 @@ class HardwareService(QObject):
             self.info_changed.emit(None)
             return
         process = QProcess()  # Python-owned; released after its signals finish (see jobs.py)
-        environment = QProcessEnvironment.systemEnvironment()
-        pythonpath = os.pathsep.join(filter(None, [str(self._code_root),
-                                                   os.environ.get("PYTHONPATH", "")]))
-        environment.insert("PYTHONPATH", pythonpath)
-        process.setProcessEnvironment(environment)
+        process.setProcessEnvironment(qt_environment(child_environment(code_root=self._code_root)))
         process.setWorkingDirectory(str(self._code_root))
         process.finished.connect(lambda code, _status: self._probe_finished(code))
         process.errorOccurred.connect(self._probe_error)

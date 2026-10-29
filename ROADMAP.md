@@ -72,6 +72,10 @@ Ten build phases:
 - **Dependency isolation:** a lighter core experiment Python; Transformers, SHAP and ONNX as environment
   packs layered over it, installed and removed from the Plugin Store, picked per runner and for the
   inference worker.
+- **Process isolation:** every process the lab starts gets an allow-listed environment
+  (`core/common/isolation.py`): no credentials unless named in *Passed to runs*, no host Python
+  settings, bytecode outside the code folder, caches in the workspace; Code page
+  projects run in their own `.venv`.
 
 ## Next
 

@@ -21,6 +21,7 @@ LATER = {
     "mlflow_tracking": "applies to runs started from now on",
     "mlflow_tracking_uri": "applies to new runs and the next start of the MLflow UI",
     "default_device": "is what the builder starts experiments on, unless one was chosen there",
+    "pass_environment": "applies to runs and workers started from now on",
 }
 
 

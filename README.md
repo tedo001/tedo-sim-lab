@@ -166,7 +166,7 @@ python -m app.main                       # or: tedo-lab, inside your own environ
 python -m app.main --workspace D:/lab    # keep datasets, runs and logs elsewhere
 ```
 
-Runtime data (datasets, checkpoints, runs, the database, MLflow's store, logs) lives in
+Runtime data (datasets, checkpoints, runs, the database, MLflow's store, logs, library caches) lives in
 the *workspace*: the repository folder by default, or `--workspace` /
 `TEDO_LAB_WORKSPACE`. None of it is committed to git. Settings live in the workspace's
 `configs/settings.yaml`; change them on the Settings page (the gear in the title row).
@@ -179,6 +179,23 @@ from files. Recognised variables: `KAGGLE_USERNAME`, `KAGGLE_KEY`, `ROBOFLOW_API
 (Account), or connect GitHub on the Git & GitHub page; Settings shows which are set and where
 from, never the values; logs and terminals mask them. Git receives a GitHub token only as an HTTP
 header in its environment, never on a command line or in a file.
+
+**What runs can see.** Nothing the lab starts on its own (experiment, inference and remote workers,
+the hardware probe, data checks, the MLflow UI, installs) inherits your environment wholesale: each
+gets the operating system's essentials, proxies and certificate bundles, GPU and thread settings and
+the lab's own variables, and no variable whose name says it holds a credential (`…_TOKEN`, `…_KEY`,
+`…SECRET…`, `…PASSWORD…`). The host's Python settings (`PYTHONPATH`, an activated virtual
+environment, conda) stay out too, so a run imports only its interpreter's packages and the lab's
+code (the experiment Python the app makes is a virtual environment, so your `~/.local` packages
+never reach it either); bytecode goes to a per-user cache, never into the code folder; and
+library caches (Hugging Face, PyTorch hub, matplotlib, other caches, nltk data) go into the
+workspace (`models/`, `cache/`, `datasets/nltk_data`), so a project folder holds everything its runs
+downloaded. To let a run see one variable anyway (a tracking service's key, say), name it under
+Settings → *Passed to runs* (`pass_environment` in `settings.yaml`: names only, the value stays in
+your environment); MLflow's own login variables reach the workers when the tracking URI is a
+server. The remote dispatcher gets your SSH agent's socket and nothing else of yours. Programs you
+run yourself (the Code page, terminals, Jupyter Lab) keep your environment, minus the host's Python
+settings; a project with its own `.venv` runs in it.
 
 The Kaggle, Hugging Face and Roboflow plugins talk to each service's public REST API with the
 lab's own code (no client libraries). A download lands in `datasets/<source>/` or
@@ -216,7 +233,7 @@ QT_QPA_PLATFORM=offscreen python -m app.main --smoke-test
 | Compare Experiments | Runs side by side, a model-performance radar, curves overlaid, exported as CSV, JSON, Markdown or PDF. |
 | Studies & Sweeps | One experiment over several seeds (mean, spread, 95 % interval, Welch's test) or a hyperparameter sweep (parallel coordinates, parameter importance). |
 | MLflow | Runs tracked in MLflow, and the MLflow UI. |
-| Code | A project folder as an IDE: files, editor, run, terminal and git. |
+| Code | A project folder as an IDE: files, editor, run (in the project's own `.venv` when it has one), terminal and git. |
 | Terminal | Real terminals: bash, PowerShell, Command Prompt, Python, vim, Neovim and Docker. |
 | Git & GitHub | Changes, commits, history, branches and sync for a project; your GitHub repositories. |
 | Jupyter Notebook | Notebooks in the workspace, started from runs and linked to them; Jupyter Lab on request. |

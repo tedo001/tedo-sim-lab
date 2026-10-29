@@ -11,16 +11,18 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import uuid
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Signal
+from PySide6.QtCore import QObject, QProcess, Signal
 
 from core.common import AppConfig, experiment_python, packs
+from core.common.isolation import child_environment, passed_names
 from core.common.paths import AppPaths
+
+from .jobs import qt_environment
 
 __all__ = ["InferenceService"]
 
@@ -76,14 +78,11 @@ class InferenceService(QObject):
             self._fail_all("No experiment Python is set up yet: Settings → Experiment Python.")
             return
         process = QProcess()
-        env = QProcessEnvironment.systemEnvironment()
         code_root = str(self.paths.code_root)
-        env.insert("PYTHONPATH", os.pathsep.join(filter(None, [code_root, os.environ.get("PYTHONPATH", "")])))
-        env.insert("PYTHONUNBUFFERED", "1")
-        env.insert("PYTHONIOENCODING", "utf-8")
-        env.insert("HF_HOME", str(self.paths.models / "huggingface-cache"))
-        env.insert("TORCH_HOME", str(self.paths.models / "torch-hub"))
-        process.setProcessEnvironment(env)
+        # no credentials, caches in the workspace
+        process.setProcessEnvironment(qt_environment(child_environment(
+            code_root=self.paths.code_root, workspace=self.paths.workspace,
+            allow=passed_names(self.config), extra={"PYTHONUNBUFFERED": "1"})))
         process.setWorkingDirectory(code_root)
         process.setProgram(python)
         process.setArguments(["-m", "labs.inference.worker", "--workspace", str(self.paths.workspace)])

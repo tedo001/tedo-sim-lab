@@ -12,6 +12,7 @@ from typing import Any
 from PySide6.QtWidgets import QWidget
 
 from core.common.config import experiment_python
+from core.common.isolation import passed_names
 from core.experiment_engine.spec import ExperimentSpec, dump_spec
 
 from ...services.context import AppContext
@@ -44,16 +45,15 @@ class DatasetChecks(Card):
         target = dump_spec(spec, folder / f"{spec.data.dataset}.yaml")
         try:
             command = worker_command(target, python=experiment_python(self.ctx.config),
-                                     code_root=self.ctx.paths.code_root, workspace=self.ctx.paths.workspace)
+                                     code_root=self.ctx.paths.code_root, workspace=self.ctx.paths.workspace,
+                                     allow=passed_names(self.ctx.config))
         except NoExperimentPython as exc:
             self.state.setText(str(exc))
             return None
 
         def work(cancel: Any, progress: Any) -> dict[str, Any]:
-            import os
-
             done = subprocess.run([command.program, "-m", "core.experiment_engine.data_checks", str(target)],
-                                  cwd=command.cwd, env={**os.environ, **command.env}, capture_output=True,
+                                  cwd=command.cwd, env=command.env, capture_output=True,
                                   text=True, timeout=900, stdin=subprocess.DEVNULL)
             lines = done.stdout.strip().splitlines()
             if not lines:

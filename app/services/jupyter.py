@@ -14,7 +14,9 @@ from pathlib import Path
 from typing import Any
 
 from core.common import AppPaths, experiment_python
+from core.common.isolation import user_environment
 from core.common.masking import register_secret
+from core.common.paths import WORKSPACE_ENV
 from core.tracking import LabStore
 
 from .runs import RunView, slug
@@ -50,6 +52,11 @@ class JupyterLab(LocalWebUi):
         self.paths.notebooks.mkdir(parents=True, exist_ok=True)
         self.token = secrets.token_urlsafe(24)
         register_secret(self.token)  # never in a log line
+
+    def environment(self) -> dict[str, str]:
+        """The person's own environment (their notebooks may need their variables), without the
+        host's Python settings, pointed at the workspace."""
+        return {**user_environment(), WORKSPACE_ENV: str(self.paths.workspace)}
 
     def command(self, port: int) -> list[str]:
         return ["-m", "jupyterlab", "--no-browser", "--ServerApp.ip=127.0.0.1", f"--ServerApp.port={port}",

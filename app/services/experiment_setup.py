@@ -20,6 +20,7 @@ from core.common.experiment_env import (
     setup_steps,
     torch_build,
 )
+from core.common.isolation import child_environment
 from core.common.masking import mask_text
 
 from .jobs import JobQueue
@@ -60,7 +61,8 @@ def run_steps(steps: list[Step], cancel: CancelToken, progress: ProgressFn) -> N
 def _run(command: list[str], cancel: CancelToken, line_out) -> list[str] | None:  # noqa: ANN001
     """``None`` when ``command`` succeeded, else its last lines of output."""
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                               stdin=subprocess.DEVNULL, encoding="utf-8", errors="replace")
+                               stdin=subprocess.DEVNULL, encoding="utf-8", errors="replace",
+                               env=child_environment(kind="install"))  # pip's settings, no credentials
     tail: list[str] = []
     assert process.stdout is not None
     for line in process.stdout:

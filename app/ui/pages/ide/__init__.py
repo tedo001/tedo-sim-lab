@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
 from core.common import experiment_python
 
 from ....services.context import AppContext
-from ....services.project import RUNNABLE, ProjectRunner, RecentProjects
+from ....services.project import RUNNABLE, ProjectRunner, RecentProjects, project_python
 from ...icons import icon
 from ...widgets import Page, PathLabel, ResponsiveRow, label
 from .console import BottomPanel
@@ -251,6 +251,8 @@ class IdePage(Page):
         self.terminal_run_button.setEnabled(runnable)
         self.debug_button.setEnabled(path is not None and path.suffix.lower() in (".py", ".pyw"))
         python = experiment_python(self.ctx.config)
+        if self.root is not None:  # a project's own .venv runs its files
+            python = project_python(self.root, python)
         self.run_button.setToolTip("Run the current file (F5)" if runnable else
                                    "Open a Python, shell, PowerShell or batch file to run it")
         if runnable and path.suffix.lower().startswith(".py") and not python:

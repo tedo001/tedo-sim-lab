@@ -9,6 +9,9 @@ import socket
 from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 
 from core.common import AppConfig, AppPaths, experiment_python
+from core.common.isolation import child_environment, passed_names
+
+from .jobs import qt_environment
 
 __all__ = ["LocalWebUi", "free_port"]
 
@@ -47,6 +50,11 @@ class LocalWebUi(QObject):
     def prepare(self) -> None:
         """Called before starting (create folders)."""
 
+    def environment(self) -> dict[str, str]:
+        """The process's whole environment: a lab process's (no credentials, caches in the
+        workspace); Jupyter Lab, which runs the person's own notebooks, keeps theirs."""
+        return child_environment(workspace=self.paths.workspace, allow=passed_names(self.config))
+
     def start(self) -> None:
         if self.process is not None:
             return
@@ -54,6 +62,7 @@ class LocalWebUi(QObject):
         self.port = free_port(self.START_PORT)
         process = QProcess()
         process.setProgram(experiment_python(self.config))
+        process.setProcessEnvironment(qt_environment(self.environment()))
         process.setArguments(self.command(self.port))
         process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         process.readyReadStandardOutput.connect(self._read)

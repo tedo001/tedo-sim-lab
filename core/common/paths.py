@@ -38,7 +38,7 @@ WORKSPACE_ENV = "TEDO_LAB_WORKSPACE"
 #: Folders a workspace always has. ``configs`` also holds the tracked card files
 #: when the workspace is the code root.
 WORKSPACE_DIRS = ("configs", "models", "datasets", "experiments", "notebooks",
-                  "results", "reports", "database", "mlruns", "logs")
+                  "results", "reports", "database", "mlruns", "logs", "cache")
 
 
 @dataclass(frozen=True)
@@ -109,6 +109,11 @@ class AppPaths:
     @property
     def logs(self) -> Path:
         return self.workspace / "logs"
+
+    @property
+    def cache(self) -> Path:
+        """Library caches of the lab's processes (see ``core.common.isolation``)."""
+        return self.workspace / "cache"
 
     # Files ---------------------------------------------------------------
     @property

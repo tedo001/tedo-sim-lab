@@ -21,6 +21,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .isolation import child_environment
 from .paths import CODE_ROOT
 
 __all__ = ["MINIMUM", "PythonFacts", "Step", "default_env_dir", "describe_python", "env_python",
@@ -62,7 +63,7 @@ def env_python(env_dir: Path) -> Path:
 def _run(command: list[str], timeout: float) -> subprocess.CompletedProcess[str] | None:
     try:
         return subprocess.run(command, capture_output=True, text=True, timeout=timeout,
-                              stdin=subprocess.DEVNULL)
+                              stdin=subprocess.DEVNULL, env=child_environment())
     except (OSError, subprocess.SubprocessError):
         return None
 

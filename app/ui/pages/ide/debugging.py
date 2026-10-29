@@ -14,7 +14,7 @@ from core.common import experiment_python
 from core.terminal.debugger import Stop, find_stop, pdb_command
 
 from ....services.context import AppContext
-from ....services.project import Launch, project_environment, python_launch, run_command
+from ....services.project import Launch, project_environment, project_python, python_launch, run_command
 from ...widgets.terminal_view import TerminalView
 from .console import BottomPanel
 from .editors import EditorTabs
@@ -47,7 +47,7 @@ class Debugger(QObject):
     def start(self, path: Path, root: Path, args: list[str], *, debug: bool = True) -> bool:
         """Debug ``path`` (or just run it, ``debug=False``) in a terminal tab in ``root``,
         replacing the previous one of the same kind."""
-        python = experiment_python(self.ctx.config)
+        python = project_python(root, experiment_python(self.ctx.config))
         launch = python_launch(path, root) if path.suffix.lower() in (".py", ".pyw") else Launch((), root)
         try:
             if debug:

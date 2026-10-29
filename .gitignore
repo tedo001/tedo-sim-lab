@@ -29,6 +29,7 @@ database/*
 !database/.gitkeep
 mlruns/
 logs/
+cache/
 
 # Local settings (never credentials, but personal)
 configs/settings.yaml

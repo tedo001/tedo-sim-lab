@@ -21,6 +21,7 @@ from typing import Any
 import yaml
 
 from .experiment_env import Step, default_env_dir, env_python
+from .isolation import child_environment
 from .paths import CODE_ROOT
 
 __all__ = ["LINK_FILE", "PACKS_ENV", "Pack", "install_steps", "load_packs", "pack_dir", "pack_python",
@@ -69,7 +70,7 @@ def site_packages(python: str, timeout: float = 60) -> list[str]:
             "paths = [sysconfig.get_paths()['purelib'], *site.getsitepackages()]; "
             "print(json.dumps([p for p in dict.fromkeys(paths) if os.path.isdir(p)]))")
     done = subprocess.run([python, "-c", code], capture_output=True, text=True, timeout=timeout,
-                          stdin=subprocess.DEVNULL)
+                          stdin=subprocess.DEVNULL, env=child_environment())
     if done.returncode != 0:
         raise RuntimeError(f"{python} could not say where its packages are: {done.stderr.strip()[-200:]}")
     return json.loads(done.stdout.strip().splitlines()[-1])

@@ -55,3 +55,63 @@ def test_designed_here_run_on_a_target(ctx, qtbot, tmp_path) -> None:
     assert (view.run_dir / "results.json").is_file()
     assert (tmp_path / "remote" / "runs" / run_id / "results.json").is_file()
     assert any("Running on box" in line for line in ctx.experiments.log_lines(run_id))
+
+
+def test_runs_never_see_the_persons_credentials(ctx, qtbot, tmp_path, monkeypatch) -> None:
+    """The command every run gets, and what a process started by the job queue really sees."""
+    import json
+    import sys
+
+    from app.services.context import _command_for_run
+    from app.services.jobs import JobQueue, WorkerCommand
+    from core.remote.targets import Target, save_targets
+
+    monkeypatch.setenv("TEDO_TEST_API_TOKEN", "must-not-leak")
+    monkeypatch.setenv("WANDB_API_KEY", "passed-on-request")
+    monkeypatch.setenv("SSH_AUTH_SOCK", str(tmp_path / "agent"))
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path / "host-site"))
+    run = tmp_path / "run"
+    run.mkdir()
+    command = _command_for_run(run, ctx.config, ctx.catalog, ctx.paths)
+    assert "TEDO_TEST_API_TOKEN" not in command.env and "WANDB_API_KEY" not in command.env
+    assert "SSH_AUTH_SOCK" not in command.env and command.env["PYTHONPATH"] == str(ctx.paths.code_root)
+    ctx.settings.update(pass_environment=["WANDB_API_KEY"])
+    passed = _command_for_run(run, ctx.config, ctx.catalog, ctx.paths)
+    assert passed.env["WANDB_API_KEY"] == "passed-on-request"
+
+    from core.experiment_engine.spec import dump_spec
+    from labs.classical_ml.presets import CLASSICAL_PRESETS
+
+    box = Target("box", python=sys.executable, folder=str(tmp_path / "remote"), transport="local")
+    save_targets(ctx.paths.configs, {"box": box})
+    spec = CLASSICAL_PRESETS[0].make()
+    dump_spec(spec.model_copy(update={"runtime": spec.runtime.model_copy(update={"target": "box"})}),
+              run / "experiment.yaml")
+    dispatch = _command_for_run(run, ctx.config, ctx.catalog, ctx.paths)
+    assert "core.remote.dispatch" in dispatch.arguments
+    assert dispatch.env["SSH_AUTH_SOCK"] == str(tmp_path / "agent")
+    assert "TEDO_TEST_API_TOKEN" not in dispatch.env  # the agent's socket, nothing else of the person's
+
+    seen = tmp_path / "seen.json"
+    script = f"import json, os; json.dump(dict(os.environ), open({str(seen)!r}, 'w'))"
+    queue = JobQueue(lambda _run: WorkerCommand(sys.executable, ["-c", script], tmp_path, {"EXTRA": "1"}))
+    job = queue.submit_run(run)
+    qtbot.waitUntil(lambda: queue.job(job).status in ("completed", "failed"), timeout=60_000)
+    env = json.loads(seen.read_text(encoding="utf-8"))
+    assert "TEDO_TEST_API_TOKEN" not in env and "SSH_AUTH_SOCK" not in env and env["EXTRA"] == "1"
+    assert "PATH" in env and "host-site" not in env.get("PYTHONPATH", "")
+    queue.shutdown()
+
+
+def test_a_project_with_its_own_virtual_environment_runs_in_it(tmp_path) -> None:
+    from app.services.project import project_python
+    from core.common.experiment_env import env_python
+
+    assert project_python(tmp_path, "/experiment/python") == "/experiment/python"
+    venv = tmp_path / ".venv"
+    python = env_python(venv)
+    python.parent.mkdir(parents=True)
+    python.write_text("")
+    assert project_python(tmp_path, "/experiment/python") == "/experiment/python"  # not a venv yet
+    (venv / "pyvenv.cfg").write_text("home = /usr/bin\n")
+    assert project_python(tmp_path, "/experiment/python") == str(python)

@@ -4,6 +4,8 @@ can be, otherwise from the next run, start or experiment, as the page says."""
 
 from __future__ import annotations
 
+import re
+
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -28,7 +30,8 @@ __all__ = ["SettingsForm"]
 
 TITLES = {"log_level": "Log level", "mlflow_tracking": "MLflow tracking",
           "mlflow_tracking_uri": "MLflow URI", "terminal_shell": "Terminal shell",
-          "max_concurrent_runs": "Concurrent runs", "default_device": "Default device"}
+          "max_concurrent_runs": "Concurrent runs", "default_device": "Default device",
+          "pass_environment": "Passed to runs"}
 
 
 class SettingsForm(Card):
@@ -56,9 +59,15 @@ class SettingsForm(Card):
         self.concurrent.setToolTip("Runs that train at the same time (1 suits a single GPU)")
         self.device = QComboBox()
         self.device.setMinimumWidth(160)  # GPU names can be long
+        self.pass_environment = QLineEdit()
+        self.pass_environment.setPlaceholderText("none: runs never see your tokens or keys")
+        self.pass_environment.setToolTip("Names of environment variables that runs and workers may see "
+                                         "although they look like credentials (e.g. WANDB_API_KEY), "
+                                         "separated by spaces or commas. Only names are saved.")
         for title, rows in (("Log level", self.log_level), ("MLflow tracking", self.mlflow_tracking),
                             ("MLflow URI", self.mlflow_uri), ("Terminal shell", self.terminal_shell),
-                            ("Concurrent runs", self.concurrent), ("Default device", self.device)):
+                            ("Concurrent runs", self.concurrent), ("Default device", self.device),
+                            ("Passed to runs", self.pass_environment)):
             form.addRow(title, rows)
         self.add(form)
         buttons = QHBoxLayout()
@@ -121,6 +130,8 @@ class SettingsForm(Card):
         if wanted("default_device"):
             self.device.clear()
             self._fill_devices()
+        if wanted("pass_environment"):
+            self.pass_environment.setText(" ".join(config.pass_environment))
         if only is None:
             self.status.setText("")
 
@@ -129,7 +140,8 @@ class SettingsForm(Card):
                 "mlflow_tracking": self.mlflow_tracking.isChecked(),
                 "mlflow_tracking_uri": self.mlflow_uri.text().strip(),
                 "terminal_shell": self.terminal_shell.currentText().strip() or "auto",
-                "max_concurrent_runs": self.concurrent.value(), "default_device": self.device.currentData()}
+                "max_concurrent_runs": self.concurrent.value(), "default_device": self.device.currentData(),
+                "pass_environment": [n for n in re.split(r"[\s,]+", self.pass_environment.text()) if n]}
 
     def save(self) -> set[str]:
         try:

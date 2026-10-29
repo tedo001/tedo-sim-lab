@@ -14,6 +14,7 @@ from pathlib import Path
 
 from core.catalog import Catalog, load_catalog
 from core.common import AppConfig, AppPaths, CredentialStore, experiment_python, packs
+from core.common.isolation import SSH_AGENT, passed_names
 from core.common.paths import WORKSPACE_ENV
 from core.experiment_engine.spec import load_spec
 from core.tracking import LabStore
@@ -109,15 +110,18 @@ def _command_for_run(run_dir: Path, config: AppConfig, catalog: Catalog,
     """The local worker under the experiment Python (or an installed environment pack that serves
     the run's runner), or the remote dispatcher when the run names a target."""
     base = experiment_python(config)
-    command = worker_command(run_dir, python=base, code_root=paths.code_root, workspace=paths.workspace)
+    command = worker_command(run_dir, python=base, code_root=paths.code_root, workspace=paths.workspace,
+                             allow=passed_names(config))
     try:
         spec = load_spec(Path(run_dir) / "experiment.yaml")
     except Exception:  # a benchmark folder, or an unreadable spec: the core Python
         return command
-    if spec.runtime.target:
-        return replace(command, arguments=["-m", "core.remote.dispatch", str(run_dir), "--target",
-                                           spec.runtime.target, "--workspace", str(paths.workspace),
-                                           "--cancel-on-eof", "--prepare-data"])
+    if spec.runtime.target:  # ssh reaches the person's agent; nothing else of theirs goes along
+        dispatch = worker_command(run_dir, python=base, code_root=paths.code_root, workspace=paths.workspace,
+                                  allow=(*passed_names(config), *SSH_AGENT))
+        return replace(dispatch, arguments=["-m", "core.remote.dispatch", str(run_dir), "--target",
+                                            spec.runtime.target, "--workspace", str(paths.workspace),
+                                            "--cancel-on-eof", "--prepare-data"])
     try:
         runner = catalog.runners.for_spec(spec).id
     except Exception:  # no runner: the worker says why

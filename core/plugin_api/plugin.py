@@ -15,6 +15,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, ClassVar, Literal
 
+from core.common.isolation import child_environment
 from core.common.licensing import LicenseCategory, LicenseInfo
 from core.common.masking import mask_text
 from core.common.optional import missing_requirements
@@ -177,7 +178,8 @@ class ManifestPlugin(Plugin):
         if getattr(sys, "frozen", False) and self.python == sys.executable:
             raise PluginError("The installed app cannot add packages to itself. Choose a Python "
                               "environment for experiments in Settings, then install there.")
-        result = subprocess.run(plan.command, capture_output=True, text=True)
+        result = subprocess.run(plan.command, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                                env=child_environment(kind="install"))
         if result.returncode != 0:
             tail = "\n".join((result.stdout + result.stderr).strip().splitlines()[-15:])
             raise PluginError(mask_text(f"pip failed ({result.returncode}):\n{tail}"))
@@ -187,7 +189,8 @@ class ManifestPlugin(Plugin):
         names = [Requirement(requirement).name for requirement in self.manifest.requires]
         if names:
             result = subprocess.run((self.python, "-m", "pip", "uninstall", "-y", *names),
-                                    capture_output=True, text=True)
+                                    capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                                    env=child_environment(kind="install"))
             if result.returncode != 0:
                 raise PluginError(mask_text(f"pip uninstall failed: {result.stderr.strip()[-500:]}"))
 

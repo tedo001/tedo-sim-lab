@@ -15,6 +15,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from core.common.isolation import user_environment
+
 __all__ = ["DockerContainer", "Profile", "default_profile", "docker_command", "docker_containers",
            "docker_images", "find_profile", "profiles", "terminal_environment"]
 
@@ -148,8 +150,9 @@ def find_profile(found: list[Profile], profile_id: str) -> Profile | None:
 
 
 def terminal_environment(workspace: Path, python: str, base: dict[str, str] | None = None) -> dict[str, str]:
-    """The environment of a terminal's program."""
-    env = dict(os.environ if base is None else base)
+    """The environment of a terminal's program: the person's own, without the host's Python
+    settings (an activated virtual environment, ``PYTHONPATH``) that would mix interpreters."""
+    env = user_environment(base)
     env.update(TERM="xterm-256color", COLORTERM="truecolor", TERM_PROGRAM="tedo-lab",
                TEDO_LAB_WORKSPACE=str(workspace))
     for name in ("QT_QPA_PLATFORM", "PYTHONHOME"):  # the app's own settings, not the shell's

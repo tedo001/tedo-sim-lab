@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from .paths import AppPaths
 
@@ -48,6 +48,17 @@ class AppConfig(BaseModel):
     python_executable: str = ""
     #: Ask GitHub for a newer release when the app starts (off: only when you ask).
     check_updates: bool = False
+    #: Environment variables (names only) that runs and workers may see although the lab would
+    #: hold them back, e.g. a tracking service's key; the values stay in the environment.
+    pass_environment: list[str] = Field(default_factory=list)
+
+    @field_validator("pass_environment")
+    @classmethod
+    def _names(cls, names: list[str]) -> list[str]:
+        for name in names:
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+                raise ValueError(f"{name!r} is not an environment variable name (give names, not values)")
+        return names
 
 
 def experiment_python(config: AppConfig) -> str:

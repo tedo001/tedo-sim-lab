@@ -11,7 +11,6 @@ Cancel is cooperative first (``cancel`` on the worker's stdin, or the task's
 
 from __future__ import annotations
 
-import os
 import time
 from collections import deque
 from collections.abc import Callable, Sequence
@@ -22,14 +21,14 @@ from typing import Any, Literal
 from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QThreadPool, QTimer, Signal
 
 from core.common.cancel import CancelToken, ProgressFn
+from core.common.isolation import child_environment
 from core.common.masking import mask_text
-from core.common.paths import WORKSPACE_ENV
 from core.experiment_engine.events import ProgressEvent, parse_line
 from core.tracking import LabStore, new_id
 
 from .tasks import TaskRunnable
 
-__all__ = ["Job", "JobQueue", "WorkerCommand", "worker_command"]
+__all__ = ["Job", "JobQueue", "WorkerCommand", "qt_environment", "worker_command"]
 
 JobStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
 _EXIT_STATUS: dict[int, JobStatus] = {0: "completed", 2: "cancelled"}
@@ -44,19 +43,27 @@ class WorkerCommand:
 
 
 def worker_command(run_dir: Path, *, python: str, code_root: Path, workspace: Path | None = None,
-                   extra: Sequence[str] = ()) -> WorkerCommand:
+                   extra: Sequence[str] = (), allow: Sequence[str] = ()) -> WorkerCommand:
     """``python -m core.experiment_engine.worker <run_dir> --cancel-on-eof``, able to import the
     lab's code even when ``python`` is a separate experiment environment, and pointed at the
-    same workspace (datasets, model downloads) as the app."""
+    same workspace (datasets, model downloads) as the app. ``env`` is the worker's whole
+    environment (:func:`core.common.isolation.child_environment`: no credentials, no host Python
+    settings, caches in the workspace); ``allow`` names variables passed on anyway."""
     if not python:
         raise NoExperimentPython("No experiment Python is set up yet: open Settings → Experiment Python "
                                  "to make one (or choose an existing Python 3.11+).")
-    pythonpath = os.pathsep.join(filter(None, [str(code_root), os.environ.get("PYTHONPATH", "")]))
-    env = {"PYTHONPATH": pythonpath, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"}
-    if workspace is not None:
-        env[WORKSPACE_ENV] = str(workspace)
+    env = child_environment(code_root=code_root, workspace=workspace, allow=allow,
+                            extra={"PYTHONUNBUFFERED": "1"})
     return WorkerCommand(python, ["-m", "core.experiment_engine.worker", str(run_dir),
                                   "--cancel-on-eof", *extra], code_root, env)
+
+
+def qt_environment(env: dict[str, str]) -> QProcessEnvironment:
+    """A ``QProcessEnvironment`` holding exactly ``env`` (nothing inherited from the app)."""
+    environment = QProcessEnvironment()
+    for key, value in env.items():
+        environment.insert(key, value)
+    return environment
 
 
 class NoExperimentPython(RuntimeError):
@@ -147,10 +154,8 @@ class JobQueue(QObject):
         assert job.run_dir is not None
         command = self._command_factory(job.run_dir)
         process = QProcess()  # owned by Python, released after its signals finish (see _release)
-        environment = QProcessEnvironment.systemEnvironment()
-        for key, value in command.env.items():
-            environment.insert(key, value)
-        process.setProcessEnvironment(environment)
+        # A clean lab environment under the command's own (custom factories may give only extras).
+        process.setProcessEnvironment(qt_environment({**child_environment(), **command.env}))
         process.setWorkingDirectory(str(command.cwd))
         process.setProgram(command.program)
         process.setArguments([*command.arguments, *job.args])
