@@ -109,3 +109,20 @@ def test_sweep_page(ctx, qtbot):
     assert page.kind == "sweep" and view.table.rowCount() == 4
     assert len(view.parallel.axes) == 2 and len(view.parallel.labels) == 4
     assert view.correlation.rowCount() == 1
+
+
+def test_a_late_run_change_after_close_is_ignored(qapp, workspace, keyring_backend, qtbot):
+    from app.services.context import build_context
+    from app.ui.pages.studies import StudiesPage
+    from core.common import AppConfig, CredentialStore
+
+    context = build_context(workspace, AppConfig(), CredentialStore(env={}, backend=keyring_backend),
+                            probe_hardware=False)
+    studies.write_definition(context.paths.results, "late1", "seeds", _iris(), seeds=[0, 1])
+    page = StudiesPage(context)
+    assert page.group.currentData() == "late1"
+    qtbot.addWidget(page)
+    context.experiments.run_changed.emit("some-run")  # starts the page's refresh timer
+    context.close()
+    qtbot.wait(page._timer.interval() + 200)  # it fires after the database is closed: no query
+    assert context.store.closed

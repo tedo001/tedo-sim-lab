@@ -233,7 +233,8 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   "active", and never ask before quitting. Never delete a `QProcess` inside its own signal:
   keep it alive until the event loop is back (see `JobQueue._release`, `MlflowUi._release`).
 - **Database**: one SQLite file per workspace (`database/lab.db`), WAL mode, one connection
-  per thread. Schema changes are new numbered files in `core/tracking/migrations/`; never edit
+  per thread; `LabStore.closed` once the app has closed it (late timers and signals check it).
+  Schema changes are new numbered files in `core/tracking/migrations/`; never edit
   an applied one. Paths inside the workspace are stored relative (projects can move).
 - **Secrets**: only from env vars or the OS keyring (`CredentialStore`, service
   `tedo-ai-lab`). `Secret` values mask themselves; every handed-out value is

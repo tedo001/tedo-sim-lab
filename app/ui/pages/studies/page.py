@@ -77,6 +77,8 @@ class StudiesPage(Page):
         self.group.setCurrentIndex(max(self.group.findData(group_id), 0))
 
     def _show(self) -> None:
+        if self.ctx.store.closed:  # a run's late change after the app closed its workspace
+            return
         group_id = self.group.currentData()
         self.export_button.setEnabled(group_id is not None)
         what = "seed studies" if self.kind == "seeds" else "sweeps"

@@ -35,6 +35,8 @@ class LabStore:
     def __init__(self, db: Database, workspace: Path) -> None:
         self.db = db
         self.workspace = workspace.resolve()
+        #: True once closed (app exit): late timers and signals must not query it any more.
+        self.closed = False
 
     @classmethod
     def open(cls, paths: AppPaths) -> LabStore:
@@ -44,6 +46,7 @@ class LabStore:
         return cls(db, paths.workspace)
 
     def close(self) -> None:
+        self.closed = True
         self.db.close()
 
     # Paths -----------------------------------------------------------------
