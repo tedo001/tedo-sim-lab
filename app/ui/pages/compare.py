@@ -219,7 +219,7 @@ class ComparePage(Page):
         if len(shown.axes) >= 3 and shown.shapes:  # drawn again at a fixed size, without hover marks
             radar = RadarChart()
             radar.set_data(shown.axes, list(zip([name for name, _v in shown.shapes], shown.raw, strict=True)),
-                           relative=shown.relative)
+                           zoomed=shown.zoomed)
             radar.resize(560, 420)
             images["performance.png"] = radar.grab().toImage()
             radar.deleteLater()

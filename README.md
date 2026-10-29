@@ -81,7 +81,7 @@ What a result needs before it is presented as one:
 - **Model performance at a glance.** Compare Experiments draws the ticked runs (up to four) on a
   radar, one spoke per test score they all have (accuracy, precision, recall, F1, ROC AUC, best
   validation accuracy; mAP, AP50, AP75 and IoU for detection runs), either absolute (0–1) or
-  relative to the best run, with hover values; it goes into the exported report too.
+  zoomed (each spoke from the lowest to the highest ticked score), with hover values; it goes into the exported report too.
 - **Explanation records.** Every *Look inside* on Model Testing (Grad-CAM, saliency, layer maps) is
   saved in the run's `explanations/` folder with a copy of the input and its SHA-256, the checkpoint
   file and its SHA-256, the spec hash, the target class (chosen or predicted) with every probability,

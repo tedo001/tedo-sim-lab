@@ -78,9 +78,10 @@ def test_compare_and_export(ctx, qtbot) -> None:
     assert all(0 <= v <= 1 for _name, values in radar.shapes for v in values)
     assert "![performance](performance.png)" in written["md"].read_text()
     assert (written["md"].parent / "performance.png").is_file()
-    page.performance.scale.setCurrentIndex(1)  # relative to the best run
-    assert radar.relative and max(v for _n, values in radar.shapes for v in values) == pytest.approx(1.0)
-    assert "rim is the best" in page.performance.note.text()
+    page.performance.scale.setCurrentIndex(1)  # zoomed: lowest to highest per spoke
+    values = [v for _n, shape in radar.shapes for v in shape]
+    assert radar.zoomed and max(values) == pytest.approx(1.0) and min(values) >= 0.25 - 1e-9
+    assert "differences are magnified" in page.performance.note.text()
 
 
 def test_radar_hover_and_limits(qtbot) -> None:

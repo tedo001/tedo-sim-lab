@@ -67,7 +67,7 @@ Ten build phases:
     classical baselines on the same split, resource counts, noise comparisons and no advantage claims.
   - explanation records (input, checkpoint hash, target, method, settings, outputs) for every
     Grad-CAM, saliency and layer view, listed and re-verified on Model Testing.
-- **Model-performance radar** on Compare Experiments (shared 0–1 scores, absolute or relative).
+- **Model-performance radar** on Compare Experiments (shared 0–1 scores, absolute or zoomed).
 - **Dependency isolation:** a lighter core experiment Python; Transformers, SHAP and ONNX as environment
   packs layered over it, installed and removed from the Plugin Store, picked per runner and for the
   inference worker.

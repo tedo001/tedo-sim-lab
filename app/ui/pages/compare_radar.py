@@ -1,8 +1,8 @@
 """Compare Experiments' *Model performance* card: the ticked runs as shapes on a radar, one spoke
 per score they all have (accuracy, precision, recall, F1, ROC AUC, best validation accuracy; mAP,
 AP50, AP75 and mean IoU for detection runs; silhouette and variance explained are not shares of a
-correct answer and are left out). *Absolute* reads every spoke from 0 to 1; *Relative to the best*
-divides each score by the best ticked run's, so small differences show. At most four runs."""
+correct answer and are left out). *Absolute* reads every spoke from 0 to 1; *Zoomed* runs each spoke
+from the lowest ticked score to the highest, so small differences show. At most four runs."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class PerformanceCard(Card):
         super().__init__("Model performance", "test scores on one radar; 1 is perfect", parent=parent)
         self.scale = QComboBox()
         self.scale.addItem("Absolute (0–1)", False)
-        self.scale.addItem("Relative to the best run", True)
+        self.scale.addItem("Zoomed (lowest to highest)", True)
         self.scale.setMinimumWidth(180)
         self.scale.currentIndexChanged.connect(lambda _: self._draw())
         self.add_head_widget(self.scale)
@@ -49,10 +49,10 @@ class PerformanceCard(Card):
     def _draw(self) -> None:
         shown = self._runs[:MAX_SHAPES]
         axes = radar_axes([metrics for _name, metrics in shown])
-        relative = bool(self.scale.currentData())
+        zoomed = bool(self.scale.currentData())
         self.chart.set_data([title for _key, title in axes],
                             [(name, [float(metrics[key]) for key, _title in axes]) for name, metrics in shown]
-                            if len(axes) >= 3 else [], relative=relative)
+                            if len(axes) >= 3 else [], zoomed=zoomed)
         notes = []
         if len(self._runs) > MAX_SHAPES:
             notes.append(f"The first {MAX_SHAPES} ticked runs are drawn; more overlapping shapes cannot be "
@@ -60,9 +60,9 @@ class PerformanceCard(Card):
         if shown and len(axes) < 3:
             notes.append("These runs share fewer than three scores (for example a regression and a "
                          "classification run), so there is no radar to draw.")
-        elif relative:
-            notes.append("Each spoke is divided by the best ticked run's score: the rim is the best, not "
-                         "perfection.")
+        elif zoomed:
+            notes.append("Each spoke runs from the lowest ticked score (inner ring) to the highest (rim), so "
+                         "differences are magnified; hover a corner for its value.")
         self.note.setText(" ".join(notes))
         self.note.setVisible(bool(notes))
         self.setVisible(bool(self._runs))

@@ -1,7 +1,8 @@
 """A radar (spider) chart: several runs' scores on the same measures (accuracy, precision, recall,
 F1, ROC AUC; mAP, AP50, mean IoU for detection), one spoke per measure, each run a closed shape in
-its own series colour. Every measure shares one axis, 0 at the centre to 1 at the rim; ``relative``
-divides each measure by the best run's value instead, so small differences show. At most four runs
+its own series colour. Every measure shares one axis, 0 at the centre to 1 at the rim; ``zoomed``
+runs each spoke from the lowest run's score (the inner ring) to the highest (the rim) instead, so
+small differences show (the values are then read by hovering, not from the rings). At most four runs
 (more overlapping shapes cannot be read); each is named in the legend, and hovering a corner reads
 the value."""
 
@@ -36,7 +37,7 @@ class RadarChart(QWidget):
         #: (name, one value 0..1 per axis, or None when missing)
         self.shapes: list[tuple[str, list[float | None]]] = []
         self.raw: list[list[float | None]] = []
-        self.relative = False
+        self.zoomed = False
         self._mouse: QPointF | None = None
         self.setMouseTracking(True)
         self.setMinimumHeight(300)
@@ -46,26 +47,31 @@ class RadarChart(QWidget):
         return QSize(420, 360)
 
     def set_data(self, axes: Sequence[str], shapes: Sequence[tuple[str, Sequence[float | None]]], *,
-                 relative: bool = False) -> None:
+                 zoomed: bool = False) -> None:
         """``shapes``: (run name, value per axis); values are scores where 1 is best."""
         if len(shapes) > MAX_SHAPES:
             raise ValueError(f"at most {MAX_SHAPES} runs: more shapes on one radar cannot be read")
         self.axes = list(axes)
         self.raw = [[None if v is None else float(v) for v in values] for _name, values in shapes]
-        self.relative = relative
-        best = [max((row[i] for row in self.raw if row[i] is not None), default=None)
-                for i in range(len(self.axes))]
+        self.zoomed = zoomed
+        known = [[row[i] for row in self.raw if row[i] is not None] for i in range(len(self.axes))]
         self.shapes = []
         for (name, _values), row in zip(shapes, self.raw, strict=True):
-            scaled = [None if v is None else (v / best[i] if relative and best[i] else v)
+            scaled = [None if v is None else self._zoom(v, known[i]) if zoomed else v
                       for i, v in enumerate(row)]
             self.shapes.append((name, [None if v is None else min(max(v, 0.0), 1.0) for v in scaled]))
         self.update()
 
+    @staticmethod
+    def _zoom(value: float, values: list[float]) -> float:
+        """The inner ring (0.25) for the lowest score on this spoke, the rim for the highest."""
+        low, high = min(values), max(values)
+        return 1.0 if high - low < 1e-12 else _RINGS[0] + (1 - _RINGS[0]) * (value - low) / (high - low)
+
     # Geometry ------------------------------------------------------------------------------
     def _centre_radius(self) -> tuple[QPointF, float]:
         height = self.height() - _LEGEND - 8
-        radius = max(min(self.width() / 2 - 70, height / 2 - 28), 20)
+        radius = max(min(self.width() / 2 - 120, height / 2 - 30), 20)
         return QPointF(self.width() / 2, 8 + height / 2), radius
 
     def _point(self, axis: int, value: float) -> QPointF:
@@ -97,6 +103,22 @@ class RadarChart(QWidget):
         value = self.raw[s][a]
         return f"{self.shapes[s][0]} · {self.axes[a]} {value:.4f}"
 
+    def _label_box(self, axis: int, radius: float) -> tuple[QRectF, Qt.AlignmentFlag]:
+        """Where a spoke's name goes: outside the rim, aligned away from the centre."""
+        centre, _radius = self._centre_radius()
+        outer = self._point(axis, 1.0)
+        ux, uy = (outer.x() - centre.x()) / radius, (outer.y() - centre.y()) / radius
+        x, y = outer.x() + ux * 10, outer.y() + uy * 10
+        width, height = 130.0, 18.0
+        if ux > 0.3:
+            left, horizontal = x, Qt.AlignmentFlag.AlignLeft
+        elif ux < -0.3:
+            left, horizontal = x - width, Qt.AlignmentFlag.AlignRight
+        else:
+            left, horizontal = x - width / 2, Qt.AlignmentFlag.AlignHCenter
+        top = y - height if uy < -0.3 else y if uy > 0.3 else y - height / 2
+        return QRectF(left, top, width, height), horizontal | Qt.AlignmentFlag.AlignVCenter
+
     # Painting ------------------------------------------------------------------------------
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
@@ -114,19 +136,17 @@ class RadarChart(QWidget):
             painter.drawPolygon(QPolygonF([self._point(a, ring) for a in range(len(self.axes))]))
         painter.setFont(_font(MONO_FAMILY, 10))
         painter.setPen(QColor(COLORS["text_faint"]))
-        for ring in _RINGS:
+        for ring in _RINGS if not self.zoomed else ():  # ring values beside the top spoke
             point = self._point(0, ring)
-            painter.drawText(QRectF(point.x() + 4, point.y() - 7, 60, 14), int(Qt.AlignmentFlag.AlignLeft),
-                             f"{ring:.2f}" if not self.relative else f"{ring:.0%}")
+            painter.drawText(QRectF(point.x() + 4, point.y() + 1, 60, 14), int(Qt.AlignmentFlag.AlignLeft),
+                             f"{ring:.2f}")
         painter.setFont(_font(FONT_FAMILY, 12))
         for a, name in enumerate(self.axes):  # spokes and their names
             painter.setPen(QPen(QColor(COLORS["border_soft"]), 1))
             painter.drawLine(centre, self._point(a, 1.0))
-            outer = self._point(a, 1.0)
-            dx, dy = outer.x() - centre.x(), outer.y() - centre.y()
-            box = QRectF(outer.x() + (dx / radius) * 14 - 60, outer.y() + (dy / radius) * 14 - 9, 120, 18)
             painter.setPen(QColor(COLORS["text_dim"]))
-            painter.drawText(box, int(Qt.AlignmentFlag.AlignCenter), name)
+            box, align = self._label_box(a, radius)
+            painter.drawText(box, int(align), name)
         hovered = self.hovered()
         for s, (_name, values) in enumerate(self.shapes):
             colour = QColor(SERIES[s])
