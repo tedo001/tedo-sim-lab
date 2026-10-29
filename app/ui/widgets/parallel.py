@@ -152,11 +152,6 @@ class ParallelCoordinates(QWidget):
             width = max(self.width() / len(self.axes) - 4, 40)
             name = painter.fontMetrics().elidedText(axis.name, Qt.TextElideMode.ElideLeft, int(width))
             painter.drawText(QRectF(x - width / 2, 4, width, 16), int(Qt.AlignmentFlag.AlignHCenter), name)
-            painter.setFont(_font(MONO_FAMILY, 10))
-            painter.setPen(QColor(COLORS["text_faint"]))
-            for position, text in axis.ticks()[:8]:
-                painter.drawText(QRectF(x + 4, self._y(position) - 7, 70, 14),
-                                 int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), text)
         hovered = self.hovered()
         order = sorted(range(len(self.labels)), key=lambda r: self.axes[-1].position(self.axes[-1].values[r])
                        or -1.0)  # best runs on top
@@ -169,11 +164,29 @@ class ParallelCoordinates(QWidget):
             for a, b in zip(points, points[1:], strict=False):
                 if a is not None and b is not None:
                     painter.drawLine(a, b)
+        self._ticks(painter)
         painter.setFont(_font(MONO_FAMILY, 11))
         painter.setPen(QColor(COLORS["text_dim"]))
         text = self.hover_text() or f"colour: {self.axes[-1].name} (darker lower, lighter higher)"
         painter.drawText(QRectF(self.SIDE, self.height() - 18, self.width() - 2 * self.SIDE, 16),
                          int(Qt.AlignmentFlag.AlignLeft), text)
+
+    def _ticks(self, painter: QPainter) -> None:
+        """Tick values over the lines, each on a small surface-coloured box so it stays readable."""
+        painter.setFont(_font(MONO_FAMILY, 10))
+        metrics = painter.fontMetrics()
+        for index, axis in enumerate(self.axes):
+            x = self._x(index)
+            last = index == len(self.axes) - 1
+            for position, text in axis.ticks()[:8]:
+                width = metrics.horizontalAdvance(text) + 8
+                left = x - width - 4 if last else x + 4  # the score axis labels on its left, inside
+                box = QRectF(left, self._y(position) - 8, width, 16)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QColor(COLORS["surface"]))
+                painter.drawRoundedRect(box, 3, 3)
+                painter.setPen(QColor(COLORS["text_dim"]))
+                painter.drawText(box, int(Qt.AlignmentFlag.AlignCenter), text)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         self._mouse = event.position()

@@ -134,12 +134,6 @@ class RadarChart(QWidget):
         painter.setBrush(Qt.BrushStyle.NoBrush)
         for ring in _RINGS:  # recessive rings
             painter.drawPolygon(QPolygonF([self._point(a, ring) for a in range(len(self.axes))]))
-        painter.setFont(_font(MONO_FAMILY, 10))
-        painter.setPen(QColor(COLORS["text_faint"]))
-        for ring in _RINGS if not self.zoomed else ():  # ring values beside the top spoke
-            point = self._point(0, ring)
-            painter.drawText(QRectF(point.x() + 4, point.y() + 1, 60, 14), int(Qt.AlignmentFlag.AlignLeft),
-                             f"{ring:.2f}")
         painter.setFont(_font(FONT_FAMILY, 12))
         for a, name in enumerate(self.axes):  # spokes and their names
             painter.setPen(QPen(QColor(COLORS["border_soft"]), 1))
@@ -167,6 +161,7 @@ class RadarChart(QWidget):
             painter.setBrush(colour)
             for point in points:
                 painter.drawEllipse(point, 4, 4)
+        self._ring_values(painter)
         if hovered is not None:
             s, a = hovered
             point = self._point(a, self.shapes[s][1][a])
@@ -183,6 +178,21 @@ class RadarChart(QWidget):
             painter.setPen(QColor(COLORS["text"]))
             painter.drawText(box, int(Qt.AlignmentFlag.AlignCenter), text)
         self._legend(painter)
+
+    def _ring_values(self, painter: QPainter) -> None:
+        """Ring values beside the top spoke, over the shapes on small boxes so they stay readable."""
+        if self.zoomed:
+            return
+        painter.setFont(_font(MONO_FAMILY, 10))
+        width = painter.fontMetrics().horizontalAdvance("0.00") + 6
+        for ring in _RINGS:
+            point = self._point(0, ring)
+            box = QRectF(point.x() + 8, point.y() - 7, width, 14)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(COLORS["surface"]))
+            painter.drawRoundedRect(box, 3, 3)
+            painter.setPen(QColor(COLORS["text_faint"]))
+            painter.drawText(box, int(Qt.AlignmentFlag.AlignCenter), f"{ring:.2f}")
 
     def _legend(self, painter: QPainter) -> None:
         painter.setFont(_font(FONT_FAMILY, 12))
