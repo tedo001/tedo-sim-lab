@@ -19,7 +19,7 @@ from typing import Any
 
 from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Signal
 
-from core.common import AppConfig, experiment_python
+from core.common import AppConfig, experiment_python, packs
 from core.common.paths import AppPaths
 
 __all__ = ["InferenceService"]
@@ -70,7 +70,8 @@ class InferenceService(QObject):
     def _start(self) -> None:
         if self._process is not None:
             return
-        python = experiment_python(self.config)
+        base = experiment_python(self.config)
+        python = packs.python_for(base, inference=True) if base else base  # the language pack once installed
         if not python:
             self._fail_all("No experiment Python is set up yet: Settings → Experiment Python.")
             return

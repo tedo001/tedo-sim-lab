@@ -23,6 +23,7 @@ from ..icons import icon
 from ..widgets import Card, EpochChart, KeyValues, Pill, label
 from .home_cards import local_time
 from .sklearn_results import SklearnResults, read_results
+from .training_repro import DataChecksCard, ReproCard
 
 __all__ = ["CURVES", "RunDetail", "STATUS_TONES", "duration_text"]
 
@@ -134,6 +135,10 @@ class RunDetail(QWidget):
         layout.addWidget(self.results)
         self.tabular = SklearnResults()  # scikit-learn runs: one fit, so results instead of curves
         layout.addWidget(self.tabular)
+        self.data_checks = DataChecksCard()
+        layout.addWidget(self.data_checks)
+        self.repro = ReproCard(ctx)
+        layout.addWidget(self.repro)
 
         log = Card("Log", "run.log")
         self.log = QPlainTextEdit()
@@ -208,6 +213,8 @@ class RunDetail(QWidget):
         self.tabular.setVisible(found is not None)
         if found is not None:
             self.tabular.show_results(found)
+        self.data_checks.show_run(view)
+        self.repro.show_run(view)
         self._step(view.id)
 
     def _step(self, run_id: str) -> None:

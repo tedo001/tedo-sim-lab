@@ -28,6 +28,8 @@ from core.experiment_engine.spec import ExperimentSpec, QuantumTrainingSpec
 
 from .data import Prepared, prepare
 from .kernel import fidelity_kernel, kernel_alignment
+from .noisy import backend_from_spec
+from .protocol import evaluate
 from .sim import ENCODINGS
 from .vqc import Adam, VariationalClassifier
 
@@ -104,6 +106,9 @@ class QuantumRunner(ExperimentRunner):
             return [str(exc).strip("'\"")]
         if adapter.local_status(paths.datasets) != "present":
             problems.append(f"{adapter.card.name} is not available yet: get it in the Dataset Hub")
+        simulator = spec.training.simulator if isinstance(spec.training, QuantumTrainingSpec) else None
+        if simulator is not None and simulator.mode == "noisy" and int(self._params(spec)["qubits"]) > 8:
+            problems.append("noisy simulation keeps 4ⁿ density matrices: use at most 8 qubits")
         return problems
 
     def _data(self, spec: ExperimentSpec, adapter: TabularAdapter, root: Path, qubits: int) -> Prepared:
@@ -144,6 +149,8 @@ class QuantumRunner(ExperimentRunner):
         training = spec.training
         assert isinstance(training, QuantumTrainingSpec)
         model = self._model(params, len(data.classes), spec.seed)
+        model.backend = backend = backend_from_spec(training.simulator, spec.seed)
+        callbacks.on_log(f"Simulator: {backend.kind}" + (f", {backend.shots} shots" if backend.shots else ""))
         optimizer = Adam(training.lr)
         folder = ctx.run_dir / "checkpoints"
         folder.mkdir(parents=True, exist_ok=True)
@@ -183,6 +190,19 @@ class QuantumRunner(ExperimentRunner):
         results = self._score(model.predict_proba(data.x_test), model.predict(data.x_test), data)
         results["circuit"] = model.describe()
         results["boundary"] = self._boundary(data, lambda grid: model.predict_proba(grid))
+        test_acc = float((model.predict(data.x_test) == data.y_test).mean())
+
+        def score_with(other: Any) -> float:
+            model.backend = other
+            try:
+                return float((model.predict(data.x_test) == data.y_test).mean())
+            finally:
+                model.backend = backend
+
+        results["protocol"] = evaluate(training, data, backend, ops=model.ops, qubits=model.qubits,
+                                       parameters=model.n_params, evaluations=model.evaluations,
+                                       started=started, test_acc=test_acc, score_with=score_with,
+                                       seed=spec.seed)
         return self._finish(spec, results, ctx, callbacks, started, best=folder / "best.npz",
                             extra={"best_val_acc": best_acc, "epochs_completed": float(training.epochs)})
 
@@ -194,19 +214,27 @@ class QuantumRunner(ExperimentRunner):
         x_fit = np.vstack([data.x_train, data.x_val]) if len(data.x_val) else data.x_train
         y_fit = np.concatenate([data.y_train, data.y_val]) if len(data.y_val) else data.y_train
         encoding = params["encoding"]
-        callbacks.on_log(f"Kernel matrix of {len(x_fit)} training samples ({encoding} feature map)")
-        gram = fidelity_kernel(x_fit, encoding=encoding)
+        training = spec.training
+        assert isinstance(training, QuantumTrainingSpec)
+        backend = backend_from_spec(training.simulator, spec.seed)
+        callbacks.on_log(f"Kernel matrix of {len(x_fit)} training samples ({encoding} feature map, "
+                         f"{backend.kind})")
+        gram = fidelity_kernel(x_fit, encoding=encoding, backend=backend)
         ctx.cancel.raise_if_cancelled()
         svm = SVC(kernel="precomputed", C=float(params["C"]), probability=True, random_state=spec.seed)
         svm.fit(gram, y_fit)
-        test_kernel = fidelity_kernel(data.x_test, x_fit, encoding=encoding)
+        test_kernel = fidelity_kernel(data.x_test, x_fit, encoding=encoding, backend=backend)
         results = self._score(svm.predict_proba(test_kernel), svm.predict(test_kernel), data)
         order = np.argsort(y_fit, kind="stable")[:: max(1, len(y_fit) // 60)]
         results["kernel"] = {"matrix": gram[np.ix_(order, order)].round(4).tolist(),
                              "labels": y_fit[order].tolist(), "alignment": kernel_alignment(gram, y_fit),
                              "encoding": encoding}
         results["boundary"] = self._boundary(
-            data, lambda grid: svm.predict_proba(fidelity_kernel(grid, x_fit, encoding=encoding)))
+            data, lambda grid: svm.predict_proba(fidelity_kernel(grid, x_fit, encoding=encoding,
+                                                                 backend=backend)))
+        test_acc = float((svm.predict(test_kernel) == data.y_test).mean())
+        results["protocol"] = self._kernel_protocol(spec, params, data, backend, svm, (x_fit, y_fit), started,
+                                                    test_acc)
         metrics = {"train_acc": float((svm.predict(gram) == y_fit).mean()),
                    "kernel_alignment": results["kernel"]["alignment"]}
         folder = ctx.run_dir / "checkpoints"
@@ -217,6 +245,27 @@ class QuantumRunner(ExperimentRunner):
         _append(ctx.run_dir / "metrics.jsonl", {"epoch": 1, **metrics})
         return self._finish(spec, results, ctx, callbacks, started, best=folder / "best.npz",
                             extra={**metrics, "epochs_completed": 1.0})
+
+    @staticmethod
+    def _kernel_protocol(spec: ExperimentSpec, params: dict[str, Any], data: Prepared, backend: Any, svm: Any,
+                         fit: tuple[np.ndarray, np.ndarray], started: float,
+                         test_acc: float) -> dict[str, Any]:
+        from sklearn.base import clone
+
+        from .sim import feature_ops
+
+        encoding, (x_fit, y_fit) = params["encoding"], fit
+
+        def score_with(other: Any) -> float:  # the device computes both kernels, so refit on its kernel
+            refit = clone(svm).fit(fidelity_kernel(x_fit, encoding=encoding, backend=other), y_fit)
+            predicted = refit.predict(fidelity_kernel(data.x_test, x_fit, encoding=encoding, backend=other))
+            return float((predicted == data.y_test).mean())
+
+        qubits = int(params["qubits"])
+        evaluations = len(x_fit) * (len(x_fit) + len(data.x_test))  # one overlap circuit per kernel entry
+        return evaluate(spec.training, data, backend, ops=feature_ops(qubits, encoding), qubits=qubits,
+                        parameters=0, evaluations=evaluations, started=started, test_acc=test_acc,
+                        score_with=score_with, seed=spec.seed)
 
     # Results -------------------------------------------------------------------------------
     @staticmethod
@@ -255,6 +304,16 @@ class QuantumRunner(ExperimentRunner):
                               "confusion_matrix")
         callbacks.on_log(f"Test accuracy {metrics['test_acc']:.4f} · macro F1 {metrics['test_f1']:.4f}")
         return RunResult(ctx.run_id, "completed", {**metrics, **extra}, best, time.monotonic() - started)
+
+    def data_samples(self, spec: ExperimentSpec) -> dict[str, Any]:
+        from core.dataset_registry.validation import SampleSet, digest
+
+        paths, adapter = self._parts(spec)
+        data = self._data(spec, adapter, paths.datasets, int(self._params(spec)["qubits"]))
+        parts = {"train": (data.x_train, data.y_train), "val": (data.x_val, data.y_val),
+                 "test": (data.x_test, data.y_test)}
+        return {name: SampleSet([digest(np.ascontiguousarray(row).tobytes()) for row in x], y.tolist(),
+                                classes=data.classes) for name, (x, y) in parts.items() if len(x)}
 
     # Re-scoring ----------------------------------------------------------------------------
     def evaluate(self, spec: ExperimentSpec, callbacks: RunCallbacks, ctx: RunContext, checkpoint: Path,

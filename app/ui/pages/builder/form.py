@@ -29,6 +29,7 @@ from ...widgets import Card, label
 from .choosers import DatasetChooser, ModelChooser
 from .fields import form, yaml_box, yaml_mapping, yaml_text
 from .other_sections import QuantumSection, TextSection
+from .research_section import ResearchSection
 from .sklearn_section import SklearnSection
 from .torch_section import MONITORS, TorchSection
 
@@ -98,6 +99,9 @@ class SpecForm(QWidget):
             layout.addWidget(card)
         for section in (self.torch, self.sklearn, self.quantum, self.text):
             layout.addWidget(section.cards)
+        self.research = ResearchSection(ctx)
+        layout.addWidget(self.research)
+        ctx.experiments.run_changed.connect(lambda _run_id: self.research.refresh_runs())
         self.task.currentIndexChanged.connect(self._task_changed)
         self.model.changed.connect(self._show_sections)
         self.dataset.changed.connect(self._dataset_changed)
@@ -192,9 +196,10 @@ class SpecForm(QWidget):
             runtime, seed = self.torch.runtime(), self.torch.seed.value()
         return ExperimentSpec(
             name=self.name.text().strip() or "experiment", description=self.description.text().strip(),
-            task=task, seed=seed, data=DataSpec(dataset=self.dataset.card_id or "", **data),
+            task=task, seed=seed, data=DataSpec(dataset=self.dataset.card_id or "",
+                                                validation=self.research.data_validation(), **data),
             model=ModelSpec(model=self.model.card_id or "", pretrained=self.model.pretrained, params=params),
-            training=training, runtime=runtime)
+            training=training, runtime=runtime, research=self.research.research())
 
     def load(self, spec: ExperimentSpec) -> None:
         """Fill every control from ``spec`` (fields the form has no control for are dropped)."""
@@ -209,3 +214,4 @@ class SpecForm(QWidget):
         self.params.setPlainText(yaml_text(dict(spec.model.params)))
         sections = {"sklearn": self.sklearn, "quantum": self.quantum, "text": self.text, "torch": self.torch}
         sections[self.kind].load(spec)
+        self.research.load(spec)

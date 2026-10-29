@@ -30,7 +30,7 @@ from core.experiment_engine.spec import ExperimentSpec
 
 from .datasets import VisionAdapter
 from .export import export_for_explainer
-from .training.data import build_data, input_size_for, transform_problems
+from .training.data import build_data, input_size_for, split_samples, transform_problems
 from .training.loop import (
     Mixed,
     Monitor,
@@ -229,6 +229,10 @@ class TorchClassificationRunner(ExperimentRunner):
         callbacks.on_log(f"Test accuracy {results['test_acc']:.4f} · macro F1 {results['test_f1']:.4f}")
         return RunResult(ctx.run_id, status, results, best if best.is_file() else None,
                          time.monotonic() - started)
+
+    def data_samples(self, spec: ExperimentSpec) -> dict[str, Any]:
+        paths, adapter, _card, _builder = self._parts(spec)
+        return split_samples(spec, adapter, paths.datasets)
 
     def evaluate(self, spec: ExperimentSpec, callbacks: RunCallbacks, ctx: RunContext, checkpoint: Path,
                  split: str) -> dict[str, object]:

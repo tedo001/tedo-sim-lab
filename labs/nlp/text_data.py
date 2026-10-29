@@ -15,7 +15,7 @@ from core.common.paths import AppPaths
 from core.dataset_registry.adapter import TextAdapter
 from core.experiment_engine.spec import ExperimentSpec
 
-__all__ = ["TextSplits", "load_splits", "text_adapter"]
+__all__ = ["TextSplits", "load_splits", "split_samples", "text_adapter"]
 
 
 @dataclass
@@ -65,3 +65,15 @@ def load_splits(spec: ExperimentSpec, adapter: TextAdapter, root: Path, test_fra
         keep = np.sort(rng.permutation(len(test))[: spec.data.subset])
         test, y_test = [test[i] for i in keep], y_test[keep]
     return TextSplits(list(train), y_train, list(test), y_test, classes, own)
+
+
+def split_samples(spec: ExperimentSpec, data: TextSplits) -> dict[str, Any]:
+    """The texts each split gets, for the data checks (case and spacing ignored, so a copy that
+    differs only there still counts as the same text)."""
+    from core.dataset_registry.validation import SampleSet, digest
+
+    def key(text: str) -> str:
+        return digest(" ".join(text.lower().split()))
+
+    return {"train": SampleSet([key(t) for t in data.train], data.y_train.tolist(), classes=data.classes),
+            "test": SampleSet([key(t) for t in data.test], data.y_test.tolist(), classes=data.classes)}

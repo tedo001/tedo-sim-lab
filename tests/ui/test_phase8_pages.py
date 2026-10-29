@@ -71,6 +71,33 @@ def test_compare_and_export(ctx, qtbot) -> None:
     assert "| Measure |" in written["md"].read_text() and written["csv"].read_text().startswith("name,")
     assert len(json.loads(written["json"].read_text())["rows"]) == 2
     assert written["md"].parent.parent == ctx.paths.reports and page.open_button.isEnabled()
+    # Model performance: both runs on one radar, a spoke per score they share.
+    radar = page.performance.chart
+    assert page.performance.isVisibleTo(page) and len(radar.shapes) == 2
+    assert {"Accuracy", "Precision", "Recall", "F1 score"} <= set(radar.axes)
+    assert all(0 <= v <= 1 for _name, values in radar.shapes for v in values)
+    assert "![performance](performance.png)" in written["md"].read_text()
+    assert (written["md"].parent / "performance.png").is_file()
+    page.performance.scale.setCurrentIndex(1)  # relative to the best run
+    assert radar.relative and max(v for _n, values in radar.shapes for v in values) == pytest.approx(1.0)
+    assert "rim is the best" in page.performance.note.text()
+
+
+def test_radar_hover_and_limits(qtbot) -> None:
+    from app.ui.widgets.radar import RadarChart
+
+    chart = RadarChart()
+    qtbot.addWidget(chart)
+    chart.resize(420, 360)
+    axes = ["mAP", "Precision", "Recall", "F1 score", "IoU"]
+    chart.set_data(axes, [("a", [0.8, 0.7, 0.75, 0.72, 0.6]), ("b", [0.7, 0.85, 0.65, 0.74, None])])
+    corner = chart._point(0, 0.8)
+    chart.mouseMoveEvent(QMouseEvent(QEvent.Type.MouseMove, corner, corner, Qt.MouseButton.NoButton,
+                                     Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier))
+    assert chart.hover_text() == "a · mAP 0.8000"
+    chart.grab()  # paints, with a gap where b has no IoU
+    with pytest.raises(ValueError, match="at most 4"):
+        chart.set_data(axes, [(str(i), [0.5] * 5) for i in range(5)])
 
 
 def test_compare_limits_runs_to_the_palette(ctx, qtbot) -> None:
@@ -109,3 +136,40 @@ def test_run_report(ctx, qtbot) -> None:
     assert text.startswith("# iris-logistic-regression") and "```yaml" in text and "Test accuracy" in text
     assert "Python" in text and written["pdf"].read_bytes()[:4] == b"%PDF"
     assert "Report written to" in detail.registered.text()
+
+
+def test_reproducibility_card_and_bundle(ctx, qtbot) -> None:
+    import zipfile
+
+    from app.ui.pages.training_run import RunDetail
+
+    run_id = _finished(ctx, qtbot, 0)
+    detail = RunDetail(ctx)
+    qtbot.addWidget(detail)
+    detail.show_run(run_id)
+    assert detail.repro.isVisibleTo(detail)
+    assert "python -m core.experiment_engine.reproduce" in detail.repro.report.toPlainText()
+    written = detail.repro.export()
+    assert written["pdf"].read_bytes()[:4] == b"%PDF"
+    names = set(zipfile.ZipFile(written["zip"]).namelist())
+    assert {"experiment.yaml", "snapshot.json", "environment.lock.txt", "result.json", "report.md"} <= names
+
+
+def test_builder_research_fields_round_trip(ctx, qtbot) -> None:
+    from app.ui.pages.builder.form import SpecForm
+
+    run_id = _finished(ctx, qtbot, 0)
+    form = SpecForm(ctx)
+    qtbot.addWidget(form)
+    form.research.refresh_runs()
+    form.research.question.setText("Does scaling matter?")
+    form.research.hypothesis.setPlainText("Yes, by two points.")
+    form.research.baseline.setCurrentIndex(form.research.baseline.findData(run_id))
+    form.research.validation.setCurrentIndex(form.research.validation.findData("fail"))
+    spec = form.spec()
+    assert spec.research.question == "Does scaling matter?" and spec.research.baseline == run_id
+    assert spec.data.validation == "fail"
+    other = SpecForm(ctx)
+    qtbot.addWidget(other)
+    other.load(spec)
+    assert other.spec().research == spec.research and other.spec().data.validation == "fail"

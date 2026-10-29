@@ -21,7 +21,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import sys
 import threading
 import time
@@ -35,8 +34,10 @@ from core.common.logging_setup import setup_logging
 from core.common.masking import mask_text
 from core.common.paths import CODE_ROOT
 from core.common.references import resolve
+from core.common.stdio import detach_stdin
 from core.hardware.devices import resolve_device
 
+from .data_checks import check_data
 from .events import JsonLinesCallbacks
 from .recording import RunRecording, open_recording
 from .runner import RunContext, RunnerRegistry, RunResult
@@ -71,27 +72,6 @@ def watch_for_cancel(stream: TextIO, token: CancelToken, *, cancel_on_eof: bool)
     return thread
 
 
-def detach_stdin() -> TextIO:
-    """Hand the worker's stdin (the "cancel" channel) to a private file and point standard input at
-    the null device. On Windows a thread blocked reading a pipe makes every child process that
-    would inherit that pipe hang at start (``git`` for the snapshot, tools libraries launch), so
-    children must never get it. Returns the stream the cancel watcher should read."""
-    try:
-        private = os.dup(sys.stdin.fileno())  # not inheritable (PEP 446)
-    except (OSError, ValueError, AttributeError):
-        return sys.stdin
-    null = os.open(os.devnull, os.O_RDONLY)
-    os.dup2(null, 0)
-    os.close(null)
-    if os.name == "nt":  # make sure child processes see the null device as their stdin
-        import ctypes
-        import msvcrt
-
-        ctypes.windll.kernel32.SetStdHandle(-10, msvcrt.get_osfhandle(0))  # STD_INPUT_HANDLE
-    sys.stdin = open(os.devnull, encoding="utf-8")  # lives as long as the process
-    return open(private, encoding="utf-8", errors="replace")
-
-
 def run_experiment(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelToken, *,
                    runner_entry: str | None = None, resume_from: Path | None = None) -> RunResult:
     """Load the spec, choose the runner and run it; never raises."""
@@ -120,6 +100,8 @@ def run_experiment(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelTo
         callbacks.emit("run_start", device=device, run_dir=str(run_dir), **recording.start_payload())
         for note in recording.notes:
             callbacks.on_log(note)
+        if resume_from is None:
+            check_data(spec, runner, run_dir, callbacks)
         log.info("Running %s with %s on %s", spec.name, runner.id, ctx.device)
         result = runner.run(spec, callbacks, ctx)
     except (Cancelled, KeyboardInterrupt):
@@ -133,7 +115,26 @@ def run_experiment(run_dir: Path, callbacks: JsonLinesCallbacks, token: CancelTo
             recording.finish(run_dir, result)
         except Exception:  # recording must never change the outcome
             log.exception("Could not finish recording run %s", run_id)
+    _write_outcome(run_dir, result, callbacks)
     return result
+
+
+def _write_outcome(run_dir: Path, result: RunResult, callbacks: JsonLinesCallbacks) -> None:
+    """``result.json`` (status, metrics, duration) and the reproducibility report; never fails a run."""
+    from .repro import RESULT_FILE, write_reproduction
+
+    if not (run_dir / "experiment.yaml").is_file():
+        return
+    try:
+        outcome = {"status": result.status, "metrics": result.metrics, "duration_s": result.duration_s,
+                   "error": result.error, "finished_at": datetime.now(UTC).isoformat(timespec="seconds"),
+                   "best_checkpoint": result.best_checkpoint.name if result.best_checkpoint else None}
+        (run_dir / RESULT_FILE).write_text(json.dumps(outcome, indent=2), encoding="utf-8")
+        if (run_dir / "snapshot.json").is_file():
+            folder = write_reproduction(run_dir)
+            callbacks.on_artifact(folder / "report.md", "report")
+    except Exception:  # the report must never change the outcome
+        log.exception("Could not write the reproducibility report of %s", run_dir.name)
 
 
 def evaluations_dir(run_dir: Path) -> Path:

@@ -51,6 +51,34 @@ def test_circuits_are_built_by_clicking(page) -> None:
     assert lab.presets.currentIndex() == 0 and lab.qubits.value() == 2
 
 
+def test_noisy_hardware_simulation_of_a_circuit(page) -> None:
+    lab = page.tools["circuit"]
+    lab._preset_chosen(lab.presets.findText("Bell state"))
+    assert not lab.device.fields.isVisibleTo(lab) and lab.noise_summary.text() == ""
+    lab.device.mode.select("noisy")
+    assert lab.device.fields.isVisibleTo(lab)
+    rows = {row[0]: row[1] for row in lab.bars.rows()}
+    assert 0.9 < rows["|00⟩"] + rows["|11⟩"] < 1.0 and "|01⟩" in rows  # errors leak into 01 and 10
+    assert "fidelity with the ideal state" in lab.noise_summary.text()
+    assert lab.table.horizontalHeaderItem(1).text() == "Noisy probability"
+    lab.device.p1.setValue(0.0)
+    lab.device.p2.setValue(0.0)
+    lab.device.t1.setValue(0.0)  # no relaxation
+    lab.device.readout.setValue(0.0)
+    rows = {row[0]: row[1] for row in lab.bars.rows()}
+    assert rows["|00⟩"] == pytest.approx(0.5) and "|01⟩" not in rows
+    lab.device.t1.setValue(10.0)
+    lab.device.t2.setValue(30.0)  # more than 2 × T1: refused in words
+    assert "2·T1" in lab.noise_summary.text()
+    lab.device.t2.setValue(8.0)
+    saved = lab.settings()
+    assert saved["device"]["mode"] == "noisy" and saved["device"]["t2_us"] == 8.0
+    lab.device.mode.select("ideal")
+    lab.load(saved)
+    assert lab.device.noisy and lab.device.t2.value() == 8.0
+    lab.device.mode.select("ideal")
+
+
 def test_the_wave_packet_moves_and_levels_are_computed(page) -> None:
     page.show_tool("waves")
     lab = page.tools["waves"]

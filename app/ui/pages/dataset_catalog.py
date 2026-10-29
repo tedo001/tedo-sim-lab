@@ -21,6 +21,7 @@ from ..widgets import Card, DataTable, FlowGrid, KeyValues, label
 from .builder.choosers import DatasetDownload
 from .builder.form import task_title
 from .catalog_common import FilterRow, licence_pill, status_pill
+from .dataset_checks import DatasetChecks
 from .dataset_samples import DatasetSamples
 
 __all__ = ["DatasetCatalog"]
@@ -81,14 +82,20 @@ class DatasetCatalog(QWidget):
         self.builder_button = QPushButton(icon("sliders-horizontal"), "Use in Experiment Builder")
         self.builder_button.setObjectName("Primary")
         self.builder_button.clicked.connect(self._use_in_builder)
+        self.validate_button = QPushButton(icon("scan-search"), "Validate")
+        self.validate_button.setToolTip("Duplicates, leakage between splits, label problems, class balance "
+                                        "and licence metadata, for the splits a first experiment would use")
+        self.validate_button.clicked.connect(self._validate)
         self.builder_note = label("", "CardCaption", wrap=True)
-        row = [self.builder_button, self.lab_button, self.explore_button, self.source_button,
-               self.terms_button]
+        row = [self.builder_button, self.validate_button, self.lab_button, self.explore_button,
+               self.source_button, self.terms_button]
         for widget in (self.description, self.values, self.notes, self.citation, self.loader, self.download):
             self.detail.add(widget)
         self.detail.add(FlowGrid(row, 210, fewest=2))
         self.detail.add(self.builder_note)
         layout.addWidget(self.detail)
+        self.checks = DatasetChecks(ctx)
+        layout.addWidget(self.checks)
         self.samples = DatasetSamples(ctx)
         layout.addWidget(self.samples)
         ctx.downloads.finished.connect(lambda *_: self.refresh())
@@ -195,9 +202,13 @@ class DatasetCatalog(QWidget):
         self.lab_button.setVisible(lab != "dataset_hub")
         tasks = trainable_tasks(card, self._stable_tasks())
         self.builder_button.setVisible(bool(tasks))
+        self.validate_button.setVisible(bool(tasks))
         ready = status == "ready"
         self.builder_button.setEnabled(ready)
         self.builder_button.setToolTip("" if ready else "Download it first")
+        self.validate_button.setEnabled(ready)
+        if self.checks.report is not None and self.checks.report.get("dataset") != card.id:
+            self.checks.setVisible(False)
         self.builder_note.setText(
             f"Trains as {', '.join(task_title(t).lower() for t in tasks)}." if tasks else
             "No model in this release trains on it yet; it is listed with its licence and source." if
@@ -208,17 +219,25 @@ class DatasetCatalog(QWidget):
         if self.selected is not None:
             self.ctx.navigate(lab_for(self.ctx.catalog.datasets.get(self.selected)))
 
-    def _use_in_builder(self) -> None:
+    def _starter(self) -> object | None:
         if self.selected is None:
-            return
+            return None
         card = self.ctx.catalog.datasets.get(self.selected)
         tasks = trainable_tasks(card, self._stable_tasks())
         try:
-            spec = starter_spec(card, tasks[0], self.ctx.catalog.models)
+            return starter_spec(card, tasks[0], self.ctx.catalog.models)
         except (IndexError, LookupError, ValueError) as exc:
             self.builder_note.setText(str(exc).strip("'\""))
-            return
-        self.ctx.experiments.open_in_builder(spec, self.ctx.navigate)
+            return None
+
+    def _use_in_builder(self) -> None:
+        spec = self._starter()
+        if spec is not None:
+            self.ctx.experiments.open_in_builder(spec, self.ctx.navigate)
+
+    def _validate(self) -> str | None:
+        spec = self._starter()
+        return self.checks.check(spec) if spec is not None else None
 
     def _open(self, which: str) -> None:
         if self.selected is None:

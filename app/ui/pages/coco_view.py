@@ -17,6 +17,7 @@ from ..icons import icon
 from ..widgets import Card, DataTable, ResponsiveRow, StatStrip, StatTile, label
 from ..widgets.annotated import AnnotatedImage
 from ..widgets.plots import BarList
+from .coco_scores import CocoScores
 
 __all__ = ["CocoView"]
 
@@ -83,11 +84,13 @@ class CocoView(QWidget):
         viewer.add(self.image_note)
         self.browser = ResponsiveRow([(browse, 2), (viewer, 3)], breakpoint=900)
         layout.addWidget(self.browser)
+        self.scores = CocoScores(ctx)
+        layout.addWidget(self.scores)
         ctx.jobs.job_finished.connect(self._loaded)
         self._show_loaded(False)
 
     def _show_loaded(self, loaded: bool) -> None:
-        for widget in (self.stats, self.summary, self.browser):
+        for widget in (self.stats, self.summary, self.browser, self.scores):
             widget.setVisible(loaded)
         self.folder_button.setEnabled(loaded)
 
@@ -142,6 +145,7 @@ class CocoView(QWidget):
             if count:
                 self.category.addItem(f"{name} ({count:,})", name)
         self.category.blockSignals(False)
+        self.scores.set_file(coco)
         self._show_loaded(True)
         self._fill_images()
 

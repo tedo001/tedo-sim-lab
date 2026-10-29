@@ -1,0 +1,29 @@
+# Environment packs: heavy libraries kept out of the core experiment Python. Each pack is its own
+# virtual environment layered over the experiment Python (it sees the core packages through a .pth
+# file, so PyTorch is not installed twice) and is installed on request from the Plugin Store.
+# Licences: permissive only (MIT, Apache-2.0, BSD); a test checks them against
+# configs/dependency_licences.yaml.
+packs:
+  language:
+    title: Language, speech and vision-language models
+    description: >-
+      Hugging Face Transformers for fine-tuning text classifiers and for the inference worker's
+      chat, embeddings, speech recognition, CLIP, BLIP and detection models.
+    requirements: ["transformers>=4.56"]
+    licences: {transformers: Apache-2.0}
+    runners: [transformer_text]
+    inference: true
+  explain:
+    title: SHAP explanations
+    description: SHAP values for the Classical ML lab's fitted models.
+    requirements: ["shap>=0.45"]
+    licences: {shap: MIT}
+    runners: [sklearn]
+    inference: false
+  onnx:
+    title: ONNX export and runtime
+    description: Export trained networks to ONNX and time them with ONNX Runtime.
+    requirements: ["onnx>=1.15", "onnxruntime>=1.17"]
+    licences: {onnx: Apache-2.0, onnxruntime: MIT}
+    runners: []
+    inference: false

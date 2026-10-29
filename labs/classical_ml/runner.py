@@ -30,7 +30,7 @@ from core.experiment_engine.spec import ExperimentSpec, SklearnTrainingSpec
 from .explain import shap_summary
 from .pipeline import build_pipeline, pipeline_problems, wrap_search
 from .report import classification_report, cluster_report, importance, projection_report, regression_report
-from .tables import SUPERVISED, Table, load_table, split_table
+from .tables import SUPERVISED, Table, load_table, split_samples, split_table
 
 __all__ = ["MODEL_FILE", "SCORING", "SklearnRunner"]
 
@@ -248,6 +248,10 @@ class SklearnRunner(ExperimentRunner):
         return report, report.pop("metrics")
 
     # Re-scoring ----------------------------------------------------------------
+    def data_samples(self, spec: ExperimentSpec) -> dict[str, Any]:
+        paths, adapter, _card, _builder = self._parts(spec)
+        return split_samples(spec, load_table(spec, adapter, paths.datasets))
+
     def evaluate(self, spec: ExperimentSpec, callbacks: RunCallbacks, ctx: RunContext, checkpoint: Path,
                  split: str) -> dict[str, object]:
         import joblib

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 
@@ -56,12 +57,22 @@ class VariationalClassifier:
         self.ops: list[Op] = feature_ops(qubits, encoding) + ansatz(qubits, layers)
         self.n_params = 2 * qubits * layers
         self.params = np.random.default_rng(seed).normal(0.0, 0.1, self.n_params)
+        #: Where circuits run (``None`` = exact state vectors); see :mod:`.noisy`.
+        self.backend: Any = None
+        #: Circuit evaluations so far (one per sample per forward pass), for the resource record.
+        self.evaluations = 0
 
     # Forward ---------------------------------------------------------------------------------
+    def _state(self, x: np.ndarray, params: np.ndarray) -> np.ndarray:
+        return run_ops(states(len(x), self.qubits), self.qubits, self.ops, x, params,
+                       zz=self.encoding == "zz")
+
     def _expect(self, x: np.ndarray, params: np.ndarray) -> np.ndarray:
-        psi = run_ops(states(len(x), self.qubits), self.qubits, self.ops, x, params,
-                      zz=self.encoding == "zz")
-        return expectation_z(psi, self.qubits)[:, :self.classes]
+        self.evaluations += len(x)
+        if self.backend is None or self.backend.exact:
+            return expectation_z(self._state(x, params), self.qubits)[:, :self.classes]
+        return self.backend.expect_z(self.qubits, self.ops, x, params, zz=self.encoding == "zz",
+                                     exact_state=self._state)[:, :self.classes]
 
     def scores(self, x: np.ndarray, params: np.ndarray | None = None) -> np.ndarray:
         return -self.scale * self._expect(np.atleast_2d(x), self.params if params is None else params)

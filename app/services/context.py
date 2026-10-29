@@ -10,10 +10,12 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from core.catalog import Catalog, load_catalog
-from core.common import AppConfig, AppPaths, CredentialStore, experiment_python
+from core.common import AppConfig, AppPaths, CredentialStore, experiment_python, packs
 from core.common.paths import WORKSPACE_ENV
+from core.experiment_engine.spec import load_spec
 from core.tracking import LabStore
 from core.tracking.mlflow_tracker import hold_no_mlflow_connections, release_mlflow_stores
 
@@ -31,6 +33,7 @@ from .mlflow_ui import MlflowUi
 from .model_registry import ModelRegistryService
 from .plugins import PluginService
 from .settings import SettingsService
+from .studies import StudyService
 from .terminals import TerminalService
 from .updates import UpdateCheck
 
@@ -69,6 +72,7 @@ class AppContext:
     logs: LogService
     updates: UpdateCheck
     inference: InferenceService
+    studies: StudyService
     #: Switch the main window to another page; set by :class:`app.main_window.MainWindow`.
     navigate: Callable[[str], None] = field(default=_nowhere)
     #: Open a file at a line in the Code page; set by the main window.
@@ -100,6 +104,16 @@ class AppContext:
         release_mlflow_stores()
 
 
+def _python_for_run(run_dir: Path, config: AppConfig, catalog: Catalog) -> str:
+    """The experiment Python, or an installed environment pack that serves the run's runner."""
+    base = experiment_python(config)
+    try:
+        runner = catalog.runners.for_spec(load_spec(Path(run_dir) / "experiment.yaml")).id
+    except Exception:  # a benchmark or evaluation folder, or an unreadable spec: the core Python
+        return base
+    return packs.python_for(base, runner=runner) if base else base
+
+
 def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialStore | None = None,
                   *, probe_hardware: bool = True) -> AppContext:
     """Open the workspace: load the catalogue, open (and migrate) the database, start the queue.
@@ -118,11 +132,13 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
     store = LabStore.open(paths)
     store.recover_interrupted()
     # The experiment Python is read at each start, so setting it up takes effect at once.
-    jobs = JobQueue(lambda run_dir: worker_command(run_dir, python=experiment_python(config),
+    jobs = JobQueue(lambda run_dir: worker_command(run_dir,
+                                                   python=_python_for_run(run_dir, config, catalog),
                                                    code_root=paths.code_root, workspace=paths.workspace),
                     max_concurrent_runs=config.max_concurrent_runs, store=store)
     hardware = HardwareService(python=python, code_root=paths.code_root, probe=probe_hardware)
     experiments = ExperimentService(paths, store, jobs, catalog)
+    experiments.python = lambda: experiment_python(config)
     downloads = DownloadService(catalog.datasets, jobs)
     models = ModelRegistryService(paths, config, store, experiments, jobs)
     terminals = TerminalService(paths, config)
@@ -132,4 +148,4 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
                       PluginService(paths, catalog, credentials, jobs), JupyterLab(paths, config),
                       Notebooks(paths, store), ExperimentSetup(jobs), terminals,
                       SettingsService(paths, config, jobs, terminals), LogService(paths), UpdateCheck(jobs),
-                      InferenceService(paths, config))
+                      InferenceService(paths, config), StudyService(paths, store, experiments))

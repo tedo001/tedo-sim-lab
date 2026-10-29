@@ -15,6 +15,7 @@ from typing import Any
 
 import numpy as np
 
+from .explanations import write_record
 from .runs import _model
 
 __all__ = ["visualize"]
@@ -59,7 +60,8 @@ def _layers(model: Any) -> list[tuple[str, Any]]:
 
 def visualize(args: dict[str, Any], emit: Any, cancelled: Any, workspace: Path) -> dict[str, Any]:
     """``run`` and ``input`` (``{"path", "invert"}``); ``target`` = class index to explain (default:
-    the predicted one)."""
+    the predicted one). Each explanation is saved as a record in ``<run>/explanations/`` unless
+    ``record`` is false; the answer names it (``record``)."""
 
     run = _model(args["run"])
     if run.kind not in ("image", "audio"):
@@ -112,7 +114,12 @@ def visualize(args: dict[str, Any], emit: Any, cancelled: Any, workspace: Path) 
         cam = np.maximum((weights[:, None, None] * act).sum(axis=0), 0)
         cam = _resize(cam, saliency.shape)
         heat, _, _ = _scaled(cam)
-        result["gradcam"] = {"data": _bytes(heat), "shape": list(heat.shape), "layer": "last convolution"}
+        layer = next((name for name, module in run.model.named_modules() if module is convs[-1]),
+                     "last convolution")
+        result["gradcam"] = {"data": _bytes(heat), "shape": list(heat.shape), "layer": layer}
+    if args.get("record", True):
+        result["record"] = write_record(run, args, result, chosen="target" in args,
+                                        layer=result.get("gradcam", {}).get("layer"))
     return result
 
 

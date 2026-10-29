@@ -2,9 +2,11 @@
 
 The model comes from a finished run (its best checkpoint, PyTorch or scikit-learn) or, for an
 image model card, is built untrained at a given input size; latency does not depend on the
-weights. Each batch size gets warm-up passes, then timed passes: mean, median and 95th
-percentile latency, throughput, and on CUDA the peak memory. A batch that runs out of GPU
-memory ends the sweep with a note instead of failing it.
+weights. Each batch size gets warm-up passes, then ``repeats`` blocks of timed passes: mean,
+median and 95th percentile latency over every pass, the mean of each block with a 95 % t-interval
+across blocks, throughput, and on CUDA the peak memory. A batch that runs out of GPU memory ends
+the sweep with a note instead of failing it. The results say exactly how they were measured
+(``method``: timer, synchronisation, threads, input, hardware, statistics).
 """
 
 from __future__ import annotations
@@ -21,27 +23,37 @@ import numpy as np
 from core.catalog import load_cards
 from core.common.paths import AppPaths
 from core.experiment_engine.runner import RunCallbacks, RunContext
+from core.experiment_engine.snapshot import hardware
 from core.experiment_engine.spec import load_spec
+from core.experiment_engine.stats import summarize
 
 __all__ = ["DEFAULTS", "run_benchmark"]
 
-DEFAULTS = {"batch_sizes": [1, 8, 32], "warmup": 5, "iterations": 30, "precision": "fp32"}
+DEFAULTS = {"batch_sizes": [1, 8, 32], "warmup": 5, "iterations": 30, "repeats": 3, "precision": "fp32"}
 
 
-def _stats(seconds: list[float], batch: int) -> dict[str, float]:
+def _stats(seconds: list[float], batch: int, repeats: int = 1) -> dict[str, Any]:
     ms = np.asarray(seconds) * 1000.0
     mean = float(ms.mean())
-    return {"batch": batch, "mean_ms": mean, "p50_ms": float(np.percentile(ms, 50)),
-            "p95_ms": float(np.percentile(ms, 95)), "throughput": batch / (mean / 1000.0)}
+    row: dict[str, Any] = {"batch": batch, "mean_ms": mean, "p50_ms": float(np.percentile(ms, 50)),
+                           "p95_ms": float(np.percentile(ms, 95)), "throughput": batch / (mean / 1000.0)}
+    blocks = np.array_split(ms, max(repeats, 1))
+    spread = summarize([float(block.mean()) for block in blocks if len(block)])
+    row.update(block_means_ms=[float(block.mean()) for block in blocks if len(block)],
+               ci_low_ms=spread.get("ci_low"), ci_high_ms=spread.get("ci_high"),
+               sd_blocks_ms=spread.get("sd"))
+    return row
 
 
 def _time(fn: Callable[[], Any], warmup: int, iterations: int, sync: Callable[[], None],
-          ctx: RunContext) -> list[float]:
+          ctx: RunContext, repeats: int = 1) -> list[float]:
+    """``repeats`` blocks of ``iterations`` timed passes after ``warmup`` untimed ones; every pass is
+    synchronised (``sync``) before the clock stops, so asynchronous GPU work is counted."""
     for _ in range(warmup):
         fn()
     sync()
     seconds = []
-    for _ in range(iterations):
+    for _ in range(max(repeats, 1) * iterations):
         ctx.cancel.raise_if_cancelled()
         started = time.perf_counter()
         fn()
@@ -103,8 +115,8 @@ def _bench_torch(config: dict[str, Any], callbacks: RunCallbacks, ctx: RunContex
             data = torch.randn(batch, *shape, device=device, dtype=dtype)
             with torch.inference_mode():
                 seconds = _time(lambda data=data: model(data), config["warmup"], config["iterations"], sync,
-                                ctx)
-            row = _stats(seconds, batch)
+                                ctx, config["repeats"])
+            row = _stats(seconds, batch, config["repeats"])
             if cuda:
                 row["peak_mem_mb"] = torch.cuda.max_memory_allocated(device) / 1e6
         except torch.cuda.OutOfMemoryError:
@@ -114,8 +126,12 @@ def _bench_torch(config: dict[str, Any], callbacks: RunCallbacks, ctx: RunContex
         rows.append(row)
         callbacks.on_step(step, len(sizes), {"throughput": row["throughput"]})
         callbacks.on_log(f"batch {batch}: {row['mean_ms']:.2f} ms · {row['throughput']:.0f} samples/s")
+    method = {"synchronize": "torch.cuda.synchronize after every pass" if cuda else "none needed (CPU)",
+              "threads": torch.get_num_threads(), "cuda_toolkit": torch.version.cuda,
+              "input": f"torch.randn(batch, {shape[0]}, {shape[1]}, {shape[2]}), {config['precision']}",
+              "mode": "model.eval() under torch.inference_mode()"}
     return {"model": label, "framework": "pytorch", "parameters": parameters, "size_mb": size_mb,
-            "input": list(shape), "torch": torch.__version__, "rows": rows, "note": note}
+            "input": list(shape), "torch": torch.__version__, "rows": rows, "note": note, "method": method}
 
 
 def _bench_sklearn(config: dict[str, Any], callbacks: RunCallbacks, ctx: RunContext, paths: AppPaths) -> dict:
@@ -137,14 +153,17 @@ def _bench_sklearn(config: dict[str, Any], callbacks: RunCallbacks, ctx: RunCont
     for step, batch in enumerate(sizes, start=1):
         sample = table.features.iloc[rng.integers(0, len(table.features), batch)]
         seconds = _time(lambda s=sample: predict(s), config["warmup"], config["iterations"],
-                        lambda: None, ctx)
-        row = _stats(seconds, batch)
+                        lambda: None, ctx, config["repeats"])
+        row = _stats(seconds, batch, config["repeats"])
         rows.append(row)
         callbacks.on_step(step, len(sizes), {"throughput": row["throughput"]})
         callbacks.on_log(f"batch {batch}: {row['mean_ms']:.3f} ms · {row['throughput']:.0f} rows/s")
     return {"model": f"{spec.name} ({spec.model.model})", "framework": "sklearn", "parameters": None,
             "size_mb": (run_dir / MODEL_FILE).stat().st_size / 1e6, "input": [table.features.shape[1]],
-            "sklearn": sklearn.__version__, "rows": rows, "note": ""}
+            "sklearn": sklearn.__version__, "rows": rows, "note": "",
+            "method": {"synchronize": "none needed (CPU)", "threads": "scikit-learn / joblib defaults",
+                       "input": f"{batch} rows sampled from the dataset's own features (seed {spec.seed})",
+                       "mode": "pipeline.predict" if predict == pipeline.predict else "pipeline.transform"}}
 
 
 def run_benchmark(config: dict[str, Any], callbacks: RunCallbacks, ctx: RunContext) -> dict[str, Any]:
@@ -158,6 +177,14 @@ def run_benchmark(config: dict[str, Any], callbacks: RunCallbacks, ctx: RunConte
     results = (_bench_sklearn if tabular else _bench_torch)(config, callbacks, ctx, paths)
     results.update({"device": "cpu" if tabular else ctx.device, "precision": config["precision"],
                     "warmup": config["warmup"], "iterations": config["iterations"],
+                    "repeats": config["repeats"],
                     "run_id": _run_dir(config, paths).name if "run_dir" in config else None,
                     "cpu": platform.processor() or platform.machine(), "python": platform.python_version()})
+    results["method"] = {**results.get("method", {}),
+                         "timer": "time.perf_counter around each pass (monotonic, sub-microsecond)",
+                         "passes": f"{config['warmup']} warm-up, then {config['repeats']} blocks of "
+                                   f"{config['iterations']} timed passes per batch size",
+                         "statistics": "mean, median, 95th percentile over every pass; 95 % t-interval of "
+                                       "the block means (n = repeats); throughput = batch / mean latency",
+                         "platform": platform.platform(), "hardware": hardware()}
     return results

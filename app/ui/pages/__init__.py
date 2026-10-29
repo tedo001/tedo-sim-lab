@@ -38,6 +38,7 @@ from .quantum_ml import QuantumMlPage
 from .settings import SettingsPage
 from .simulation import SimulationLabPage
 from .source_control import SourceControlPage
+from .studies import StudiesPage
 from .terminal import TerminalPage
 from .testing import TestingPage
 from .training import TrainingPage
@@ -74,6 +75,7 @@ PAGE_FACTORIES: dict[str, Callable[[AppContext], QWidget]] = {
     "nlp_llm": NlpLlmPage,
     "audio": AudioPage,
     "multimodal": MultimodalPage,
+    "studies": StudiesPage,
     "testing": TestingPage,
 }
 

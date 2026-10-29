@@ -14,7 +14,7 @@ from core.common.vocab import Task
 from core.dataset_registry.adapter import TabularAdapter
 from core.experiment_engine.spec import ExperimentSpec, SklearnTrainingSpec
 
-__all__ = ["SUPERVISED", "Table", "load_table", "split_table"]
+__all__ = ["SUPERVISED", "Table", "load_table", "row_hashes", "split_samples", "split_table"]
 
 SUPERVISED = frozenset({Task.TABULAR_CLASSIFICATION, Task.TABULAR_REGRESSION})
 
@@ -30,6 +30,8 @@ class Table:
     #: The dataset's own target, kept for unsupervised tasks to compare against, and its names.
     truth: np.ndarray | None = None
     truth_names: list[str] | None = None
+    #: Rows left out because their target is empty.
+    missing_target: int = 0
 
 
 def _encode(values: Any, names: tuple[str, ...]) -> tuple[np.ndarray, list[str]]:
@@ -66,8 +68,10 @@ def load_table(spec: ExperimentSpec, adapter: TabularAdapter, root: Path) -> Tab
     supervised = spec.task in SUPERVISED
     if supervised and target is None:
         raise ValueError(f"{adapter.card.name} has no target column; name one in training.target")
+    missing = 0
     if target is not None:
         keep = target.notna().to_numpy()
+        missing = int((~keep).sum())
         features, target = features[keep], target[keep]
     if spec.data.subset and spec.data.subset < len(features):
         rows = np.random.default_rng(spec.seed).choice(len(features), spec.data.subset, replace=False)
@@ -78,11 +82,11 @@ def load_table(spec: ExperimentSpec, adapter: TabularAdapter, root: Path) -> Tab
     names = getattr(adapter, "class_names", lambda: ())()
     if spec.task == Task.TABULAR_CLASSIFICATION:
         codes, classes = _encode(target, names)
-        return Table(features, codes, str(target.name), classes)
+        return Table(features, codes, str(target.name), classes, missing_target=missing)
     if spec.task == Task.TABULAR_REGRESSION:
         if not pd.api.types.is_numeric_dtype(target):
             raise ValueError(f"regression needs a numeric target; {target.name!r} holds text")
-        return Table(features, target.to_numpy(dtype=float), str(target.name), [])
+        return Table(features, target.to_numpy(dtype=float), str(target.name), [], missing_target=missing)
     truth, truth_names = None, None
     if target is not None and (not pd.api.types.is_numeric_dtype(target) or target.nunique() <= 50):
         truth, truth_names = _encode(target, names)
@@ -102,3 +106,25 @@ def split_table(spec: ExperimentSpec, table: Table) -> tuple[Any, Any, Any, Any]
         stratify = table.target if counts[counts > 0].min() >= 2 else None
     return train_test_split(table.features, table.target, test_size=training.test_fraction,
                             random_state=spec.seed, stratify=stratify)
+
+
+def row_hashes(frame: Any) -> list[str]:
+    """A content hash of every row (its values, not its position)."""
+    import pandas as pd
+
+    return [f"{value:016x}" for value in pd.util.hash_pandas_object(frame, index=False).to_numpy()]
+
+
+def split_samples(spec: ExperimentSpec, table: Table) -> dict[str, Any]:
+    """The rows each split gets, as :func:`split_table` makes them, for the data checks."""
+    from core.dataset_registry.validation import SampleSet
+
+    if table.target is None:  # unsupervised: every row is fitted
+        return {"all": SampleSet(row_hashes(table.features))}
+    x_train, x_test, y_train, y_test = split_table(spec, table)
+    if spec.task != Task.TABULAR_CLASSIFICATION:  # numbers, not classes: no balance or conflicts
+        return {"train": SampleSet(row_hashes(x_train)), "test": SampleSet(row_hashes(x_test))}
+    classes = tuple(table.classes)
+    return {"train": SampleSet(row_hashes(x_train), np.asarray(y_train).tolist(),
+                               missing_labels=table.missing_target, classes=classes),
+            "test": SampleSet(row_hashes(x_test), np.asarray(y_test).tolist(), classes=classes)}

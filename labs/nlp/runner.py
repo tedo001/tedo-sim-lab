@@ -23,7 +23,7 @@ from core.experiment_engine.runner import ExperimentRunner, RunCallbacks, RunCon
 from core.experiment_engine.spec import ExperimentSpec, SklearnTrainingSpec
 
 from ..classical_ml.report import classification_report
-from .text_data import load_splits, text_adapter
+from .text_data import load_splits, split_samples, text_adapter
 
 __all__ = ["CLASSIFIERS", "MODEL_FILE", "TextClassifierRunner", "build_tfidf", "build_tfidf_linear_svm",
            "build_tfidf_logistic", "build_tfidf_naive_bayes", "telling_words"]
@@ -200,6 +200,12 @@ class TextClassifierRunner(ExperimentRunner):
         callbacks.on_log(f"Test accuracy {metrics['test_acc']:.4f} · macro F1 {metrics['test_f1']:.4f}")
         return RunResult(ctx.run_id, "completed", {**metrics, "epochs_completed": 1.0}, target,
                          time.monotonic() - started)
+
+    def data_samples(self, spec: ExperimentSpec) -> dict[str, Any]:
+        paths, adapter, _card = text_adapter(spec)
+        training = spec.training
+        assert isinstance(training, SklearnTrainingSpec)
+        return split_samples(spec, load_splits(spec, adapter, paths.datasets, training.test_fraction))
 
     def evaluate(self, spec: ExperimentSpec, callbacks: RunCallbacks, ctx: RunContext, checkpoint: Path,
                  split: str) -> dict[str, object]:

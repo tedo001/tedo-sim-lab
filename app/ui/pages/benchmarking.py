@@ -83,9 +83,12 @@ class BenchmarkingPage(Page):
         self.batches.setMaximumWidth(240)
         self.warmup = _spin(0, 1000, 5)
         self.iterations = _spin(1, 10_000, 30)
+        self.repeats = _spin(1, 50, 3)
+        self.repeats.setToolTip("Blocks of timed passes; the 95 % interval of the mean is taken across them")
         for title, widget in (("Model", self.source), ("Input", self.shape_row), ("Device", self.device),
                               ("Precision", self.precision), ("Batch sizes", self.batches),
-                              ("Warm-up passes", self.warmup), ("Timed passes", self.iterations)):
+                              ("Warm-up passes", self.warmup), ("Timed passes", self.iterations),
+                              ("Repeats", self.repeats)):
             rows.addRow(title, widget)
         setup.add(rows)
         actions = QHBoxLayout()
@@ -179,7 +182,8 @@ class BenchmarkingPage(Page):
         request = {"device": self.device.currentData() if self.device.isEnabled() else "cpu",
                    "precision": self.precision.currentData(),
                    "batch_sizes": parse_batches(self.batches.text()),
-                   "warmup": self.warmup.value(), "iterations": self.iterations.value()}
+                   "warmup": self.warmup.value(), "iterations": self.iterations.value(),
+                   "repeats": self.repeats.value()}
         kind, key = choice
         if kind == "run":
             view = self.ctx.experiments.view(key)
@@ -246,8 +250,9 @@ class BenchmarkingPage(Page):
         parameters = results.get("parameters")
         self.values.set_value("Parameters", f"{parameters:,}" if parameters else "—")
         self.values.set_value("Size", f"{results['size_mb']:.1f} MB" if results.get("size_mb") else "—")
-        self.values.set_value("Passes", f"{bench.request.get('warmup')} warm-up, "
-                                        f"{bench.request.get('iterations')} timed per batch size")
+        request = bench.request
+        self.values.set_value("Passes", f"{request.get('warmup')} warm-up, {request.get('repeats', 1)} × "
+                                        f"{request.get('iterations')} timed per batch size")
         self.values.set_value("Machine", f"{results.get('cpu', '—')} · Python {results.get('python', '—')}")
         self.rows.clear_rows()
         for row in results.get("rows", []):
@@ -258,6 +263,11 @@ class BenchmarkingPage(Page):
         measured = results.get("rows", [])
         self.throughput_bars.set_rows([(f"batch {r['batch']}", r["throughput"]) for r in measured])
         self.latency_bars.set_rows([(f"batch {r['batch']}", r["mean_ms"]) for r in measured])
-        notes = [results.get("note", ""), bench.error]
+        method = results.get("method", {})
+        intervals = [f"batch {r['batch']}: {r['ci_low_ms']:.2f}–{r['ci_high_ms']:.2f} ms"
+                     for r in measured if r.get("ci_low_ms") is not None]
+        spread = "Mean latency, 95 % interval across repeats: " + "; ".join(intervals) + "."
+        notes = [results.get("note", ""), bench.error, spread if intervals else "",
+                 " · ".join(str(method[k]) for k in ("timer", "synchronize", "statistics") if k in method)]
         self.note.setText(" ".join(n for n in notes if n))
         self.note.setVisible(bool(self.note.text()))

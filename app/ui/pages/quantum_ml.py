@@ -18,6 +18,7 @@ from ...services.context import AppContext
 from ..icons import icon
 from ..widgets import Card, KeyValues, Page, ResponsiveRow, label
 from .lab_parts import LabDatasets, PresetGrid
+from .quantum_protocol import ProtocolCard
 from .quantum_views import BoundaryView, CircuitDiagram, KernelView
 
 __all__ = ["QuantumMlPage"]
@@ -37,7 +38,9 @@ class QuantumMlPage(Page):
                         "and a ring of CNOTs, reads ⟨Z⟩ of one qubit per class and learns by the "
                         "parameter-shift rule with Adam. A quantum-kernel SVM instead compares samples by "
                         "the overlap |⟨φ(x)|φ(x′)⟩|² of their encoded states. Up to ten qubits are simulated "
-                        "exactly; no quantum hardware or account is needed.", "Body",
+                        "exactly, or up to eight with the noise of an imperfect device (the builder's "
+                        "Simulated device card). Results are simulator results, never hardware results, "
+                        "and every run is compared with classical models on the same split.", "Body",
                         wrap=True))
         self.body.addWidget(intro)
         self.presets = PresetGrid(ctx, QUANTUM_PRESETS, "each runs in seconds to a minute on a CPU")
@@ -89,6 +92,8 @@ class QuantumMlPage(Page):
         self.circuit_card = Card("Circuit", "data angles by name, trained angles in radians")
         self.circuit_card.add(scroll)
         card.add(self.circuit_card)
+        self.protocol = ProtocolCard()
+        card.add(self.protocol)
         return card
 
     def refresh(self) -> None:
@@ -112,6 +117,7 @@ class QuantumMlPage(Page):
             widget.setVisible(has)
         self.empty.setVisible(not has)
         if not has:
+            self.protocol.show_protocol(None, None)
             return
         view = self.ctx.experiments.view(run_id)
         try:
@@ -141,6 +147,7 @@ class QuantumMlPage(Page):
                 params = saved["params"] if "params" in saved.files else None
         self.circuit.set_circuit(circuit, params, list(results.get("angles", [])))
         self.circuit_card.setVisible(bool(circuit))
+        self.protocol.show_protocol(results.get("protocol"), metrics.get("test_acc"))
 
     def open_testing(self) -> None:
         run_id = self.runs.currentData()

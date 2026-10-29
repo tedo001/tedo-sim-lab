@@ -46,7 +46,7 @@ jobs:
         run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,language]"
 
       - name: Lint
         run: ruff check .

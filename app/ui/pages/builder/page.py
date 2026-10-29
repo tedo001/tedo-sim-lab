@@ -16,6 +16,7 @@ from ....services.runs import slug
 from ...icons import icon
 from ...widgets import Card, Page, Pill, ResponsiveRow, label
 from .form import SpecForm
+from .study_section import StudySection
 
 __all__ = ["ExperimentBuilderPage"]
 
@@ -64,6 +65,8 @@ class ExperimentBuilderPage(Page):
         stack.setContentsMargins(0, 0, 0, 0)
         stack.setSpacing(12)
         stack.addWidget(summary)
+        self.studies = StudySection(ctx, lambda: self.spec if not self.problems else None, self.load)
+        stack.addWidget(self.studies)
         stack.addWidget(yaml_card)
         stack.addStretch(1)
         self.body.addWidget(ResponsiveRow([(self.form, 3), (holder, 2)], breakpoint=980))

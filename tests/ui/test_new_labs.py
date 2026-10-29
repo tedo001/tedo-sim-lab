@@ -142,6 +142,9 @@ def test_model_testing_detection_and_spectrogram_layers(ctx, qtbot, tmp_path) ->
     page.visualise()
     qtbot.waitUntil(lambda: page.maps.column.count() > 3 or "Failed" in page.vis_note.text(), timeout=60_000)
     assert page.maps.column.count() > 3 and page.vis_card.isVisibleTo(page)
+    assert "Saved as explanation record" in page.vis_note.text()
+    assert page.records.isVisibleTo(page) and page.records.table.rowCount() == 1
+    assert page.records.records[0]["input"]["original_path"].endswith("3_lucas_1.wav")
 
 
 def test_dataset_hub_previews_and_starts_experiments(ctx, qtbot) -> None:

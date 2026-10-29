@@ -18,6 +18,7 @@ import yaml
 from core.common.cancel import CancelToken
 from core.common.references import UnresolvedReference, resolve
 from core.common.vocab import Task
+from core.dataset_registry.validation import SampleSet
 
 from .spec import ExperimentSpec
 
@@ -97,6 +98,11 @@ class ExperimentRunner(ABC):
         """Score a saved checkpoint on ``split`` ("test" or "val"): metrics, and whatever else the
         runner can say (classes, confusion matrix). Runners that cannot, say so."""
         raise NotImplementedError(f"{self.title} cannot evaluate checkpoints")
+
+    def data_samples(self, spec: ExperimentSpec) -> dict[str, SampleSet] | None:
+        """The splits exactly as :meth:`run` will use them (train first), one content hash and
+        label per sample, for the data checks; ``None`` when this runner cannot say."""
+        return None
 
 
 class ExperimentalRunner(ExperimentRunner):

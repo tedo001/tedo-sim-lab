@@ -97,7 +97,11 @@ NAV: tuple[PageSpec, ...] = (
     _p("benchmarking", "Benchmarking", "experiments", "timer",
        "Inference latency and throughput by batch size and device."),
     _p("compare", "Compare Experiments", "experiments", "git-compare",
-       "Runs side by side, curves overlaid, exported as CSV, JSON, Markdown or PDF."),
+       "Runs side by side, a model-performance radar, curves overlaid, exported as CSV, JSON, Markdown "
+       "or PDF."),
+    _p("studies", "Studies & Sweeps", "experiments", "sigma",
+       "One experiment over several seeds (mean, spread, 95 % interval, Welch's test) or a hyperparameter "
+       "sweep (parallel coordinates, parameter importance)."),
     _p("mlflow", "MLflow", "experiments", "chart-line",
        "Runs tracked in MLflow, and the MLflow UI."),
 

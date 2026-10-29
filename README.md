@@ -36,6 +36,63 @@ fill up), streams its answers and never touches the window's process.
 Everything long runs outside the window: training, evaluation and benchmarks in a worker process,
 downloads and searches on background threads. The UI never waits.
 
+## Research rigour
+
+What a result needs before it is presented as one:
+
+- **Reproducibility reports.** Every finished run writes `reproduction/` in its folder: a report
+  (Markdown and JSON) with the question, hypothesis and limitations you state in the builder's
+  *Research* card, the configuration, where the data came from (card, licence, citation, fingerprint,
+  split), the environment (Python, OS, CPU, GPUs and driver, the CUDA toolkit and cuDNN PyTorch was
+  built with, every installed package in `environment.lock.txt`, the code commit and any uncommitted
+  diff), the baseline run and how this one compares, the results with a 95 % interval on test accuracy,
+  the limitations the lab can see itself (one seed, a capped dataset, a simulator…) and the exact
+  commands that reproduce it. The Training page shows it and exports the bundle (a zip) and a PDF.
+  Another person reproduces the run from the bundle in a clean workspace:
+  `python -m core.experiment_engine.reproduce <bundle>.zip --workspace <folder> --download` reruns it
+  and compares every score (exit 0 when they match).
+- **Data checks and leakage detection.** Before a run trains, the lab hashes every sample of the
+  splits it will use and reports duplicates, the same sample in two splits (leakage), one sample with
+  two labels, missing labels, rare or absent classes and gaps in the licence metadata. The
+  experiment's rule (`data.validation`: warn, fail or off) decides whether errors stop the run. The
+  Dataset Hub's *Validate* checks a dataset before you build on it; the results go into the report.
+- **Seed studies, sweeps and statistics.** The builder's *Repeat and sweep* card queues one
+  experiment over several seeds, or over a hyperparameter space (every combination or a random
+  sample), and saves configurations as named baselines. *Studies & Sweeps* reports each metric as a
+  mean with its standard deviation and a 95 % Student-t interval, tests one study against another
+  with Welch's t-test (and names any difference in compute budget: epochs, batches, rows, samples
+  seen), and draws a sweep the way an experiment tracker does: the runs with their parameters, state,
+  runtime and score, parallel coordinates from parameters to score, each parameter's importance
+  (random forest) and correlation, and the validation curves of the best runs. Exports carry every
+  run's id, seed, spec hash, budget and environment and the formula behind every number.
+- **Benchmark methodology.** Latency is measured in repeated blocks after warm-up passes, every pass
+  synchronised on the GPU; results give mean, median, 95th percentile, a 95 % interval across blocks,
+  and the timer, threads, input, mode, hardware and CUDA build they were measured with.
+- **Quantum ML evaluation protocol.** A quantum classifier runs on an ideal simulation or a *noisy
+  hardware simulation* (density matrices with depolarizing errors after one- and two-qubit gates,
+  T1/T2 relaxation for each gate's duration, readout errors, and a number of shots). Every run fits
+  classical baselines (logistic regression, RBF SVM, a small neural network) on exactly the same split
+  and features, records qubits, depth, gate counts, parameters, circuit evaluations, shots, memory and
+  time, and scores the trained model with the noise scaled 0×, ½×, 1× and 2×. The report says that its
+  results are simulator results, not hardware results, compares them plainly with the baselines, and
+  claims no quantum advantage. The Simulation Lab's circuits switch between *Ideal simulation* and
+  *Noisy hardware simulation* the same way (fidelity with the ideal state, purity, noisy Bloch
+  vectors and counts).
+- **Model performance at a glance.** Compare Experiments draws the ticked runs (up to four) on a
+  radar, one spoke per test score they all have (accuracy, precision, recall, F1, ROC AUC, best
+  validation accuracy; mAP, AP50, AP75 and IoU for detection runs), either absolute (0–1) or
+  relative to the best run, with hover values; it goes into the exported report too.
+- **Explanation records.** Every *Look inside* on Model Testing (Grad-CAM, saliency, layer maps) is
+  saved in the run's `explanations/` folder with a copy of the input and its SHA-256, the checkpoint
+  file and its SHA-256, the spec hash, the target class (chosen or predicted) with every probability,
+  the methods and their settings (the Grad-CAM layer, the transform), the output images and the
+  software versions. Model Testing lists them and checks each one again: a record whose checkpoint
+  changed since (a retrained or resumed run) is marked.
+- **Detection and segmentation scores.** The COCO inspector checks an annotation file (orphaned or
+  out-of-image boxes, unknown categories, repeated images, unannotated images, missing licences) and
+  scores a model's detections against it: COCO mAP over IoU 0.50:0.95, AP50, AP75, mean IoU and AP per
+  class, for boxes or masks, equal to pycocotools' own evaluation.
+
 ## Install on Windows
 
 Download `TEDO-AI-Lab-<version>-win64.msi` from the repository's Releases, or from the latest
@@ -77,11 +134,16 @@ python -m venv .venv
 # without one, the CPU build is much smaller:
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-pip install -e ".[dev]"
+pip install -e ".[dev,language]"
 ```
 
-Transformers (Apache-2.0) is installed with the lab for the pretrained models; the installed app keeps
-it in the experiment Python. Optional extras: `[cv]` (ONNX, ONNX Runtime), `[ocr]` (PaddleOCR,
+`[language]` adds Transformers (Apache-2.0) for the pretrained models and fine-tuned text classifiers.
+The core experiment Python stays light: in the installed app (or a `run.py` setup) Transformers,
+SHAP and ONNX are *environment packs* you install from the Plugin Store's **Environments** card;
+each is its own virtual environment layered over the experiment Python (it reuses PyTorch and the
+rest through a `.pth` link, so nothing is installed twice), and the jobs that need it (the
+transformer runner, the inference worker, SHAP explanations) run under it once it is there.
+Optional extras: `[cv]` (ONNX, ONNX Runtime), `[ocr]` (PaddleOCR,
 EasyOCR, Tesseract), `[nlp]` (Hugging Face Hub client), `[integrations]` (Jupyter Lab, nbformat,
 SHAP). The app starts without any of them; the Jupyter page installs Jupyter Lab when you ask.
 
@@ -142,7 +204,8 @@ QT_QPA_PLATFORM=offscreen python -m app.main --smoke-test
 | Evaluation | Scores, confusion matrix and per-class report; re-score a checkpoint on a split. |
 | Model Testing | Use trained and pretrained models: try an input, what-if sweeps, batch tests, detection, captions, speech, and a look inside every layer. |
 | Benchmarking | Inference latency and throughput by batch size and device. |
-| Compare Experiments | Runs side by side, curves overlaid, exported as CSV, JSON, Markdown or PDF. |
+| Compare Experiments | Runs side by side, a model-performance radar, curves overlaid, exported as CSV, JSON, Markdown or PDF. |
+| Studies & Sweeps | One experiment over several seeds (mean, spread, 95 % interval, Welch's test) or a hyperparameter sweep (parallel coordinates, parameter importance). |
 | MLflow | Runs tracked in MLflow, and the MLflow UI. |
 | Code | A project folder as an IDE: files, editor, run, terminal and git. |
 | Terminal | Real terminals: bash, PowerShell, Command Prompt, Python, vim, Neovim and Docker. |

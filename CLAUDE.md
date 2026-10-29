@@ -55,7 +55,7 @@ ruff check .                                         # lint
 
 Install: CPU-only machines install PyTorch first
 (`pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu`),
-then `pip install -e ".[dev]"`. Linux needs Qt's system libraries:
+then `pip install -e ".[dev,language]"`. Linux needs Qt's system libraries:
 `libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3`.
 
 ## Architecture
@@ -104,11 +104,17 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `labs/computer_vision/coco.py` | `CocoFile`: a local COCO annotation file's categories, per-image licences, annotations, RLE masks (pycocotools); drawn by `app/ui/widgets/annotated.py` |
 | `app/ui/pages/model_zoo.py` | Model Zoo: every model card, weights' own licences, hardware needs; `configs/excluded_tools.yaml` lists what the licence policy keeps out |
 | `app/services/model_registry.py` | `ModelRegistryService`: register a finished run's checkpoint as a numbered version (metrics, stage, notes; migration `0002`), mirrored into MLflow's registry when the run was tracked; page `model_registry.py`, "Register model" on the Training page |
-| `labs/benchmark/latency.py` | `run_benchmark`: latency/throughput of a run's checkpoint (PyTorch or scikit-learn) or an untrained image model, by batch size; run by `worker <folder> --benchmark` (targets allowed under `benchmarks:` in `configs/runners.yaml`) |
+| `labs/benchmark/latency.py` | `run_benchmark`: latency/throughput of a run's checkpoint (PyTorch or scikit-learn) or an untrained image model, by batch size (warm-up, `repeats` blocks, 95 % interval across blocks, `method`: timer, synchronisation, threads, input, hardware); run by `worker <folder> --benchmark` (targets allowed under `benchmarks:` in `configs/runners.yaml`) |
 | `app/services/benchmarks.py` | `BenchmarkService`: benchmark folders in `results/benchmarks/<id>/` (`benchmark.json` request, `results.json` or `error.txt`); page `benchmarking.py` |
 | `app/ui/pages/compare.py` | Compare Experiments: up to 8 runs, measures × runs table, `OverlayChart` (`app/ui/widgets/overlay.py`), export; `app/services/reports.py` builds rows (`comparison_row`) and writes CSV/JSON/Markdown/PDF (`QTextDocument` + `QPdfWriter`) into `reports/`; Training's "Export report" uses it for one run |
+| `app/ui/pages/compare_radar.py` | Compare's *Model performance* card: `RadarChart` (`app/ui/widgets/radar.py`: one spoke per shared 0–1 score, ≤ 4 runs in `SERIES` order, legend, hover, gaps for missing scores), absolute or relative to the best run; exported as `performance.png` |
 | `app/ui/pages/catalog_common.py` | `licence_pill`, `status_pill`, `FilterRow` shared by the Dataset Hub and Model Zoo |
-| `core/experiment_engine/snapshot.py` | Reproducibility snapshot (`snapshot.json`, `code.diff`): Python, platform, packages, git, dataset fingerprint; `compare()` |
+| `core/experiment_engine/snapshot.py` | Reproducibility snapshot (`snapshot.json`, `code.diff`, `environment.lock.txt` = every installed package): Python, OS, CPU, GPUs and driver (NVML), CUDA toolkit / cuDNN of the PyTorch build, packages, git (remote without credentials), dataset fingerprint; `compare()`; `environment_of(python)` asks the experiment Python in a subprocess |
+| `core/experiment_engine/repro.py` | The reproducibility report of a finished run (`reproduction/`: `report.md`/`.json`, `REPRODUCE.md`, copies of `experiment.yaml`, `snapshot.json`, `environment.lock.txt`, `result.json`, `code.diff`, `data_validation.json`; Wilson interval on test accuracy, observed limitations, exact commands), written by the worker after every run (`result.json` too); `bundle()` zips it; `reproduce.py` (`python -m core.experiment_engine.reproduce <bundle> --workspace W [--download]`: reruns in a clean workspace, compares every score, exit 0 / 3 differ / 1 failed); UI `app/ui/pages/training_repro.py` (`ReproCard`, `DataChecksCard`), `app/services/reports.py` `export_reproduction`; builder card `builder/research_section.py` (`spec.research`: question, hypothesis, baseline run, limitations; never in `spec_hash`) |
+| `core/dataset_registry/validation.py` | Data checks: `SampleSet` (content hash + label per sample, as the runner splits), `validate()` → duplicates, leakage between splits, label conflicts, missing labels, balance, licence metadata (errors vs warnings); `core/experiment_engine/data_checks.py` `check_data` runs before training under `data.validation` (warn / fail / off) into `data_validation.json`, and `python -m core.experiment_engine.data_checks <yaml>` for the Dataset Hub's *Validate* (`app/ui/pages/dataset_checks.py`); runners implement `data_samples(spec)` |
+| `labs/computer_vision/detection_metrics.py` | `box_iou`, `mask_iou`, `coco_map` (COCO AP 0.50:0.95 / AP50 / AP75 / per class, box or mask; equal to pycocotools' COCOeval, a test checks), `check_annotations` (COCO file checks); the COCO inspector's `coco_scores.py` |
+| `core/experiment_engine/studies.py` | Seed studies (`seed_study`: tags `study:<id>`, `seed:<n>`) and sweeps (`sweep`: grid or random over dotted spec paths, tag `sweep:<id>`), definitions in `results/studies/<id>.json`, `budget`/`budget_mismatch` (epochs, batches, rows, samples seen), named baselines in `configs/baselines/`; `stats.py` (`summarize`: mean, sd, Student-t 95 % interval; `welch`; scipy with an exact fallback); `app/services/studies.py` `StudyService` (`ctx.studies`: launch, rows, summary, compare, random-forest `importance`, export); page `app/ui/pages/studies/` (seeds, sweeps), `app/ui/widgets/parallel.py` (`ParallelCoordinates`), builder card `builder/study_section.py` |
+| `labs/simulation/quantum/noise.py` | Noisy simulation with density matrices: `NoiseModel` (depolarizing 1q/2q in Qiskit's convention, T1/T2 relaxation per gate duration, readout error; `REFERENCE` is illustrative, never a device), `apply_matrix`/`apply_kraus`/`apply_noise`, `simulate_noisy(circuit)`, readout, reduced states; used by the Simulation Lab circuits (`simulation/noise_controls.py`: Ideal / Noisy hardware simulation) and by `labs/quantum_ml/noisy.py` (`Backend`: batched density matrices, shots, `backend_from_spec(training.simulator)`); `labs/quantum_ml/protocol.py` (classical baselines on the same split, resources, noise comparison ×0/½/1/2, `claims`: simulator not hardware, no advantage claimed) into `results.json` `protocol`, shown by `app/ui/pages/quantum_protocol.py` and the report; builder card `builder/quantum_device.py` |
 | `core/experiment_engine/recording.py` | What a worker records around a run: snapshot + `MlflowTracker` (`core/tracking/mlflow_tracker.py`) |
 | `app/ui/pages/evaluation.py` | Evaluation: scores, `ConfusionMatrixView`, per-class report, re-score best/last on test/val (`worker --evaluate`) |
 | `app/ui/pages/mlflow_page.py` | MLflow page: tracking store, runs read in a quiet task, `MlflowUi` service (`app/services/mlflow_ui.py`) |
@@ -130,6 +136,7 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/services/plugins.py` | `PluginService`: install / test / search / download as tasks (`finished` signal), credentials to the OS keyring; page `plugin_store.py` (+ `plugin_browse.py`) |
 | `app/ui/pages/ide/` | Code page (IDE): `tree.py` (`ProjectTree`: files, new/rename/trash inside the project), `editors.py` (`EditorTabs`, `FindBar`; Python syntax-checked on save; breakpoints per file), `console.py` (Run output with traceback jumps, terminal, git), `debugging.py` (`Debugger`: Debug = pdb in a terminal tab with the breakpoints, the editor follows each stop; Run in terminal for programs that read input); widgets `code_editor.py` (`CodeEditor`: gutter breakpoints that move with edits, debug line) and `highlighters.py`; engine `app/services/project.py` (`ProjectRunner`, `project_environment`: experiment Python, project then lab code on `PYTHONPATH`; `RecentProjects` in `QSettings`) |
 | `packaging/` | Windows installer: `freeze.py` (cx_Freeze: `build_exe` = one-folder app, modules as files in `lib/`, data files beside them, package metadata only for what is bundled; training libraries excluded; lab sources, cards and docs in `lab-code/` beside the exe = frozen `CODE_ROOT`; `bdist_msi` = per-user `.msi`), `build_installer.bat`, `requirements-window.txt` (kept in step with `pyproject.toml`), `requirements-build.txt`, notices in `licences/`; CI workflow `.github/workflows/installer.yml` builds, smoke-tests, installs the `.msi` silently, tests again and uninstalls |
+| `core/common/packs.py` | Environment packs (`configs/packs.yaml`: `language` = Transformers, `explain` = SHAP, `onnx`): each a venv made from the experiment Python with a `.pth` link to its site-packages (nothing installed twice), per user beside it (`TEDO_LAB_PACKS` moves them); `install_steps`, `remove`, `python_for(base, runner=, inference=)` → an installed pack's Python for the runners it names and the inference worker, else the experiment Python; used by `build_context` (`_python_for_run`) and `InferenceService`; Plugin Store card `app/ui/pages/plugin_envs.py`. Pack libraries must be permissive and listed in `dependency_licences.yaml` (a test checks) |
 | `core/common/experiment_env.py` | The experiment Python: find a Python 3.11+, make the per-user environment (PyTorch CUDA/CPU + `configs/experiment-requirements.txt`, kept in step with `pyproject.toml`), `describe_python` in a subprocess; `app/services/experiment_setup.py` + Settings card `experiment_python_card.py`; `AppContext.set_experiment_python` |
 | `core/terminal/` | A VT100/xterm terminal without Qt: `screen.py` (`Screen`: cells, scroll regions, alternate screen, scrollback with stable line numbers; + `editing.py`, `modes.py`, `cells.py`), `parser.py` (`Parser`: state kept across reads, unknown sequences skipped whole, replies to queries), `pty_process.py` (`spawn`: POSIX pty, Windows ConPTY through pywinpty), `profiles.py` (bash, zsh, fish, PowerShell, cmd, Git Bash, WSL, Python, vim, Neovim, Docker, a command of your own; install commands for missing editors), `debugger.py` (`pdb_command`; `find_stop` reads where pdb stopped off the screen) |
 | `app/services/pty_session.py` | `PtySession`: a program in a pty, read on a thread, parsed on the GUI thread, output masked, writes never block, bracketed paste; `terminals.py` `TerminalService` (sessions, profiles, the Code page's project); widget `terminal_view.py` (+ `terminal_keys.py`, `terminal_paint.py`, `terminal_mouse.py`); `TerminalTabs` (`app/ui/pages/terminal_tabs.py`) on the Terminal page, in the panel under every page (Ctrl+\`, `app/ui/shell/terminal_panel.py`) and in the Code page |
@@ -143,6 +150,7 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
 | `app/services/jupyter.py` | `Notebooks` (list, create from a run with relative paths, link via `notebook_links`, `notebook_markdown` viewer) and `JupyterLab` (a `LocalWebUi`, like `MlflowUi`: 127.0.0.1, fresh masked token); page `jupyter_page.py` |
 | `plugins/colab/notebook.py` | `build_notebook` (clone at the commit, `experiment.yaml`, licence-checked dataset cell, worker → `events.jsonl`, zip) and `read_results`; `app/services/colab.py` `ColabService` exports into `notebooks/colab/` and imports a zip through `ExperimentService.import_run` (replays the events); page `colab_page.py` |
 | `labs/inference/` | The inference worker (`python -m labs.inference.worker --workspace W`: one JSON request per stdin line, `partial`/`result`/`error` answers on a private stdout, `cancel`, LRU of two loaded models, CUDA only here): `text.py` (generate streamed, embed, tokenize), `speech.py` (Whisper, wav2vec 2.0 CTC), `vision.py` (CLIP zero-shot and folder search, BLIP captions, detection), `runs.py` (`kind_of`, `RunModel`: predict / sweep with any finished run), `visualize.py` (per-layer maps, Grad-CAM, saliency), `hub.py` (`needed_files`: one set of safetensors weights); app side `app/services/inference.py` `InferenceService` (`ctx.inference.request(task, args, on_partial=, on_done=, on_error=)`) |
+| `labs/inference/explanations.py` | Explanation records: `visualize` (inference worker) calls `write_record` → `<run>/explanations/<id>/record.json` (input copy + SHA-256, checkpoint file + SHA-256, spec hash, target chosen/predicted, probabilities, methods with the Grad-CAM layer and settings, `gradcam.png`/`saliency.png`/`input_as_seen.png` + SHA-256, software versions); `list_records`, `verify` (no torch: the app lists and re-checks them, `app/ui/pages/testing/records.py`) |
 | `labs/quantum_ml/` | `sim.py` (batched state vectors, angle/ZZ feature maps, ansatz), `vqc.py` (`VariationalClassifier`, parameter shift + Adam), `kernel.py` (fidelity kernel), `data.py` (`SyntheticAdapter`, `prepare`: PCA to the qubits, angles 0…π), `runner.py` `QuantumRunner` (training kind `quantum`; `checkpoints/{last,best}.npz`, `results.json` with circuit, boundary, kernel), `presets.py`; page `app/ui/pages/quantum_ml.py` (+ `quantum_views.py`) |
 | `labs/nlp/` | `datasets.py` (`TextAdapter`s: movie reviews, SMS spam, 20 Newsgroups, read from the published archives), `text_data.py` (splits), `runner.py` `TextClassifierRunner` (TF-IDF, kind `sklearn`, results like the scikit-learn runner's plus `words`), `transformer.py` `TransformerTextRunner` (kind `torch`, the shared training loop, `checkpoints/best/` in Hugging Face format), `presets.py`; page `app/ui/pages/nlp/` (chat, tokenizer, embeddings, classifiers) |
 | `labs/audio/` | `dsp.py` (WAV, resample, generators, STFT, mel, MFCC, filters, pitch, `log_mel_image`), `datasets.py` `SpokenDigitsAdapter` (FSDD as 64×64 spectrogram images, a `VisionAdapter`, so the PyTorch runner trains `audio_classification`), `presets.py`; page `app/ui/pages/audio/` |
@@ -180,8 +188,9 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   only on request through the Hugging Face plugin (licence shown, gated refused) into
   `<workspace>/models/huggingface/<owner>__<name>/` (`core.model_registry.cards.hub_folder`), and
   `ModelRegistry.status` reads `ready` once there. They run only in the inference worker
-  (`HF_HUB_OFFLINE=1`; transformers lives in the experiment Python and is excluded from the frozen
-  window); never import transformers or torch in the app process.
+  (`HF_HUB_OFFLINE=1`; transformers lives in the `language` environment pack — or the experiment Python
+  of a dev install, `.[dev,language]` — and is excluded from the frozen window); never import transformers
+  or torch in the app process.
 - **Training kinds**: `TRAINING_KINDS` in `core/experiment_engine/spec.py` says which `training.kind`
   each task takes (tabular → `sklearn`, text → `sklearn` or `torch`, quantum → `quantum`, the rest
   `torch`); a runner that shares a task says so in `supports(spec)`.
@@ -199,10 +208,15 @@ core/     contracts and engines — no Qt, never imports app/labs/plugins
   epoch); the worker mirrors each run to MLflow (`mlflow_tracking` setting; `TEDO_LAB_MLFLOW=0`
   switches it off, which the test suite does). Tracking never fails a run. "Reproduce" queues the
   same `experiment.yaml` as a child run and lists environment differences first.
-- **Worker stdin**: the worker hands stdin to the cancel watcher through a private copy and points
-  standard input at the null device (`detach_stdin`). On Windows a child process that inherits a
-  pipe another thread is reading hangs at start; never undo this, and give `subprocess` calls
-  `stdin=DEVNULL` anyway.
+- **Research records**: a run's report, bundle and data checks are written by the worker and must
+  never change its outcome (except the `fail` data rule, which stops it before training). A runner
+  that splits data implements `data_samples(spec)` with exactly the indices it trains on. Reports
+  state limitations plainly: one seed is one seed, a simulator is not hardware, and nothing claims
+  an advantage the measurements do not show.
+- **Worker stdin**: both workers (experiment and inference) hand stdin to their reading thread
+  through a private copy and point standard input at the null device (`core/common/stdio.py`
+  `detach_stdin`). On Windows a child process that inherits a pipe another thread is reading hangs
+  at start; never undo this, and give `subprocess` calls `stdin=DEVNULL` anyway.
 - **Remote sources**: plugins that fetch from a service use its REST API through
   `labs/common/remote.get_json` / `download.download_file` (errors masked, credentials only in
   headers, Roboflow's key only in the query it requires); every item shows its licence before a
@@ -360,3 +374,12 @@ Design for it now:
 - [x] 3-D: electrons in a crystal lattice (self-consistent Kohn–Sham in a plane-wave basis, potential
       and density surfaces, moving electrons, V_eff taken apart); datasets (Dataset Hub *Explore in
       3-D*) and clusters/projections as point clouds; every page captured in `docs/images/pages/`
+- [x] Research rigour: reproducibility reports and bundles (reproduced in a clean workspace), the full
+      package footprint, data checks and leakage detection with a fail rule, COCO mAP / IoU
+- [x] Seed studies and sweeps (*Studies & Sweeps*: statistics, Welch's test, budgets, parallel
+      coordinates, parameter importance), benchmark methodology, quantum noise and the quantum
+      evaluation protocol (baselines, resources, noise comparison, no advantage claims)
+- [x] Explanation records for every Grad-CAM / saliency / layer view (traceable to input and checkpoint)
+- [x] Dependency isolation: environment packs (Transformers, SHAP, ONNX) layered over a lighter core
+      experiment Python, installed from the Plugin Store; both workers detach stdin (Windows hang fix)
+- [x] Model-performance radar on Compare Experiments (absolute or relative, in the exported report)

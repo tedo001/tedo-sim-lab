@@ -34,7 +34,7 @@ from ..computer_vision.training.loop import (
     train_epoch,
 )
 from ..inference.hub import is_downloaded, model_folder
-from .text_data import load_splits, text_adapter
+from .text_data import load_splits, split_samples, text_adapter
 
 __all__ = ["TransformerTextRunner", "hub_repo"]
 
@@ -110,9 +110,13 @@ class TransformerTextRunner(ExperimentRunner):
         problems = super().validate(spec)
         if problems:
             return problems
-        for package in ("torch", "transformers"):
-            if not is_installed(package):
-                problems.append(f"{package} is needed in the experiment Python environment")
+        from core.common.packs import pack_python
+
+        if not is_installed("torch"):
+            problems.append("torch is needed in the experiment Python environment")
+        if not is_installed("transformers") and pack_python("language") is None:
+            problems.append("transformers is needed: install the Language environment (Plugin Store → "
+                            "Environments)")
         try:
             paths, adapter, card, folder = self._parts(spec)
         except (LookupError, TypeError, ValueError, NotImplementedError) as exc:
@@ -249,6 +253,10 @@ class TransformerTextRunner(ExperimentRunner):
         callbacks.on_log(f"Test accuracy {results['test_acc']:.4f} · macro F1 {results['test_f1']:.4f}")
         return RunResult(ctx.run_id, status, results, best if best.is_dir() else None,
                          time.monotonic() - started)
+
+    def data_samples(self, spec: ExperimentSpec) -> dict[str, Any]:
+        paths, adapter, _card, _folder = self._parts(spec)
+        return split_samples(spec, load_splits(spec, adapter, paths.datasets, 0.2))
 
     def evaluate(self, spec: ExperimentSpec, callbacks: RunCallbacks, ctx: RunContext, checkpoint: Path,
                  split: str) -> dict[str, object]:

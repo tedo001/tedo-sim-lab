@@ -23,8 +23,8 @@ from core.tracking import LabStore
 from .benchmarks import BenchmarkService
 from .runs import RunView, slug
 
-__all__ = ["COLUMNS", "FORMATS", "Column", "comparison_row", "export_report", "markdown_by_measure",
-           "markdown_table", "run_markdown"]
+__all__ = ["COLUMNS", "FORMATS", "Column", "comparison_row", "export_report", "export_reproduction",
+           "markdown_by_measure", "markdown_table", "reproduction_report", "run_markdown"]
 
 FORMATS = ("csv", "json", "md", "pdf")
 
@@ -194,3 +194,35 @@ def run_markdown(view: RunView, row: dict[str, Any], charts: Sequence[str] = ())
                   "Run it again: open this file in the Experiment Builder, or press Reproduce on the "
                   "Training page.", ""]
     return "\n".join(lines)
+
+
+def reproduction_report(view: RunView, store: LabStore) -> Path | None:
+    """The run's ``reproduction/report.md``, written now for a run that finished before reports
+    existed (its result taken from the lab database); ``None`` without a snapshot."""
+    from core.experiment_engine.repro import REPORT_DIR, RESULT_FILE, write_reproduction
+
+    report = view.run_dir / REPORT_DIR / "report.md"
+    if report.is_file():
+        return report
+    if not (view.run_dir / "snapshot.json").is_file():
+        return None
+    if not (view.run_dir / RESULT_FILE).is_file():
+        outcome = {"status": view.status, "metrics": store.latest_metrics(view.id),
+                   "duration_s": view.duration_s}
+        (view.run_dir / RESULT_FILE).write_text(json.dumps(outcome, indent=2), encoding="utf-8")
+    return write_reproduction(view.run_dir) / "report.md"
+
+
+def export_reproduction(view: RunView, store: LabStore, reports_root: Path) -> dict[str, Path]:
+    """The reproducibility bundle (zip), and the report as Markdown and PDF, into ``reports/``."""
+    from core.experiment_engine.repro import bundle
+
+    report = reproduction_report(view, store)
+    if report is None:
+        return {}
+    markdown = report.read_text(encoding="utf-8")
+    written = export_report(reports_root, f"reproduce-{view.name}-{view.id[:8]}", markdown,
+                            formats=("md", "pdf"))
+    written["zip"] = bundle(view.run_dir, written["md"].parent / f"{slug(view.name, 40)}-{view.id[:8]}"
+                                                                  f"-reproduction.zip")
+    return written

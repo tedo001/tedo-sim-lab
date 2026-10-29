@@ -69,7 +69,8 @@ class RunModel:
         self.transform = _transforms(self.spec, adapter, size, train=False)
         model = builder(num_classes=len(self.classes), in_channels=adapter.in_channels, input_size=size,
                         pretrained=None, **self.spec.model.params)
-        state = torch.load(self._checkpoint("best.pt", "last.pt"), map_location="cpu", weights_only=True)
+        self.checkpoint = self._checkpoint("best.pt", "last.pt")
+        state = torch.load(self.checkpoint, map_location="cpu", weights_only=True)
         model.load_state_dict(state["model"])
         from .loader import device
 

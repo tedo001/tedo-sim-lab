@@ -18,8 +18,8 @@ from core.experiment_engine.spec import ExperimentSpec, TransformSpec
 
 from ..datasets import VisionAdapter, targets_of
 
-__all__ = ["AUGMENTATIONS", "PREPROCESSING", "DataBundle", "build_data", "input_size_for",
-           "split_indices", "transform_problems"]
+__all__ = ["AUGMENTATIONS", "PREPROCESSING", "DataBundle", "build_data", "input_size_for", "raw_samples",
+           "split_indices", "split_plan", "split_samples", "transform_problems"]
 
 #: name → what it does, for the builder and for validation.
 PREPROCESSING = {"normalize": "Subtract the dataset mean and divide by its standard deviation"}
@@ -107,6 +107,47 @@ def split_indices(targets: np.ndarray, val_fraction: float, *, stratify: bool,
     return rng.permutation(np.concatenate(train)), rng.permutation(np.concatenate(val))
 
 
+def split_plan(spec: ExperimentSpec, train_targets: np.ndarray,
+               test_size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    """Indices of the training, validation and (when capped) test samples the run uses."""
+    train_idx, val_idx = split_indices(train_targets, spec.data.split.val_fraction,
+                                       stratify=spec.data.split.stratify, seed=spec.seed)
+    cap = spec.data.subset
+    if cap is None:
+        return train_idx, val_idx, None
+    rng = np.random.default_rng(spec.seed + 1)
+    return train_idx[:cap], val_idx[:cap], np.sort(rng.permutation(test_size)[:cap])
+
+
+def raw_samples(dataset: Any) -> list[bytes]:
+    """Each sample's stored pixels as bytes (before any transform), for content hashes."""
+    for name in ("data", "images"):
+        array = getattr(dataset, name, None)
+        if array is not None and len(array) == len(dataset):
+            array = np.asarray(array)
+            return [array[i].tobytes() for i in range(len(array))]
+    return [np.asarray(dataset[i][0]).tobytes() for i in range(len(dataset))]
+
+
+def split_samples(spec: ExperimentSpec, adapter: VisionAdapter, root: Path) -> dict[str, Any]:
+    """The run's splits as :class:`SampleSet`\\ s: the same indices :func:`build_data` uses."""
+    from core.dataset_registry.validation import SampleSet, digest
+
+    train, test = adapter.load(root, "train"), adapter.load(root, "test")
+    targets, test_targets = targets_of(train), targets_of(test)
+    train_idx, val_idx, test_idx = split_plan(spec, targets, len(test))
+    rows, test_rows = [digest(raw) for raw in raw_samples(train)], [digest(raw) for raw in raw_samples(test)]
+    if test_idx is None:
+        test_idx = np.arange(len(test))
+    classes = tuple(adapter.classes)
+    out = {"train": SampleSet([rows[i] for i in train_idx], targets[train_idx].tolist(), classes=classes)}
+    if len(val_idx):
+        out["val"] = SampleSet([rows[i] for i in val_idx], targets[val_idx].tolist(), classes=classes)
+    out["test"] = SampleSet([test_rows[i] for i in test_idx], test_targets[test_idx].tolist(),
+                            classes=classes)
+    return out
+
+
 def build_data(spec: ExperimentSpec, adapter: VisionAdapter, root: Path,
                input_size: tuple[int, int]) -> DataBundle:
     from torch.utils.data import Subset
@@ -115,13 +156,9 @@ def build_data(spec: ExperimentSpec, adapter: VisionAdapter, root: Path,
     plain = _transforms(spec, adapter, input_size, train=False)
     train_plain = adapter.load(root, "train", plain)
     test_set = adapter.load(root, "test", plain)
-    train_idx, val_idx = split_indices(targets_of(train_set), spec.data.split.val_fraction,
-                                       stratify=spec.data.split.stratify, seed=spec.seed)
-    cap = spec.data.subset
-    if cap is not None:
-        rng = np.random.default_rng(spec.seed + 1)
-        train_idx, val_idx = train_idx[:cap], val_idx[:cap]
-        test_set = Subset(test_set, np.sort(rng.permutation(len(test_set))[:cap]).tolist())
+    train_idx, val_idx, test_idx = split_plan(spec, targets_of(train_set), len(test_set))
+    if test_idx is not None:
+        test_set = Subset(test_set, test_idx.tolist())
     normalization = next((_normalization(step, adapter) for step in spec.data.preprocessing
                           if step.name == "normalize"), None)
     return DataBundle(Subset(train_set, train_idx.tolist()),

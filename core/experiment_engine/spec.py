@@ -18,9 +18,10 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 from core.common.vocab import TABULAR_TASKS, Task
 
 __all__ = ["CheckpointSpec", "DataSpec", "EarlyStoppingSpec", "ExperimentSpec", "ModelSpec",
-           "OptimizerSpec", "QuantumTrainingSpec", "RuntimeSpec", "SchedulerSpec", "SearchSpec",
-           "SklearnTrainingSpec", "SpecError", "SplitSpec", "TRAINING_KINDS", "TorchTrainingSpec",
-           "TransformSpec", "dump_spec", "dump_spec_text", "load_spec", "load_spec_text", "spec_hash"]
+           "OptimizerSpec", "QuantumTrainingSpec", "ResearchSpec", "RuntimeSpec", "SchedulerSpec",
+           "SearchSpec", "SimulatorSpec", "SklearnTrainingSpec", "SpecError", "SplitSpec", "TRAINING_KINDS",
+           "TorchTrainingSpec", "TransformSpec", "dump_spec", "dump_spec_text", "load_spec",
+           "load_spec_text", "spec_hash"]
 
 SCHEMA_VERSION = 1
 
@@ -53,6 +54,9 @@ class DataSpec(_Strict):
     input_size: tuple[int, int] | None = None
     #: Cap on samples per split, for quick runs. Recorded like everything else.
     subset: int | None = Field(default=None, gt=0)
+    #: Dataset checks before training (duplicates, split leakage, label conflicts, imbalance, licence):
+    #: ``warn`` records and reports them, ``fail`` stops the run on any error, ``off`` skips them.
+    validation: Literal["off", "warn", "fail"] = "warn"
 
 
 class ModelSpec(_Strict):
@@ -126,6 +130,31 @@ class SklearnTrainingSpec(_Strict):
     search: SearchSpec | None = None
 
 
+class SimulatorSpec(_Strict):
+    """Where a quantum model runs: an exact (``ideal``) state-vector simulation, or a ``noisy``
+    density-matrix simulation of an imperfect device (depolarizing errors after one- and two-qubit
+    gates, T1/T2 relaxation for each gate's duration, readout bit flips); ``shots`` estimates each
+    expectation from that many measurements instead of reading it exactly. Never hardware."""
+    mode: Literal["ideal", "noisy"] = "ideal"
+    depolarizing_1q: float = Field(default=0.001, ge=0, le=1)
+    depolarizing_2q: float = Field(default=0.01, ge=0, le=1)
+    #: Relaxation (T1) and coherence (T2) times in microseconds; ``None`` = no relaxation.
+    t1_us: float | None = Field(default=100.0, gt=0)
+    t2_us: float | None = Field(default=80.0, gt=0)
+    gate_time_1q_ns: float = Field(default=50.0, gt=0)
+    gate_time_2q_ns: float = Field(default=300.0, gt=0)
+    readout_error: float = Field(default=0.02, ge=0, le=0.5)
+    shots: int | None = Field(default=None, gt=0, le=1_000_000)
+
+    @model_validator(mode="after")
+    def _times(self) -> SimulatorSpec:
+        if (self.t1_us is None) != (self.t2_us is None):
+            raise ValueError("give t1_us and t2_us together (or neither)")
+        if self.t1_us is not None and self.t2_us > 2 * self.t1_us:
+            raise ValueError("t2_us can be at most 2 × t1_us")
+        return self
+
+
 class QuantumTrainingSpec(_Strict):
     """Quantum classifiers: a variational circuit trained for ``epochs`` with Adam (``lr``, batches
     of ``batch_size``), or a quantum-kernel SVM fitted once (which ignores the three)."""
@@ -134,6 +163,10 @@ class QuantumTrainingSpec(_Strict):
     batch_size: int = Field(default=16, gt=0)
     lr: float = Field(default=0.1, gt=0)
     test_fraction: float = Field(default=0.25, gt=0, lt=1)
+    simulator: SimulatorSpec = SimulatorSpec()
+    #: Classical models fitted on the same split and features, for comparison.
+    baselines: tuple[Literal["logistic_regression", "svm_rbf", "mlp"], ...] = ("logistic_regression",
+                                                                             "svm_rbf")
 
 
 class RuntimeSpec(_Strict):
@@ -155,11 +188,21 @@ TRAINING_KINDS: dict[Task, frozenset[str]] = {
 }
 
 
+class ResearchSpec(_Strict):
+    """Why the experiment is run, for its reproducibility report; never changes a result."""
+    question: str = ""
+    hypothesis: str = ""
+    #: The run this one is measured against (a run id), or ``None``.
+    baseline: str | None = None
+    limitations: str = ""
+
+
 class ExperimentSpec(_Strict):
     schema_version: Literal[1] = SCHEMA_VERSION
     name: str = Field(min_length=1)
     description: str = ""
     tags: tuple[str, ...] = ()
+    research: ResearchSpec = ResearchSpec()
     task: Task
     seed: int = 42
     data: DataSpec
@@ -212,7 +255,9 @@ def dump_spec(spec: ExperimentSpec, path: Path) -> Path:
 
 
 def spec_hash(spec: ExperimentSpec) -> str:
-    """SHA-256 of what decides the result: everything except name, description and tags."""
-    data = spec.model_dump(mode="json", exclude={"name", "description", "tags"})
+    """SHA-256 of what decides the result: everything except name, description, tags, the research
+    notes and whether the data checks stop a run."""
+    data = spec.model_dump(mode="json", exclude={"name": True, "description": True, "tags": True,
+                                                 "research": True, "data": {"validation"}})
     canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

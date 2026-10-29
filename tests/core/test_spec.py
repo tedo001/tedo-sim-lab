@@ -74,8 +74,8 @@ def test_yaml_spec_yaml_round_trip_is_identical(text: str, tmp_path: Path) -> No
 def test_dump_is_complete_and_ordered() -> None:
     dumped = dump_spec_text(load_spec_text(SKLEARN))
     keys = [line.split(":")[0] for line in dumped.splitlines() if line and not line.startswith(" ")]
-    assert keys == ["schema_version", "name", "description", "tags", "task", "seed", "data", "model",
-                    "training", "runtime"]
+    assert keys == ["schema_version", "name", "description", "tags", "research", "task", "seed", "data",
+                    "model", "training", "runtime"]
     assert "precision: fp32" in dumped  # defaults are written out
 
 

@@ -36,7 +36,6 @@ dependencies = [
     "nltk>=3.8",
     "pycocotools>=2.0.7",
     "scipy>=1.11",                   # audio signal processing (filters, STFT, WAV files)
-    "transformers>=4.56",            # pretrained language, speech and vision models (inference worker)
 ]
 
 [project.optional-dependencies]
@@ -45,6 +44,9 @@ dependencies = [
 cv = ["onnx>=1.15", "onnxruntime>=1.17"]
 ocr = ["paddleocr>=2.7", "paddlepaddle>=2.6", "easyocr>=1.7", "pytesseract>=0.3.10"]
 nlp = ["huggingface_hub>=0.23"]
+# The "language" environment pack (configs/packs.yaml): installed on request from the Plugin Store
+# into its own environment; developers install it with the lab: pip install -e ".[dev,language]".
+language = ["transformers>=4.56"]
 integrations = [
     "huggingface_hub>=0.23",
     "jupyterlab>=4.1",

@@ -24,6 +24,8 @@ from ..icons import icon
 from ..theme.tokens import SERIES
 from ..widgets import Card, DataTable, Page, label
 from ..widgets.overlay import OverlayChart
+from ..widgets.radar import RadarChart
+from .compare_radar import PerformanceCard
 
 __all__ = ["ComparePage"]
 
@@ -62,6 +64,8 @@ class ComparePage(Page):
         self.table = DataTable(("Run",), stretch_column=0)
         self.table_card.add(self.table)
         self.body.addWidget(self.table_card)
+        self.performance = PerformanceCard()
+        self.body.addWidget(self.performance)
 
         curves = Card("Curves", "one metric, every ticked run that has per-epoch values")
         self.metric_box = QComboBox()
@@ -166,6 +170,8 @@ class ComparePage(Page):
         self.runs.setMaximumHeight(min(200, 26 * max(self.runs.count(), 1) + 8))
         for card in (self.table_card, self.curves_card, self.export_card):
             card.setVisible(bool(rows))
+        self.performance.show_runs([(row["name"], {**self.ctx.store.latest_metrics(row["run_id"]), **row})
+                                    for row in rows])
         self._draw()
 
     def _draw(self) -> None:
@@ -185,6 +191,10 @@ class ComparePage(Page):
                  markdown_by_measure(rows, used_columns(rows)), ""]
         if with_chart:
             lines += [f"## {self.metric_box.currentText()}", "", "![curves](curves.png)", ""]
+        if len(self.performance.chart.axes) >= 3 and self.performance.chart.shapes:
+            lines += ["## Model performance", "", f"{self.performance.scale.currentText()}: "
+                      + ", ".join(self.performance.chart.axes) + ".", "",
+                      "![performance](performance.png)", ""]
         lines += ["## Runs", ""]
         for row in rows:
             lines.append(f"- **{row['name']}** (run `{row['run_id']}`): {row['dataset']} · {row['model']} · "
@@ -205,6 +215,14 @@ class ComparePage(Page):
             printable.resize(760, 340)
             images["curves.png"] = printable.grab().toImage()
             printable.deleteLater()
+        shown = self.performance.chart
+        if len(shown.axes) >= 3 and shown.shapes:  # drawn again at a fixed size, without hover marks
+            radar = RadarChart()
+            radar.set_data(shown.axes, list(zip([name for name, _v in shown.shapes], shown.raw, strict=True)),
+                           relative=shown.relative)
+            radar.resize(560, 420)
+            images["performance.png"] = radar.grab().toImage()
+            radar.deleteLater()
         self.last_export = export_report(self.ctx.paths.reports, f"compare-{len(rows)}-runs",
                                          self.markdown(rows, with_chart), rows=rows, images=images,
                                          formats=formats, extra={"metric": self.metric_box.currentData()})

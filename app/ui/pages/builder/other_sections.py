@@ -12,6 +12,7 @@ from core.experiment_engine.spec import ExperimentSpec, QuantumTrainingSpec, Skl
 
 from ...widgets import Card, label
 from .fields import double, form, spin
+from .quantum_device import DeviceCard
 from .torch_section import form_widget
 
 __all__ = ["QuantumSection", "TextSection"]
@@ -43,7 +44,7 @@ class QuantumSection:
                     label("Each feature becomes one qubit's rotation, scaled to 0 … π; with more columns "
                           "than "
                               "qubits the first principal components are used.", "CardCaption", wrap=True))
-        card = Card("4 · Training", "the circuit is simulated exactly on the CPU")
+        card = Card("4 · Training", "the circuit is simulated on the CPU")
         rows = form(card)
         self.epochs = spin(1, 1000, 30)
         self.batch = spin(1, 4096, 16)
@@ -54,15 +55,17 @@ class QuantumSection:
             rows.addRow(title, widget)
         card.add(label("The variational classifier learns by parameter-shift gradients and Adam; the kernel "
                        "SVM fits once (epochs are ignored).", "CardCaption", wrap=True))
-        self.cards = _stack(card)
+        self.device = DeviceCard()
+        self.cards = _stack(card, self.device)
 
     def data_fields(self) -> dict[str, Any]:
         return {"subset": self.subset.value() or None}
 
     def training(self) -> QuantumTrainingSpec:
         return QuantumTrainingSpec(epochs=self.epochs.value(), batch_size=self.batch.value(),
-                                   lr=self.lr.value(),
-                                   test_fraction=self.test_fraction.value())
+                                   lr=self.lr.value(), test_fraction=self.test_fraction.value(),
+                                   simulator=self.device.simulator(),
+                                   baselines=self.device.chosen_baselines())
 
     def load(self, spec: ExperimentSpec) -> None:
         self.subset.setValue(spec.data.subset or 0)
@@ -72,6 +75,7 @@ class QuantumSection:
             self.batch.setValue(spec.training.batch_size)
             self.lr.setValue(spec.training.lr)
             self.test_fraction.setValue(spec.training.test_fraction)
+            self.device.load(spec.training)
 
 
 class TextSection:

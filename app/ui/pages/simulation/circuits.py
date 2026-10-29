@@ -7,6 +7,7 @@ from __future__ import annotations
 import cmath
 import math
 
+import numpy as np
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -22,12 +23,22 @@ from PySide6.QtWidgets import (
 )
 
 from labs.simulation.quantum import GATES, MAX_QUBITS, PRESETS, Circuit, Op, preset, purity, sample, simulate
+from labs.simulation.quantum.noise import (
+    MAX_NOISY_QUBITS,
+    bloch_of,
+    fidelity_to_pure,
+    readout_probabilities,
+    reduced_qubit,
+    sample_counts,
+    simulate_noisy,
+)
 
 from ...icons import icon
 from ...widgets import Card, DataTable, FlowGrid, ResponsiveRow, label
 from ...widgets.plots import BarList
 from ...widgets.sim_views import BlochView
 from .circuit_canvas import CircuitCanvas
+from .noise_controls import NoiseControls
 
 __all__ = ["CircuitLab"]
 
@@ -108,10 +119,15 @@ class CircuitLab(QWidget):
         build.add(scroll)
         self.canvas_scroll = scroll
         box.addWidget(build)
+        self.device = NoiseControls()
+        self.device.changed.connect(self.refresh)
+        box.addWidget(self.device)
 
-        probabilities = Card("Probabilities", "exact, before measuring")
+        probabilities = Card("Probabilities", "before measuring")
         self.bars = BarList()
         probabilities.add(self.bars)
+        self.noise_summary = label("", "CardCaption", wrap=True)
+        probabilities.add(self.noise_summary)
 
         shots = Card("Shots", "measuring every qubit, again and again")
         row = QHBoxLayout()
@@ -248,23 +264,40 @@ class CircuitLab(QWidget):
         self.refresh()
 
     # Results ----------------------------------------------------------------------------------------------
+    def _noisy(self) -> tuple[np.ndarray, np.ndarray] | None:
+        """(density matrix, measured probabilities) when the device is noisy, else ``None``."""
+        if not self.device.noisy:
+            return None
+        if self.circuit.qubits > MAX_NOISY_QUBITS:
+            self.noise_summary.setText(f"Noisy simulation keeps a 4ⁿ density matrix: at most "
+                                       f"{MAX_NOISY_QUBITS} qubits. Showing the ideal simulation.")
+            return None
+        try:
+            noise = self.device.model()
+        except ValueError as exc:
+            self.noise_summary.setText(f"{exc}. Showing the ideal simulation.")
+            return None
+        rho = simulate_noisy(self.circuit, noise)
+        return rho, readout_probabilities(np.real(np.diag(rho)), self.circuit.qubits, noise.readout_error)
+
     def refresh(self) -> None:
         result = simulate(self.circuit)
         n = self.circuit.qubits
         amplitudes = result.amplitudes()
+        self.noise_summary.setText("")
+        noisy = self._noisy()
+        if noisy is not None:
+            self._show_noisy(result, *noisy)
+            return
+        self.table.setHorizontalHeaderLabels(["Basis", "Amplitude", "Probability", "Phase"])
         top = sorted(amplitudes, key=lambda item: -item[2])
         self.bars.set_rows([(f"|{label}⟩", p) for label, _a, p in top], limit=16)
         counts = sample(result.state, self.shots.value(), self.seed.value())
         self.counts.set_rows([(f"|{label}⟩", count) for label, count in counts.items()], limit=16)
-        while len(self.spheres) < n:
-            view = BlochView()
-            self.spheres.append(view)
-            self.sphere_row.addWidget(view)
-        for qubit, view in enumerate(self.spheres):
-            view.setVisible(qubit < n)
-            if qubit < n:
-                mixed = purity(result.state, qubit, n)
-                view.set_vector(result.bloch(qubit), f"q{qubit} · purity {mixed:.2f}")
+        self._spheres(n)
+        for qubit in range(n):
+            mixed = purity(result.state, qubit, n)
+            self.spheres[qubit].set_vector(result.bloch(qubit), f"q{qubit} · purity {mixed:.2f}")
         self.table.clear_rows()
         for label_text, amplitude, probability in amplitudes[:64]:
             phase = math.degrees(cmath.phase(amplitude)) if probability > 1e-12 else 0.0
@@ -273,14 +306,49 @@ class CircuitLab(QWidget):
         if len(amplitudes) > 64:
             self.table.add_row(["…", f"{len(amplitudes) - 64} more basis states", "", ""])
 
+    def _spheres(self, n: int) -> None:
+        while len(self.spheres) < n:
+            view = BlochView()
+            self.spheres.append(view)
+            self.sphere_row.addWidget(view)
+        for qubit, view in enumerate(self.spheres):
+            view.setVisible(qubit < n)
+
+    def _show_noisy(self, result, rho: np.ndarray, probs: np.ndarray) -> None:  # noqa: ANN001
+        n = self.circuit.qubits
+        ideal = result.probabilities
+        labels = [result.label(i) for i in range(len(probs))]
+        order = np.argsort(-probs)
+        self.bars.set_rows([(f"|{labels[i]}⟩", float(probs[i])) for i in order if probs[i] > 1e-9], limit=16)
+        counts = sample_counts(probs, self.shots.value(), self.seed.value())
+        self.counts.set_rows([(f"|{label}⟩", count) for label, count in counts.items()], limit=16)
+        total = float(np.real(np.trace(rho @ rho)))
+        fidelity = fidelity_to_pure(rho, result.state)
+        self.noise_summary.setText(f"With noise: fidelity with the ideal state {fidelity:.4f}, purity Tr ρ² "
+                                   f"{total:.4f} (1 = pure). Probabilities include readout errors.")
+        self._spheres(n)
+        for qubit in range(n):
+            one = reduced_qubit(rho, qubit, n)
+            mixed = float(np.real(np.trace(one @ one)))
+            self.spheres[qubit].set_vector(bloch_of(one), f"q{qubit} · purity {mixed:.2f}")
+        self.table.setHorizontalHeaderLabels(["Basis", "Noisy probability", "Ideal probability",
+                                              "Difference"])
+        self.table.clear_rows()
+        for i in order[:64]:
+            if probs[i] > 1e-9 or ideal[i] > 1e-9:
+                self.table.add_row([f"|{labels[i]}⟩", f"{probs[i]:.4f}", f"{ideal[i]:.4f}",
+                                    f"{probs[i] - ideal[i]:+.4f}"])
+
     # Saving -------------------------------------------------------------------------------------------------
     def settings(self) -> dict:
-        return {"circuit": self.circuit.to_dict(), "shots": self.shots.value(), "seed": self.seed.value()}
+        return {"circuit": self.circuit.to_dict(), "shots": self.shots.value(), "seed": self.seed.value(),
+                "device": self.device.settings()}
 
     def load(self, settings: dict) -> None:
         self.history.append(list(self.circuit.ops))
         self.shots.setValue(int(settings.get("shots", 1024)))
         self.seed.setValue(int(settings.get("seed", 0)))
+        self.device.load(settings.get("device"))
         self.set_circuit(Circuit.from_dict(settings["circuit"]))
 
     def outputs(self) -> dict[str, bytes | str]:

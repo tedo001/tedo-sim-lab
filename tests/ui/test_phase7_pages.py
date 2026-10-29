@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from app.ui.pages.dataset_hub import DatasetHubPage
@@ -29,6 +31,24 @@ def test_dataset_catalogue_filters_and_terms(ctx, qtbot) -> None:
     catalogue.select("mnist")
     assert catalogue.download.isVisibleTo(catalogue) and catalogue.download.card_id == "mnist"
     assert catalogue.values.value_text("Splits").startswith("train 60,000")
+
+
+def test_dataset_hub_validates_a_dataset(ctx, qtbot) -> None:
+    pytest.importorskip("sklearn")
+    page = DatasetHubPage(ctx)
+    qtbot.addWidget(page)
+    catalogue = page.views["catalogue"]
+    catalogue.select("iris")
+    assert catalogue.validate_button.isVisibleTo(catalogue) and catalogue.validate_button.isEnabled()
+    assert catalogue._validate()
+    qtbot.waitUntil(lambda: catalogue.checks._job is None, timeout=120_000)
+    report = catalogue.checks.report
+    assert report is not None, catalogue.checks.state.text()
+    assert report["dataset"] == "iris" and set(report["splits"]) == {"train", "test"}
+    found = {check["id"]: check["status"] for check in report["checks"]}
+    assert found["licence"] == "ok" and found["label_conflicts"] == "ok"
+    assert catalogue.checks.checks.rowCount() == len(report["checks"])
+    assert (ctx.paths.results / "data_checks" / "iris.yaml").is_file()
 
 
 def test_ontology_explorer_without_wordnet(ctx, qtbot) -> None:
@@ -89,6 +109,18 @@ def test_coco_inspector(ctx, qtbot, tmp_path) -> None:
     view.category.setCurrentIndex(0)
     view.images.selectRow(1)
     assert view.canvas.masks and "Attribution-NonCommercial" in view.image_note.text()
+    # Checks of the file, and scores of detections against it.
+    assert view.scores.checks.rowCount() >= 5
+    detections = [{"image_id": 10, "category_id": 1, "bbox": [4, 4, 20, 30], "score": 0.9},
+                  {"image_id": 10, "category_id": 3, "bbox": [40, 30, 10, 10], "score": 0.8}]
+    results = tmp_path / "detections.json"
+    results.write_text(json.dumps(detections), encoding="utf-8")
+    with qtbot.waitSignal(ctx.jobs.job_finished, timeout=30_000):
+        view.scores.score_file(results)
+    assert view.scores.scores["per_class"]["person"]["ap"] == pytest.approx(1.0)
+    assert view.scores.scores["per_class"]["car"]["ap"] == 0.0
+    assert view.scores.values.value_text("mAP 0.50:0.95") == "0.5000"
+    assert json.loads(view.scores.save().read_text())["map"] == pytest.approx(0.5)
 
 
 def test_model_zoo(ctx, qtbot) -> None:

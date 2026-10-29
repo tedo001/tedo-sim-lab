@@ -19,6 +19,7 @@ from ...widgets.plots import CurveChart
 from .batch import BatchTest
 from .inputs import InputPanel
 from .outputs import OutputPanel
+from .records import ExplanationRecords
 from .subjects import Subject, subjects
 from .visualise import LayerMaps
 
@@ -120,7 +121,9 @@ class TestingPage(Page):
         self.vis_card.add(self.vis_note)
         self.maps = LayerMaps()
         self.vis_card.add(self.maps)
-        for widget in (self.try_card, self.answer_card, self.whatif_card, self.batch_card, self.vis_card):
+        self.records = ExplanationRecords()
+        for widget in (self.try_card, self.answer_card, self.whatif_card, self.batch_card, self.vis_card,
+                       self.records):
             self.body.addWidget(widget)
         self.body.addStretch(1)
         ctx.inference.state_changed.connect(lambda _s: self._worker_state())
@@ -161,6 +164,8 @@ class TestingPage(Page):
         self.described = {}
         self.outputs.clear()
         self.maps.clear()
+        self.records.refresh(self.subject.run_dir if self.subject and self.subject.is_run
+                             and self.subject.kind in ("image", "audio") else None)
         subject = self.subject
         kind = subject.kind if subject else "image"
         self.inputs.configure(kind, [])
@@ -234,10 +239,11 @@ class TestingPage(Page):
 
     def _tab(self, name: str) -> None:
         shown = {"try": (self.try_card, self.answer_card), "whatif": (self.whatif_card,),
-                 "batch": (self.batch_card,), "visualise": (self.vis_card,)}
+                 "batch": (self.batch_card,), "visualise": (self.vis_card, self.records)}
         for key, cards in shown.items():
             for card in cards:
-                card.setVisible(key == name)
+                wanted = card is not self.records or self.records.run_dir is not None
+                card.setVisible(key == name and wanted)
 
     # Try it ------------------------------------------------------------------------------------------
     def try_it(self) -> None:
@@ -321,7 +327,10 @@ class TestingPage(Page):
             args["target"] = int(self.target.currentData())
 
         def shown(result: dict[str, Any]) -> None:
-            self.vis_note.setText("Layers in the order the input passes through them.")
+            record = result.get("record", {})
+            self.vis_note.setText("Layers in the order the input passes through them."
+                                  + (f" Saved as explanation record {record['id']}." if record else ""))
             self.maps.show_result(result)
+            self.records.refresh(subject.run_dir)
 
         self._send("visualize", args, None, shown, lambda m: self.vis_note.setText(f"Failed: {m}"))

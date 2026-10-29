@@ -54,6 +54,23 @@ Ten build phases:
   saliency). Runs open there from Training, the Model Registry and the labs.
 - **Datasets of every kind** in the Dataset Hub (39 cards: images, audio, text, tables, synthetic
   sets, image–text pairs) with examples, the lab for each and a starter experiment in the builder.
+- **Research rigour:**
+  - reproducibility reports and bundles for every run, reproduced in a clean workspace by
+    `core.experiment_engine.reproduce`; the full package footprint (lock file, CUDA toolkit, GPUs);
+  - data checks before training (duplicates, leakage between splits, label conflicts, missing
+    labels, balance, licence metadata) with a warn / fail rule, and *Validate* in the Dataset Hub;
+  - COCO mAP and IoU for detections and masks, and checks of COCO annotation files.
+  - seed studies (mean, sd, t-interval, Welch's test, matched-budget checks), saved baselines,
+    hyperparameter sweeps with parallel coordinates and parameter importance (*Studies & Sweeps*);
+    benchmark methodology (repeats, intervals, timer, synchronisation, hardware) recorded;
+  - quantum noise (depolarizing, T1/T2, readout, shots) in Quantum ML and the Simulation Lab, with
+    classical baselines on the same split, resource counts, noise comparisons and no advantage claims.
+  - explanation records (input, checkpoint hash, target, method, settings, outputs) for every
+    Grad-CAM, saliency and layer view, listed and re-verified on Model Testing.
+- **Model-performance radar** on Compare Experiments (shared 0–1 scores, absolute or relative).
+- **Dependency isolation:** a lighter core experiment Python; Transformers, SHAP and ONNX as environment
+  packs layered over it, installed and removed from the Plugin Store, picked per runner and for the
+  inference worker.
 
 ## Next
 
@@ -72,7 +89,7 @@ Ten build phases:
   loaders.
 - NLP: IMDB and AG News loaders; text datasets from your own CSV files.
 - Multimodal: fine-tuning CLIP on your own image folders.
-- Quantum ML: noise models and more feature maps.
+- Quantum ML: more feature maps; idle-qubit noise and crosstalk in the noise model.
 
 ## V0.5: detection, segmentation, OCR
 
@@ -97,5 +114,5 @@ Ten build phases:
 - **Benchmarks:**
   - ONNX Runtime;
   - TensorRT, where the licence allows.
-- **Simulation Lab:** noise and density matrices for circuits, two-dimensional wave packets,
+- **Simulation Lab:** two-dimensional wave packets,
   scenes with more kinds of objects and occlusion levels.

@@ -130,7 +130,8 @@ def read_results(archive: Path) -> ColabResults:
         raise ValueError(f"{archive.name} is not a zip file: {exc}") from None
     with bundle:
         names = [n for n in bundle.namelist() if not n.endswith("/")]
-        spec_members = [n for n in names if PurePosixPath(n).name == "experiment.yaml"]
+        spec_members = [n for n in names if PurePosixPath(n).name == "experiment.yaml"
+                        and PurePosixPath(n).parent.name != "reproduction"]  # not the report's copy
         if len(spec_members) != 1:
             raise ValueError("the zip must hold exactly one run folder (one experiment.yaml)")
         base = PurePosixPath(spec_members[0]).parent

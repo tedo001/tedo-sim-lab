@@ -12,6 +12,7 @@ from ..icons import icon
 from ..widgets import Card, DataTable, KeyValues, Page, Pill, label
 from .catalog_common import licence_pill, status_pill
 from .plugin_browse import BrowseCard
+from .plugin_envs import EnvironmentsCard
 
 __all__ = ["PluginStorePage"]
 
@@ -104,6 +105,8 @@ class PluginStorePage(Page):
         self.account.add(self.account_text)
         self.body.addWidget(self.account)
 
+        self.environments = EnvironmentsCard(ctx)
+        self.body.addWidget(self.environments)
         self.browse = BrowseCard(ctx)
         self.body.addWidget(self.browse)
         self.body.addStretch(1)

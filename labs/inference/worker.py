@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from core.common.masking import mask_text
+from core.common.stdio import detach_stdin
 
 __all__ = ["TASKS", "main"]
 
@@ -89,11 +90,12 @@ def main(argv: list[str] | None = None) -> int:
     os.environ.setdefault("HF_HUB_OFFLINE", "1")  # models load from the workspace only
     os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
     channel = Channel()
+    stream = detach_stdin()  # before anything can start a child process (Windows: see core.common.stdio)
     requests: queue.Queue[dict[str, Any] | None] = queue.Queue()
     cancelled: set[str] = set()
 
     def read() -> None:
-        for line in sys.stdin:
+        for line in stream:
             try:
                 message = json.loads(line)
             except ValueError:

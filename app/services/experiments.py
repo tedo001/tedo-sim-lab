@@ -20,7 +20,7 @@ from core.catalog import Catalog
 from core.common import AppPaths
 from core.experiment_engine.events import ProgressEvent
 from core.experiment_engine.runner import NoRunnerError
-from core.experiment_engine.snapshot import compare, environment
+from core.experiment_engine.snapshot import compare, environment_of
 from core.experiment_engine.spec import ExperimentSpec, dump_spec, dump_spec_text, spec_hash
 from core.tracking import LabStore, new_id
 
@@ -43,6 +43,8 @@ class ExperimentService(QObject):
                  parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.paths, self.store, self.jobs, self.catalog = paths, store, jobs, catalog
+        #: The experiment Python (set by build_context); reproductions compare against its environment.
+        self.python: Callable[[], str] = lambda: ""
         self._job_of_run: dict[str, str] = {}
         self._end: dict[str, Mapping[str, Any]] = {}
         self._live: dict[str, LiveState] = {}
@@ -89,7 +91,8 @@ class ExperimentService(QObject):
         if not snapshot.is_file():
             return ["the original run has no snapshot.json (it predates phase 5), so differences "
                     "in the environment cannot be checked"]
-        return compare(json.loads(snapshot.read_text(encoding="utf-8")), environment(self.paths.code_root))
+        current = environment_of(self.python(), self.paths.code_root)  # the Python a reproduction runs under
+        return compare(json.loads(snapshot.read_text(encoding="utf-8")), current)
 
     def reproduce(self, run_id: str) -> str:
         """Run the same experiment.yaml again as a child of ``run_id``; returns the new run id."""
