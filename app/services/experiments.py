@@ -9,6 +9,7 @@ A run folder is ``<workspace>/experiments/<name>-<id>/<run id>/`` and holds
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -28,6 +29,9 @@ from .jobs import JobQueue
 from .runs import FINISHED, LiveState, RunView, slug
 
 __all__ = ["ExperimentService"]
+
+#: Problems about the dataset being on this computer, which a remote target does not share.
+_LOCAL_DATA = re.compile(r"not (downloaded|available)( yet)?", re.IGNORECASE)
 
 
 class ExperimentService(QObject):
@@ -63,7 +67,10 @@ class ExperimentService(QObject):
             runner = self.catalog.runners.for_spec(spec)
         except NoRunnerError as exc:
             return [str(exc)]
-        return runner.validate(spec)
+        problems = runner.validate(spec)
+        if spec.runtime.target:  # the target fetches the data itself (core.remote.dispatch --prepare-data)
+            problems = [p for p in problems if not _LOCAL_DATA.search(p)]
+        return problems
 
     def launch(self, spec: ExperimentSpec) -> str:
         """Record the experiment, write its run folder and queue the run; return the run id."""

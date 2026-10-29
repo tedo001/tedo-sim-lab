@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from core.catalog import Catalog, load_catalog
@@ -26,7 +26,7 @@ from .experiment_setup import ExperimentSetup
 from .experiments import ExperimentService
 from .hardware import HardwareService
 from .inference import InferenceService
-from .jobs import JobQueue, worker_command
+from .jobs import JobQueue, WorkerCommand, worker_command
 from .jupyter import JupyterLab, Notebooks
 from .logs import LogService
 from .mlflow_ui import MlflowUi
@@ -104,14 +104,25 @@ class AppContext:
         release_mlflow_stores()
 
 
-def _python_for_run(run_dir: Path, config: AppConfig, catalog: Catalog) -> str:
-    """The experiment Python, or an installed environment pack that serves the run's runner."""
+def _command_for_run(run_dir: Path, config: AppConfig, catalog: Catalog,
+                     paths: AppPaths) -> WorkerCommand:
+    """The local worker under the experiment Python (or an installed environment pack that serves
+    the run's runner), or the remote dispatcher when the run names a target."""
     base = experiment_python(config)
+    command = worker_command(run_dir, python=base, code_root=paths.code_root, workspace=paths.workspace)
     try:
-        runner = catalog.runners.for_spec(load_spec(Path(run_dir) / "experiment.yaml")).id
-    except Exception:  # a benchmark or evaluation folder, or an unreadable spec: the core Python
-        return base
-    return packs.python_for(base, runner=runner) if base else base
+        spec = load_spec(Path(run_dir) / "experiment.yaml")
+    except Exception:  # a benchmark folder, or an unreadable spec: the core Python
+        return command
+    if spec.runtime.target:
+        return replace(command, arguments=["-m", "core.remote.dispatch", str(run_dir), "--target",
+                                           spec.runtime.target, "--workspace", str(paths.workspace),
+                                           "--cancel-on-eof", "--prepare-data"])
+    try:
+        runner = catalog.runners.for_spec(spec).id
+    except Exception:  # no runner: the worker says why
+        return command
+    return replace(command, program=packs.python_for(base, runner=runner))
 
 
 def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialStore | None = None,
@@ -132,9 +143,7 @@ def build_context(paths: AppPaths, config: AppConfig, credentials: CredentialSto
     store = LabStore.open(paths)
     store.recover_interrupted()
     # The experiment Python is read at each start, so setting it up takes effect at once.
-    jobs = JobQueue(lambda run_dir: worker_command(run_dir,
-                                                   python=_python_for_run(run_dir, config, catalog),
-                                                   code_root=paths.code_root, workspace=paths.workspace),
+    jobs = JobQueue(lambda run_dir: _command_for_run(run_dir, config, catalog, paths),
                     max_concurrent_runs=config.max_concurrent_runs, store=store)
     hardware = HardwareService(python=python, code_root=paths.code_root, probe=probe_hardware)
     experiments = ExperimentService(paths, store, jobs, catalog)

@@ -7,9 +7,18 @@ from pathlib import Path
 
 from pydantic import ValidationError
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFileDialog,
+    QHBoxLayout,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from core.experiment_engine.spec import ExperimentSpec, SpecError, dump_spec, dump_spec_text, load_spec
+from core.remote.targets import TargetError, load_targets
 
 from ....services.context import AppContext
 from ....services.runs import slug
@@ -41,6 +50,14 @@ class ExperimentBuilderPage(Page):
         summary.add_head_widget(self.state)
         self.problem_text = label("", "Body", wrap=True)
         summary.add(self.problem_text)
+        where = QHBoxLayout()
+        where.addWidget(label("Run on", "CardCaption"))
+        self.target = QComboBox()
+        self.target.setMinimumWidth(200)
+        self.target.setToolTip("This computer, or a remote target from Settings → Remote targets")
+        self.target.currentIndexChanged.connect(lambda _: self._timer.start())
+        where.addWidget(self.target, 1)
+        summary.add(where)
         buttons = QHBoxLayout()
         self.run_button = QPushButton("Run")
         self.run_button.setObjectName("Primary")
@@ -84,7 +101,29 @@ class ExperimentBuilderPage(Page):
         self.refresh()
 
     # State ----------------------------------------------------------------------
+    def refresh_targets(self, chosen: str | None = None) -> None:
+        """This computer and every remote target of the workspace."""
+        try:
+            names = sorted(load_targets(self.ctx.paths.configs))
+        except TargetError:
+            names = []
+        chosen = chosen if chosen is not None else self.target.currentData()
+        self.target.blockSignals(True)
+        self.target.clear()
+        self.target.addItem("This computer", None)
+        for name in names:
+            self.target.addItem(name, name)
+        if chosen and chosen not in names:
+            self.target.addItem(f"{chosen} (not in this workspace)", chosen)
+        self.target.setCurrentIndex(max(self.target.findData(chosen), 0))
+        self.target.blockSignals(False)
+
+    def showEvent(self, event) -> None:  # noqa: N802, ANN001 (Qt override)
+        self.refresh_targets()
+        super().showEvent(event)
+
     def load(self, spec: ExperimentSpec) -> None:
+        self.refresh_targets(spec.runtime.target or "")
         self.form.load(spec)
         self.result.setText("")
         self.refresh()
@@ -92,6 +131,10 @@ class ExperimentBuilderPage(Page):
     def refresh(self) -> None:
         try:
             self.spec = self.form.spec()
+            target = self.target.currentData()
+            if target:
+                self.spec = self.spec.model_copy(update={"runtime": self.spec.runtime.model_copy(
+                    update={"target": target})})
         except ValidationError as exc:
             self.spec, self.problems = None, _problems(exc)
             self.yaml.setPlainText("")

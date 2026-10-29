@@ -127,7 +127,8 @@ NAV: tuple[PageSpec, ...] = (
 
     # ── Not in the sidebar ───────────────────────────────────────────
     _p("settings", "Settings", "system", "settings",
-       "Workspace, configuration and credential status.", in_sidebar=False),
+       "Workspace, configuration, the experiment Python, remote targets and credential status.",
+       in_sidebar=False),
 )
 
 _BY_ID = {spec.id: spec for spec in NAV}

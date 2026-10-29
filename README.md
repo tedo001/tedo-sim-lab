@@ -82,6 +82,15 @@ What a result needs before it is presented as one:
   radar, one spoke per test score they all have (accuracy, precision, recall, F1, ROC AUC, best
   validation accuracy; mAP, AP50, AP75 and IoU for detection runs), either absolute (0–1) or
   zoomed (each spoke from the lowest to the highest ticked score), with hover values; it goes into the exported report too.
+- **Remote compute.** Design an `experiment.yaml` here and run it on an SSH server or cloud
+  instance: add the machine under Settings → *Remote targets* (host, user, port, its Python, a
+  folder there, optionally a key *file*; never a password) and pick it under *Run on* in the
+  Experiment Builder. The lab sends its code (once per version) and the run, fetches the dataset
+  there when its terms allow, runs the worker there and streams its progress here like a local run
+  (Cancel works), then brings the whole run folder back: checkpoints, metrics, and a snapshot and
+  report that record the remote machine's environment. It uses your system's OpenSSH (`ssh`/`scp`);
+  `python -m core.remote.dispatch <run folder> --target <name> --workspace <folder>` does the same
+  from a terminal.
 - **Explanation records.** Every *Look inside* on Model Testing (Grad-CAM, saliency, layer maps) is
   saved in the run's `explanations/` folder with a copy of the input and its SHA-256, the checkpoint
   file and its SHA-256, the spec hash, the target class (chosen or predicted) with every probability,

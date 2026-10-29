@@ -23,6 +23,7 @@ from ...services.updates import UpdateResult
 from ..icons import icon
 from ..widgets import Card, DataTable, KeyValues, Page, Pill, label
 from .experiment_python_card import ExperimentPythonCard
+from .remote_targets_card import RemoteTargetsCard
 from .settings_form import SettingsForm
 
 __all__ = ["SettingsPage"]
@@ -56,6 +57,8 @@ class SettingsPage(Page):
         self.body.addWidget(self.form)
         self.experiment_python = ExperimentPythonCard(ctx)
         self.body.addWidget(self.experiment_python)
+        self.remote_targets = RemoteTargetsCard(ctx)
+        self.body.addWidget(self.remote_targets)
 
         credentials = Card("Credentials", "values are never shown", padded=False)
         self.credential_table = DataTable(("Credential", "Variable", "Source"), mono_columns=(1,),

@@ -175,6 +175,9 @@ class RuntimeSpec(_Strict):
     precision: Literal["fp32", "fp16", "bf16"] = "fp32"
     num_workers: int = Field(default=0, ge=0)
     deterministic: bool = False
+    #: A remote target from the workspace's ``configs/remotes.yaml`` to run on (``None`` = here).
+    #: Where a run happens is not what it computes, so it is left out of :func:`spec_hash`.
+    target: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_.-]{1,64}$")
 
 
 TrainingSpec = Annotated[TorchTrainingSpec | SklearnTrainingSpec | QuantumTrainingSpec,
@@ -256,8 +259,9 @@ def dump_spec(spec: ExperimentSpec, path: Path) -> Path:
 
 def spec_hash(spec: ExperimentSpec) -> str:
     """SHA-256 of what decides the result: everything except name, description, tags, the research
-    notes and whether the data checks stop a run."""
+    notes, whether the data checks stop a run and which machine runs it."""
     data = spec.model_dump(mode="json", exclude={"name": True, "description": True, "tags": True,
-                                                 "research": True, "data": {"validation"}})
+                                                 "research": True, "data": {"validation"},
+                                                 "runtime": {"target"}})
     canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

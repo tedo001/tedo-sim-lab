@@ -64,8 +64,7 @@ def write_record(run: Any, args: dict[str, Any], result: dict[str, Any], *, chos
     from core.experiment_engine.spec import spec_hash
 
     created = datetime.now(UTC)
-    stamp = hashlib.sha1(str(created.timestamp()).encode()).hexdigest()[:6]
-    record_id = created.strftime("%Y%m%d-%H%M%S-") + stamp
+    record_id = created.strftime("%Y%m%d-%H%M%S-%f")  # sorts in the order they were made
     folder = Path(run.run_dir) / FOLDER / record_id
     folder.mkdir(parents=True, exist_ok=True)
     item = args["input"] if isinstance(args["input"], dict) else {"path": args["input"]}
