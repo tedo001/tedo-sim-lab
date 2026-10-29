@@ -96,10 +96,12 @@ def test_the_persons_own_programs_keep_their_environment() -> None:
 def test_a_real_child_process_sees_the_isolated_environment(tmp_path) -> None:
     import os
 
-    base = {**os.environ, "TEDO_TEST_API_TOKEN": "must-not-leak", "PYTHONPATH": str(tmp_path / "host")}
+    leaked = tmp_path / "leaked-host-pythonpath"  # a unique folder: CI's own paths contain "host"
+    leaked.mkdir()
+    base = {**os.environ, "TEDO_TEST_API_TOKEN": "must-not-leak", "PYTHONPATH": str(leaked)}
     code = ("import json, os, sys, core; print(json.dumps({'token': os.environ.get('TEDO_TEST_API_TOKEN'), "
             "'prefix': sys.pycache_prefix, "
-            "'host': any('host' in p for p in sys.path), 'core': core.__file__}))")
+            "'host': any('leaked-host-pythonpath' in p for p in sys.path), 'core': core.__file__}))")
     done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=60,
                           stdin=subprocess.DEVNULL, cwd=tmp_path,
                           env=child_environment(base=base, code_root=CODE_ROOT, workspace=tmp_path))
